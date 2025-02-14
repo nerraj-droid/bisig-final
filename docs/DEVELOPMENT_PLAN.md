@@ -3,6 +3,7 @@
 ## Phase 1: Project Setup & Authentication (1-2 weeks)
 
 1. **Initial Project Setup**
+
    - Initialize Next.js project with TypeScript
    - Set up Prisma with PostgreSQL
    - Configure Tailwind CSS and Shadcn-UI
@@ -18,6 +19,7 @@
 ## Phase 2: Core User Management (1-2 weeks)
 
 1. **User Management**
+
    - Implement user CRUD operations
    - Create user profile management
    - Add role management system
@@ -32,6 +34,7 @@
 ## Phase 3: Resident Management (2-3 weeks)
 
 1. **Resident Profiling**
+
    - Build resident registration form
    - Implement resident search and filtering
    - Create resident profile view
@@ -44,27 +47,40 @@
    - Implement household search
    - Add household profile view
 
-## Phase 4: GIS Integration (1-2 weeks)
+## Phase 4: GIS Integration (1-2 weeks) ✅
 
-1. **MapBox Integration**
-   - Set up MapBox configuration
-   - Create interactive map component
-   - Implement household plotting
-   - Add location search functionality
-   - Create map filters
+1. **MapBox Integration** - COMPLETED
+   - ✅ Set up MapBox configuration
+   - ✅ Create interactive map component
+   - ✅ Implement household plotting
+   - ✅ Add location search functionality
+   - ✅ Create map filters
 
-## Phase 5: Certificate Management (1-2 weeks)
+## Phase 5: Certificate Management (1-2 weeks) 🚀 [CURRENT PHASE]
 
 1. **Certificate System**
    - Create certificate templates
+     - Barangay Clearance
+     - Certificate of Residency
+     - Business Permit
+     - Indigency Certificate
    - Implement certificate generation
-   - Build certificate tracking system
-   - Add certificate validation
-   - Create certificate printing functionality
+     - PDF generation with dynamic data
+     - QR code integration for verification
+   - Build certificate tracking system ✅
+     - Create API routes for certificate requests
+     - Develop a tracking page to view and manage requests
+   - Add certificate validation ✅
+     - Create a verification page for certificates
+     - Implement verification logic using control number
+   - Create certificate printing functionality ✅
+     - Print-ready PDF format
+     - Batch printing capability
 
 ## Phase 6: Communication System (1-2 weeks)
 
 1. **Announcements**
+
    - Create announcement management
    - Implement announcement distribution
    - Add notification system
@@ -78,6 +94,7 @@
 ## Phase 7: Reports and Analytics (1-2 weeks)
 
 1. **Reporting System**
+
    - Create report templates
    - Implement data aggregation
    - Build visualization components
@@ -92,6 +109,7 @@
 ## Phase 8: Testing and Optimization (1-2 weeks)
 
 1. **Testing**
+
    - Write unit tests
    - Perform integration testing
    - Conduct user acceptance testing
@@ -106,6 +124,7 @@
 ## Phase 9: Deployment and Documentation (1 week)
 
 1. **Deployment**
+
    - Set up production environment
    - Configure SSL certificates
    - Implement backup system
@@ -123,20 +142,27 @@ To begin development:
 
 1. Clone the repository
 2. Install dependencies:
+
    ```bash
    npm install
    ```
+
 3. Set up environment variables:
+
    ```env
    DATABASE_URL="postgresql://..."
    NEXTAUTH_SECRET="your-secret"
    MAPBOX_API_KEY="your-key"
    ```
+
 4. Run database migrations:
+
    ```bash
    npx prisma migrate dev
    ```
+
 5. Start development server:
+
    ```bash
    npm run dev
    ```
@@ -144,14 +170,16 @@ To begin development:
 ## Development Guidelines
 
 1. Follow Git branch naming convention:
+
    - feature/feature-name
    - bugfix/bug-description
    - hotfix/fix-description
 
 2. Commit message format:
+
    ```
    type(scope): description
-   
+
    - feat: new feature
    - fix: bug fix
    - docs: documentation
@@ -162,6 +190,7 @@ To begin development:
    ```
 
 3. Code Review Process:
+
    - Create pull request
    - Request review from team members
    - Address feedback
@@ -172,4 +201,4 @@ To begin development:
    - Ensure all tests pass before merging
    - Maintain minimum 80% code coverage
 
-This development plan spans approximately 10-15 weeks, depending on team size and velocity. Each phase can be adjusted based on specific needs and resources available. 
+This development plan spans approximately 10-15 weeks, depending on team size and velocity. Each phase can be adjusted based on specific needs and resources available.

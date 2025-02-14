@@ -60,6 +60,23 @@ body {
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
   }
+
+  .certificate-page {
+    width: 210mm; /* A4 width */
+    min-height: 297mm; /* A4 height */
+    margin: 0 auto;
+    padding: 15mm;
+    background: white;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+  }
+}
+
+@media print {
+  .certificate-page {
+    box-shadow: none;
+    margin: 0;
+    page-break-after: always;
+  }
 }
 
 @layer base {

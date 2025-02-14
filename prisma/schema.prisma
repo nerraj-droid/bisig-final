@@ -11,30 +11,30 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  password      String
-  role          Role      @default(USER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  accounts      Account[]
-  sessions      Session[]
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  password  String
+  role      Role      @default(USER)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  accounts  Account[]
+  sessions  Session[]
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -50,36 +50,56 @@ model Session {
 }
 
 model Resident {
-  id            String      @id @default(cuid())
-  firstName     String
-  middleName    String?
-  lastName      String
-  birthDate     DateTime
-  gender        Gender
-  civilStatus   CivilStatus
-  contactNo     String?
-  email         String?
-  occupation    String?
-  address       String
-  householdId   String?
-  household     Household?  @relation(fields: [householdId], references: [id])
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id          String      @id @default(cuid())
+  firstName   String
+  middleName  String?
+  lastName    String
+  birthDate   DateTime
+  gender      Gender
+  civilStatus CivilStatus
+  contactNo   String?
+  email       String?
+  occupation  String?
+  address     String
+  householdId String?
+  household   Household?  @relation(fields: [householdId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 }
 
 model Household {
-  id            String      @id @default(cuid())
-  houseNo       String
-  street        String
-  barangay      String
-  city          String
-  province      String
-  zipCode       String
-  latitude      Float?
-  longitude     Float?
-  residents     Resident[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id        String     @id @default(cuid())
+  houseNo   String
+  street    String
+  barangay  String
+  city      String
+  province  String
+  zipCode   String
+  latitude  Float?
+  longitude Float?
+  residents Resident[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Officials {
+  id             String        @id @default(cuid()) // Add a unique identifier
+  punongBarangay String
+  secretary      String?
+  treasurer      String?
+  certificates   Certificate[] @relation("CertificateOfficials") // Specify the relation name
+}
+
+model Certificate {
+  id            String    @id @default(cuid())
+  residentName  String
+  address       String
+  purpose       String
+  controlNumber String
+  status        String
+  issuedDate    DateTime?
+  officials     Officials @relation("CertificateOfficials", fields: [officialId], references: [id]) // Specify fields and references
+  officialId    String // Add a foreign key field
 }
 
 enum Role {
