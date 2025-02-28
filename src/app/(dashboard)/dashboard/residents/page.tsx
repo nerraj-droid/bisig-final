@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { ResidentList } from "@/components/residents/resident-list";
+
 export default async function ResidentsPage() {
   const initialResidents = await prisma.resident
     .findMany({
@@ -19,7 +20,7 @@ export default async function ResidentsPage() {
         occupation: true,
         voterInBarangay: true,
         headOfHousehold: true,
-        household: {
+        Household: {
           select: {
             houseNo: true,
             street: true,

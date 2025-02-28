@@ -4,7 +4,7 @@ import { authOptions } from "../auth/[...nextauth]/route"
 import { prisma } from "@/lib/prisma"
 import { Prisma, Role } from "@prisma/client"
 import { z } from 'zod'
-
+import { randomUUID } from "crypto"
 interface ExtendedSession {
     user?: {
         name?: string | null
@@ -72,6 +72,8 @@ export async function POST(req: Request) {
 
         const resident = await prisma.resident.create({
             data: {
+                id: randomUUID(),
+                updatedAt: new Date(),
                 firstName: validatedData.firstName,
                 middleName: validatedData.middleName,
                 lastName: validatedData.lastName,
@@ -105,7 +107,7 @@ export async function POST(req: Request) {
                 householdId: validatedData.householdId || null,
             },
             include: {
-                household: true,
+                Household: true,
             }
         })
 
@@ -190,7 +192,7 @@ export async function GET(req: Request) {
                 voterInBarangay: true,
                 votersIdNumber: true,
                 lastVotingParticipationDate: true,
-                household: {
+                Household: {
                     select: {
                         id: true,
                         houseNo: true,

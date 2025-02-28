@@ -40,7 +40,7 @@ export async function GET(
         const resident = await prisma.resident.findUnique({
             where: { id: params.residentId },
             include: {
-                household: true,
+                Household: true,
             },
         })
 
@@ -177,9 +177,10 @@ export async function PATCH(
                 votersIdNumber: data.votersIdNumber,
                 lastVotingParticipationDate: data.lastVotingParticipationDate ? new Date(data.lastVotingParticipationDate) : null,
                 householdId: data.householdId || null,
+                updatedAt: new Date(),
             },
             include: {
-                household: true,
+                Household: true,
             },
         })
 

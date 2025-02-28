@@ -6,7 +6,7 @@ export default async function HouseholdsPage() {
   const initialHouseholds = await prisma.household
     .findMany({
       take: 10,
-      include: { residents: true },
+      include: { Resident: true },
       orderBy: { createdAt: "desc" },
     })
     .then((households) =>
@@ -14,6 +14,8 @@ export default async function HouseholdsPage() {
         ...household,
         createdAt: household.createdAt.toISOString(),
         updatedAt: household.updatedAt.toISOString(),
+        residents: household.Resident,
+        Resident: undefined,
       }))
     );
 

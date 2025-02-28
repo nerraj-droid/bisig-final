@@ -17,7 +17,7 @@ interface Resident {
     occupation: string | null
     voterInBarangay: boolean
     headOfHousehold: boolean
-    household: {
+    Household: {
         houseNo: string
         street: string
     } | null
@@ -107,7 +107,7 @@ export function ResidentList({ initialResidents }: ResidentListProps) {
                                 scope="col"
                                 className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
                             >
-                                Head of HH
+                                Head of Household
                             </th>
                             <th
                                 scope="col"
@@ -144,8 +144,8 @@ export function ResidentList({ initialResidents }: ResidentListProps) {
                                     {resident.headOfHousehold ? "Yes" : "No"}
                                 </td>
                                 <td className="whitespace-nowrap px-6 py-4">
-                                    {resident.household
-                                        ? `${resident.household.houseNo} ${resident.household.street}`
+                                    {resident.Household
+                                        ? `${resident.Household.houseNo} ${resident.Household.street}`
                                         : "No Household"
                                     }
                                 </td>

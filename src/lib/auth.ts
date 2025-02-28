@@ -1,5 +1,7 @@
-const { PrismaClient } = require("@prisma/client");
-const { hash } = require("bcryptjs");
+import { PrismaClient, Role } from "@prisma/client";
+import { hash } from "bcryptjs";
+import { randomUUID } from "crypto";
+
 const prisma = new PrismaClient();
 
 type UserStatus = "ACTIVE" | "INACTIVE";
@@ -8,7 +10,7 @@ interface DefaultUser {
   email: string;
   name: string;
   password: string;
-  role: string;
+  role: Role;
 }
 
 const auth = {
@@ -23,10 +25,12 @@ const auth = {
       const hashedPassword = await hash("admin123", 10);
       await prisma.user.create({
         data: {
+          id: randomUUID(),
           email: "admin@example.com",
           name: "Super Admin",
           password: hashedPassword,
-          role: "SUPER_ADMIN",
+          role: Role.SUPER_ADMIN,
+          updatedAt: new Date(),
         },
       });
       console.log("Super Admin user created successfully!");
@@ -37,19 +41,19 @@ const auth = {
           email: "captain@example.com",
           name: "Barangay Captain",
           password: "captain123",
-          role: "CAPTAIN",
+          role: Role.CAPTAIN,
         },
         {
           email: "secretary@example.com",
           name: "Barangay Secretary",
           password: "secretary123",
-          role: "SECRETARY",
+          role: Role.SECRETARY,
         },
         {
           email: "treasurer@example.com",
           name: "Barangay Treasurer",
           password: "treasurer123",
-          role: "TREASURER",
+          role: Role.TREASURER,
         },
       ];
 
@@ -57,10 +61,12 @@ const auth = {
         const hashedPassword = await hash(user.password, 10);
         await prisma.user.create({
           data: {
+            id: randomUUID(),
             email: user.email,
             name: user.name,
             password: hashedPassword,
             role: user.role,
+            updatedAt: new Date(),
           },
         });
         console.log(`${user.role} user created successfully!`);
@@ -77,6 +83,7 @@ const auth = {
       await prisma.household.createMany({
         data: [
           {
+            id: randomUUID(),
             houseNo: "123",
             street: "Main Street",
             barangay: "Sample Barangay",
@@ -85,8 +92,10 @@ const auth = {
             zipCode: "1234",
             latitude: 14.5995,
             longitude: 120.9842,
+            updatedAt: new Date(),
           },
           {
+            id: randomUUID(),
             houseNo: "456",
             street: "Secondary Street",
             barangay: "Sample Barangay",
@@ -95,6 +104,7 @@ const auth = {
             zipCode: "1234",
             latitude: 14.6005,
             longitude: 120.9852,
+            updatedAt: new Date(),
           },
         ],
       });
@@ -115,6 +125,7 @@ const auth = {
         await prisma.resident.createMany({
           data: [
             {
+              id: randomUUID(),
               firstName: "Juan",
               middleName: "Dela",
               lastName: "Cruz",
@@ -126,8 +137,10 @@ const auth = {
               occupation: "Teacher",
               address: `${household.houseNo} ${household.street}`,
               householdId: household.id,
+              updatedAt: new Date(),
             },
             {
+              id: randomUUID(),
               firstName: "Maria",
               middleName: "Santos",
               lastName: "Cruz",
@@ -139,8 +152,10 @@ const auth = {
               occupation: "Nurse",
               address: `${household.houseNo} ${household.street}`,
               householdId: household.id,
+              updatedAt: new Date(),
             },
             {
+              id: randomUUID(),
               firstName: "Pedro",
               lastName: "Santos",
               birthDate: new Date("1985-06-10"),
@@ -149,6 +164,7 @@ const auth = {
               contactNo: "09199999999",
               occupation: "Engineer",
               address: "321 Independent St",
+              updatedAt: new Date(),
             },
           ],
         });
@@ -160,4 +176,4 @@ const auth = {
   },
 };
 
-module.exports = auth;
+export default auth;

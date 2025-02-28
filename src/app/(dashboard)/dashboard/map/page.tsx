@@ -11,7 +11,7 @@ export default async function MapPage() {
             longitude: { not: null },
         },
         include: {
-            residents: {
+            Resident: {
                 select: {
                     id: true,
                     firstName: true,
@@ -33,11 +33,11 @@ export default async function MapPage() {
         <div class="font-medium">${household.houseNo} ${household.street}</div>
         <div class="text-sm text-gray-500">${household.barangay}, ${household.city}</div>
         <div class="text-sm">
-          ${household.residents.length} resident${household.residents.length !== 1 ? 's' : ''}
+          ${household.Resident.length} resident${household.Resident.length !== 1 ? 's' : ''}
         </div>
-        ${household.residents.length > 0 ? `
+        ${household.Resident.length > 0 ? `
           <div class="mt-2 text-sm">
-            ${household.residents.map(r => `${r.firstName} ${r.lastName}`).join('<br/>')}
+            ${household.Resident.map(r => `${r.firstName} ${r.lastName}`).join('<br/>')}
           </div>
         ` : ''}
         <a href="/dashboard/households/${household.id}" class="mt-2 inline-block text-sm text-blue-600 hover:text-blue-500">

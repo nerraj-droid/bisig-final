@@ -1,9 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["multiSchema"]
 }
 
@@ -14,158 +10,148 @@ datasource db {
   schemas   = ["public", "test"]
 }
 
-model User {
-  id        String    @id @default(cuid())
-  email     String    @unique
-  name      String?
-  password  String
-  role      Role      @default(SECRETARY)
-  status    Status    @default(ACTIVE)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  accounts  Account[]
-  sessions  Session[]
-
-  @@schema("test")
-}
-
 model Account {
-  id                String  @id @default(cuid())
+  id                String  @id
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
-  @@schema("test")
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@schema("test")
-}
-
-model Resident {
-  id          String      @id @default(cuid())
-  firstName   String
-  middleName  String?
-  lastName    String
-  extensionName String?
-  alias       String?
-  birthDate   DateTime
-  gender      Gender
-  civilStatus CivilStatus
-  contactNo   String?
-  email       String?
-  occupation  String?
-  educationalAttainment String?
-  bloodType   String?
-  religion    String?
-  ethnicGroup String?
-  nationality String      @default("Filipino")
-  address     String
-  householdId String?
-  household   Household?  @relation(fields: [householdId], references: [id])
-  userPhoto   String?
-  motherMaidenName String?
-  motherMiddleName String?
-  motherFirstName  String?
-  fatherName      String?
-  fatherLastName  String?
-  fatherMiddleName String?
-  familySerialNumber String?
-  headOfHousehold Boolean  @default(false)
-  familyRole     String?
-  voterInBarangay Boolean @default(false)
-  votersIdNumber String?
-  lastVotingParticipationDate DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  certificates Certificate[]
-
-  @@schema("test")
-}
-
-model Household {
-  id        String     @id @default(cuid())
-  houseNo   String
-  street    String
-  barangay  String
-  city      String
-  province  String
-  zipCode   String
-  latitude  Float?
-  longitude Float?
-  residents Resident[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  @@schema("test")
-}
-
-model Officials {
-  id             String        @id @default(cuid())
-  punongBarangay String
-  secretary      String?
-  treasurer      String?
-  certificates   Certificate[] @relation("CertificateOfficials")
-
-  @@schema("test")
+  @@schema("public")
 }
 
 model Certificate {
-  id            String    @id @default(cuid())
-  resident      Resident  @relation(fields: [residentId], references: [id])
-  residentId    String
-  type          CertificateType
+  id            String          @id
   purpose       String
-  controlNumber String    @unique
+  controlNumber String          @unique
   status        String
   issuedDate    DateTime?
-  officials     Officials @relation("CertificateOfficials", fields: [officialId], references: [id])
   officialId    String
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime        @default(now())
+  residentId    String
+  type          CertificateType
+  updatedAt     DateTime
+  Officials     Officials       @relation(fields: [officialId], references: [id])
+  Resident      Resident        @relation(fields: [residentId], references: [id])
 
-  @@schema("test")
+  @@schema("public")
 }
 
-enum Role {
-  SUPER_ADMIN
-  CAPTAIN
-  SECRETARY
-  TREASURER
+model Household {
+  id          String         @id
+  houseNo     String
+  street      String
+  barangay    String
+  city        String
+  province    String
+  zipCode     String
+  latitude    Float?
+  longitude   Float?
+  type        HouseholdType @default(SINGLE_FAMILY)
+  status      HouseholdStatus @default(ACTIVE)
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime
+  Resident    Resident[]
+  mergedInto  String?       // ID of the household this one was merged into
+  mergedFrom  String[]      // IDs of households that were merged into this one
+  history     Json[]        // Array of historical changes
 
-  @@schema("test")
+  @@schema("public")
 }
 
-enum Status {
-  ACTIVE
-  INACTIVE
+model Officials {
+  id             String        @id
+  punongBarangay String
+  secretary      String?
+  treasurer      String?
+  Certificate    Certificate[]
 
-  @@schema("test")
+  @@schema("public")
 }
 
-enum Gender {
-  MALE
-  FEMALE
-  OTHER
+model Resident {
+  id                          String        @id
+  firstName                   String
+  middleName                  String?
+  lastName                    String
+  birthDate                   DateTime
+  gender                      Gender
+  civilStatus                 CivilStatus
+  contactNo                   String?
+  email                       String?
+  occupation                  String?
+  address                     String
+  householdId                 String?
+  createdAt                   DateTime      @default(now())
+  updatedAt                   DateTime
+  alias                       String?
+  bloodType                   String?
+  educationalAttainment       String?
+  ethnicGroup                 String?
+  extensionName               String?
+  familyRole                  String?
+  familySerialNumber          String?
+  fatherLastName              String?
+  fatherMiddleName            String?
+  fatherName                  String?
+  headOfHousehold             Boolean       @default(false)
+  lastVotingParticipationDate DateTime?
+  motherFirstName             String?
+  motherMaidenName            String?
+  motherMiddleName            String?
+  nationality                 String        @default("Filipino")
+  religion                    String?
+  userPhoto                   String?
+  voterInBarangay             Boolean       @default(false)
+  votersIdNumber              String?
+  Certificate                 Certificate[]
+  Household                   Household?    @relation(fields: [householdId], references: [id])
 
-  @@schema("test")
+  @@schema("public")
+}
+
+model Session {
+  id           String   @id
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
+}
+
+model User {
+  id        String    @id
+  email     String    @unique
+  name      String?
+  password  String
+  role      Role      @default(SECRETARY)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime
+  status    Status    @default(ACTIVE)
+  Account   Account[]
+  Session   Session[]
+
+  @@schema("public")
+}
+
+enum CertificateType {
+  RESIDENCY
+  INDIGENCY
+  CLEARANCE
+  BUSINESS_PERMIT
+
+  @@schema("public")
 }
 
 enum CivilStatus {
@@ -175,14 +161,50 @@ enum CivilStatus {
   DIVORCED
   SEPARATED
 
-  @@schema("test")
+  @@schema("public")
 }
 
-enum CertificateType {
-  RESIDENCY
-  INDIGENCY
-  CLEARANCE
-  BUSINESS_PERMIT
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
 
-  @@schema("test")
+  @@schema("public")
+}
+
+enum Role {
+  SUPER_ADMIN
+  CAPTAIN
+  SECRETARY
+  TREASURER
+
+  @@schema("public")
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+
+  @@schema("public")
+}
+
+enum HouseholdType {
+  SINGLE_FAMILY
+  MULTI_FAMILY
+  EXTENDED_FAMILY
+  SINGLE_PERSON
+  NON_FAMILY
+  OTHER
+
+  @@schema("public")
+}
+
+enum HouseholdStatus {
+  ACTIVE
+  INACTIVE
+  RELOCATED
+  MERGED
+  ARCHIVED
+
+  @@schema("public")
 }

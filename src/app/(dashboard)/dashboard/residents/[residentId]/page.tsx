@@ -48,7 +48,7 @@ export default async function ResidentPage({ params }: PageProps) {
             voterInBarangay: true,
             votersIdNumber: true,
             lastVotingParticipationDate: true,
-            household: {
+            Household: {
                 select: {
                     id: true,
                     houseNo: true,
@@ -209,19 +209,19 @@ export default async function ResidentPage({ params }: PageProps) {
 
                 <div className="rounded-lg bg-white p-6 shadow-sm">
                     <h2 className="mb-4 text-lg font-semibold">Household Information</h2>
-                    {resident.household ? (
+                    {resident.Household ? (
                         <>
                             <div className="mb-4">
                                 <div className="font-medium text-gray-900">
-                                    {resident.household.houseNo} {resident.household.street}
+                                    {resident.Household.houseNo} {resident.Household.street}
                                 </div>
                                 <div className="text-sm text-gray-500">
-                                    {resident.household.barangay}, {resident.household.city},
-                                    {resident.household.province} {resident.household.zipCode}
+                                    {resident.Household.barangay}, {resident.Household.city},
+                                    {resident.Household.province} {resident.Household.zipCode}
                                 </div>
                             </div>
                             <Link
-                                href={`/dashboard/households/${resident.household.id}`}
+                                href={`/dashboard/households/${resident.Household.id}`}
                                 className="text-sm text-blue-600 hover:text-blue-500"
                             >
                                 View Household Details

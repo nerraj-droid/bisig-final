@@ -2,197 +2,266 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { MapProvider } from "@/components/map/map-context"
 import { LocationPicker } from "@/components/map/location-picker"
+
+const formSchema = z.object({
+    houseNo: z.string().min(1, "House number is required"),
+    street: z.string().min(1, "Street is required"),
+    barangay: z.string().min(1, "Barangay is required"),
+    city: z.string().min(1, "City is required"),
+    province: z.string().min(1, "Province is required"),
+    zipCode: z.string().min(1, "ZIP code is required"),
+    latitude: z.number().nullable(),
+    longitude: z.number().nullable(),
+    type: z.enum(["SINGLE_FAMILY", "MULTI_FAMILY", "EXTENDED_FAMILY", "SINGLE_PERSON", "NON_FAMILY", "OTHER"]),
+    status: z.enum(["ACTIVE", "INACTIVE", "RELOCATED", "MERGED", "ARCHIVED"]),
+    notes: z.string().optional(),
+})
 
 export function HouseholdForm() {
     const router = useRouter()
-    const [error, setError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
-    const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null)
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        setError(null)
-        setLoading(true)
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            houseNo: "",
+            street: "",
+            barangay: "",
+            city: "",
+            province: "",
+            zipCode: "",
+            latitude: null,
+            longitude: null,
+            type: "SINGLE_FAMILY",
+            status: "ACTIVE",
+            notes: "",
+        },
+    })
 
-        const formData = new FormData(e.currentTarget)
-        const data = {
-            houseNo: formData.get("houseNo") as string,
-            street: formData.get("street") as string,
-            barangay: formData.get("barangay") as string,
-            city: formData.get("city") as string,
-            province: formData.get("province") as string,
-            zipCode: formData.get("zipCode") as string,
-            latitude: location?.latitude || null,
-            longitude: location?.longitude || null,
-        }
-
+    const onSubmit = async (values: z.infer<typeof formSchema>) => {
         try {
-            // Required fields check
-            if (!data.houseNo || !data.street) {
-                throw new Error('House number and street are required')
-            }
-
-            // House number format validation
-            if (typeof data.houseNo === 'string' && !/^[0-9A-Za-z-]+$/.test(data.houseNo)) {
-                throw new Error('Invalid house number format')
-            }
-
-            const res = await fetch("/api/households", {
+            setLoading(true)
+            const response = await fetch("/api/households", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(data),
+                body: JSON.stringify(values),
             })
 
-            if (!res.ok) {
-                const error = await res.json()
-                throw new Error(error.message)
+            if (!response.ok) {
+                throw new Error("Failed to create household")
             }
 
-            router.push("/dashboard/households")
+            const household = await response.json()
+            router.push(`/dashboard/households/${household.id}`)
             router.refresh()
         } catch (error) {
-            setError(error instanceof Error ? error.message : "An unknown error occurred")
+            console.error("Error creating household:", error)
+        } finally {
             setLoading(false)
         }
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-                <div className="rounded-md bg-red-50 p-4 text-red-500">
-                    {error}
-                </div>
-            )}
-
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div>
-                    <label htmlFor="houseNo" className="block text-sm font-medium text-gray-700">
-                        House Number
-                    </label>
-                    <input
-                        id="houseNo"
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <div className="grid gap-4 md:grid-cols-2">
+                    <FormField
+                        control={form.control}
                         name="houseNo"
-                        type="text"
-                        required
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>House Number</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Enter house number" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
                     />
-                </div>
 
-                <div>
-                    <label htmlFor="street" className="block text-sm font-medium text-gray-700">
-                        Street
-                    </label>
-                    <input
-                        id="street"
+                    <FormField
+                        control={form.control}
                         name="street"
-                        type="text"
-                        required
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Street</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Enter street name" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
                     />
-                </div>
 
-                <div>
-                    <label htmlFor="barangay" className="block text-sm font-medium text-gray-700">
-                        Barangay
-                    </label>
-                    <input
-                        id="barangay"
+                    <FormField
+                        control={form.control}
                         name="barangay"
-                        type="text"
-                        required
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Barangay</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Enter barangay" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
                     />
-                </div>
 
-                <div>
-                    <label htmlFor="city" className="block text-sm font-medium text-gray-700">
-                        City
-                    </label>
-                    <input
-                        id="city"
+                    <FormField
+                        control={form.control}
                         name="city"
-                        type="text"
-                        required
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>City</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Enter city" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
                     />
-                </div>
 
-                <div>
-                    <label htmlFor="province" className="block text-sm font-medium text-gray-700">
-                        Province
-                    </label>
-                    <input
-                        id="province"
+                    <FormField
+                        control={form.control}
                         name="province"
-                        type="text"
-                        required
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Province</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Enter province" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
                     />
-                </div>
 
-                <div>
-                    <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700">
-                        ZIP Code
-                    </label>
-                    <input
-                        id="zipCode"
+                    <FormField
+                        control={form.control}
                         name="zipCode"
-                        type="text"
-                        required
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>ZIP Code</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Enter ZIP code" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="type"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Household Type</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select household type" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="SINGLE_FAMILY">Single Family</SelectItem>
+                                        <SelectItem value="MULTI_FAMILY">Multi Family</SelectItem>
+                                        <SelectItem value="EXTENDED_FAMILY">Extended Family</SelectItem>
+                                        <SelectItem value="SINGLE_PERSON">Single Person</SelectItem>
+                                        <SelectItem value="NON_FAMILY">Non-Family</SelectItem>
+                                        <SelectItem value="OTHER">Other</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Status</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select status" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="ACTIVE">Active</SelectItem>
+                                        <SelectItem value="INACTIVE">Inactive</SelectItem>
+                                        <SelectItem value="RELOCATED">Relocated</SelectItem>
+                                        <SelectItem value="MERGED">Merged</SelectItem>
+                                        <SelectItem value="ARCHIVED">Archived</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
                     />
                 </div>
 
-                <div>
-                    <label htmlFor="latitude" className="block text-sm font-medium text-gray-700">
-                        Latitude
-                    </label>
-                    <input
-                        id="latitude"
-                        name="latitude"
-                        type="number"
-                        step="any"
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
-                    />
-                </div>
-
-                <div>
-                    <label htmlFor="longitude" className="block text-sm font-medium text-gray-700">
-                        Longitude
-                    </label>
-                    <input
-                        id="longitude"
-                        name="longitude"
-                        type="number"
-                        step="any"
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
-                    />
-                </div>
-            </div>
-
-            <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                    Location
-                </label>
-                <LocationPicker
-                    initialLocation={null}
-                    onLocationChange={setLocation}
+                <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Notes</FormLabel>
+                            <FormControl>
+                                <Textarea
+                                    placeholder="Add any additional notes about the household"
+                                    className="h-32"
+                                    {...field}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
                 />
-                <p className="text-sm text-gray-500">
-                    Click on the map to set the household location
-                </p>
-            </div>
 
-            <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
-            >
-                {loading ? "Creating..." : "Create Household"}
-            </button>
-        </form>
+                <div className="space-y-4">
+                    <FormLabel>Location</FormLabel>
+                    <div className="h-[400px] rounded-md border">
+                        <MapProvider>
+                            <LocationPicker
+                                onLocationChange={(lat, lng) => {
+                                    form.setValue("latitude", lat)
+                                    form.setValue("longitude", lng)
+                                }}
+                            />
+                        </MapProvider>
+                    </div>
+                </div>
+
+                <Button type="submit" disabled={loading}>
+                    {loading ? "Creating..." : "Create Household"}
+                </Button>
+            </form>
+        </Form>
     )
 } 
