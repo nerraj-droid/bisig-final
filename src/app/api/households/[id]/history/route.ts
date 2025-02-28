@@ -13,12 +13,12 @@ export async function GET(
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
         }
 
-        const history = await prisma.householdHistory.findMany({
-            where: { householdId: params.id },
-            orderBy: { createdAt: 'desc' }
+        const history = await prisma.household.findUnique({
+            where: { id: params.id },
+            select: { history: true }
         })
 
-        return NextResponse.json(history)
+        return NextResponse.json(history?.history || [])
     } catch (error) {
         console.error(error)
         return NextResponse.json({ message: "Failed to fetch history" }, { status: 500 })

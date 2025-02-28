@@ -65,6 +65,7 @@ model Household {
   mergedInto  String?       // ID of the household this one was merged into
   mergedFrom  String[]      // IDs of households that were merged into this one
   history     Json[]        // Array of historical changes
+  statistics  HouseholdStatistic?
 
   @@schema("public")
 }
@@ -205,6 +206,19 @@ enum HouseholdStatus {
   RELOCATED
   MERGED
   ARCHIVED
+
+  @@schema("public")
+}
+
+model HouseholdStatistic {
+  id             String    @id @default(cuid())
+  householdId    String    @unique
+  totalResidents Int
+  voterCount     Int
+  seniorCount    Int
+  minorCount     Int
+  employedCount  Int
+  household      Household @relation(fields: [householdId], references: [id])
 
   @@schema("public")
 }
