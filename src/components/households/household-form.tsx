@@ -17,17 +17,27 @@ export function HouseholdForm() {
 
         const formData = new FormData(e.currentTarget)
         const data = {
-            houseNo: formData.get("houseNo"),
-            street: formData.get("street"),
-            barangay: formData.get("barangay"),
-            city: formData.get("city"),
-            province: formData.get("province"),
-            zipCode: formData.get("zipCode"),
+            houseNo: formData.get("houseNo") as string,
+            street: formData.get("street") as string,
+            barangay: formData.get("barangay") as string,
+            city: formData.get("city") as string,
+            province: formData.get("province") as string,
+            zipCode: formData.get("zipCode") as string,
             latitude: location?.latitude || null,
             longitude: location?.longitude || null,
         }
 
         try {
+            // Required fields check
+            if (!data.houseNo || !data.street) {
+                throw new Error('House number and street are required')
+            }
+
+            // House number format validation
+            if (typeof data.houseNo === 'string' && !/^[0-9A-Za-z-]+$/.test(data.houseNo)) {
+                throw new Error('Invalid house number format')
+            }
+
             const res = await fetch("/api/households", {
                 method: "POST",
                 headers: {

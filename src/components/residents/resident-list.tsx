@@ -8,12 +8,15 @@ interface Resident {
     firstName: string
     middleName: string | null
     lastName: string
+    extensionName: string | null
     birthDate: string
     gender: string
     civilStatus: string
     contactNo: string | null
     email: string | null
     occupation: string | null
+    voterInBarangay: boolean
+    headOfHousehold: boolean
     household: {
         houseNo: string
         street: string
@@ -30,15 +33,28 @@ export function ResidentList({ initialResidents }: ResidentListProps) {
     const router = useRouter()
 
     const handleSearch = async (value: string) => {
-        setSearch(value)
+        try {
+            setSearch(value)
 
-        const params = new URLSearchParams()
-        if (value) params.set("search", value)
+            const params = new URLSearchParams()
+            if (value) params.set("search", value)
 
-        const res = await fetch(`/api/residents?${params.toString()}`)
-        const data = await res.json()
+            const res = await fetch(`/api/residents?${params.toString()}`)
+            if (!res.ok) {
+                throw new Error('Failed to fetch residents')
+            }
 
-        setResidents(data)
+            const data = await res.json()
+            if (Array.isArray(data)) {
+                setResidents(data)
+            } else {
+                console.error('Invalid response format:', data)
+            }
+        } catch (error) {
+            console.error('Error searching residents:', error)
+            // Keep the current residents list on error
+            setResidents(initialResidents)
+        }
     }
 
     return (
@@ -57,20 +73,47 @@ export function ResidentList({ initialResidents }: ResidentListProps) {
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            <th
+                                scope="col"
+                                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                            >
                                 Name
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            <th
+                                scope="col"
+                                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                            >
                                 Gender
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            <th
+                                scope="col"
+                                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                            >
                                 Civil Status
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            <th
+                                scope="col"
+                                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                            >
                                 Contact
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                                Household
+                            <th
+                                scope="col"
+                                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                            >
+                                Voter
+                            </th>
+                            <th
+                                scope="col"
+                                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                            >
+                                Head of HH
+                            </th>
+                            <th
+                                scope="col"
+                                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                            >
+                                Address
                             </th>
                         </tr>
                     </thead>
@@ -83,6 +126,7 @@ export function ResidentList({ initialResidents }: ResidentListProps) {
                             >
                                 <td className="whitespace-nowrap px-6 py-4">
                                     {resident.lastName}, {resident.firstName} {resident.middleName}
+                                    {resident.extensionName && ` ${resident.extensionName}`}
                                 </td>
                                 <td className="whitespace-nowrap px-6 py-4">
                                     {resident.gender}
@@ -92,6 +136,12 @@ export function ResidentList({ initialResidents }: ResidentListProps) {
                                 </td>
                                 <td className="whitespace-nowrap px-6 py-4">
                                     {resident.contactNo || "N/A"}
+                                </td>
+                                <td className="whitespace-nowrap px-6 py-4">
+                                    {resident.voterInBarangay ? "Yes" : "No"}
+                                </td>
+                                <td className="whitespace-nowrap px-6 py-4">
+                                    {resident.headOfHousehold ? "Yes" : "No"}
                                 </td>
                                 <td className="whitespace-nowrap px-6 py-4">
                                     {resident.household

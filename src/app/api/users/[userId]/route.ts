@@ -3,6 +3,14 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "../../auth/[...nextauth]/route"
 import { prisma } from "@/lib/prisma"
 
+const isAuthorizedToManageUsers = (role: string | undefined) => {
+    return role === "SUPER_ADMIN" || role === "CAPTAIN";
+}
+
+const isSuperAdmin = (role: string | undefined) => {
+    return role === "SUPER_ADMIN";
+}
+
 export async function DELETE(
     req: Request,
     { params }: { params: { userId: string } }
@@ -10,9 +18,9 @@ export async function DELETE(
     try {
         const session = await getServerSession(authOptions)
 
-        if (!session || session.user.role !== "ADMIN") {
+        if (!session || !isAuthorizedToManageUsers(session.user.role)) {
             return NextResponse.json(
-                { message: "Unauthorized" },
+                { message: "Unauthorized. Only Super Admin and Captain can delete users." },
                 { status: 401 }
             )
         }
@@ -28,6 +36,18 @@ export async function DELETE(
             return NextResponse.json(
                 { message: "Cannot delete your own account" },
                 { status: 400 }
+            )
+        }
+
+        // Prevent deletion of SUPER_ADMIN by non-SUPER_ADMIN
+        const targetUser = await prisma.user.findUnique({
+            where: { id: userId }
+        })
+
+        if (isSuperAdmin(targetUser?.role) && !isSuperAdmin(session.user.role)) {
+            return NextResponse.json(
+                { message: "Only Super Admin can delete other Super Admin accounts" },
+                { status: 403 }
             )
         }
 

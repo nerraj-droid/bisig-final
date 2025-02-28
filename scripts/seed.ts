@@ -1,21 +1,15 @@
-const { createAdminUser, seedHouseholds, seedResidents } = require("../src/lib/auth")
+const { createAdminUser } = require("../src/lib/auth");
 
 async function main() {
     // Create admin user
-    await createAdminUser()
-
-    // Seed households
-    await seedHouseholds()
-
-    // Seed residents
-    await seedResidents()
+    await createAdminUser();
 }
 
 main()
     .catch((error) => {
-        console.error(error)
-        process.exit(1)
+        console.error(error);
+        process.exit(1);
     })
     .finally(async () => {
-        process.exit(0)
-    }) 
+        process.exit(0);
+    }); 

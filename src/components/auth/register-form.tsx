@@ -19,6 +19,7 @@ export function RegisterForm() {
             email: formData.get("email"),
             password: formData.get("password"),
             role: formData.get("role"),
+            status: 'ACTIVE'
         }
 
         try {
@@ -37,8 +38,8 @@ export function RegisterForm() {
 
             router.push("/dashboard/users")
             router.refresh()
-        } catch (error) {
-            setError(error.message)
+        } catch (error: any) {
+            setError(error?.message || "Something went wrong")
         } finally {
             setLoading(false)
         }
@@ -97,8 +98,10 @@ export function RegisterForm() {
                     required
                     className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
                 >
-                    <option value="STAFF">Staff</option>
-                    <option value="ADMIN">Admin</option>
+                    <option value="SECRETARY">Secretary</option>
+                    <option value="TREASURER">Treasurer</option>
+                    <option value="CAPTAIN">Captain</option>
+                    <option value="SUPER_ADMIN">Super Admin</option>
                 </select>
             </div>
             <button

@@ -5,15 +5,33 @@ export default async function ResidentsPage() {
   const initialResidents = await prisma.resident
     .findMany({
       take: 10,
-      include: { household: true },
+      select: {
+        id: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        extensionName: true,
+        birthDate: true,
+        gender: true,
+        civilStatus: true,
+        contactNo: true,
+        email: true,
+        occupation: true,
+        voterInBarangay: true,
+        headOfHousehold: true,
+        household: {
+          select: {
+            houseNo: true,
+            street: true,
+          },
+        },
+      },
       orderBy: { lastName: "asc" },
     })
     .then((residents) =>
       residents.map((resident) => ({
         ...resident,
         birthDate: resident.birthDate.toISOString(),
-        createdAt: resident.createdAt.toISOString(),
-        updatedAt: resident.updatedAt.toISOString(),
       }))
     );
 

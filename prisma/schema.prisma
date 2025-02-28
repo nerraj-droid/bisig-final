@@ -4,12 +4,14 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  schemas   = ["public", "test"]
 }
 
 model User {
@@ -23,6 +25,8 @@ model User {
   updatedAt DateTime  @updatedAt
   accounts  Account[]
   sessions  Session[]
+
+  @@schema("test")
 }
 
 model Account {
@@ -42,6 +46,7 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@schema("test")
 }
 
 model Session {
@@ -50,6 +55,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@schema("test")
 }
 
 model Resident {
@@ -89,6 +96,8 @@ model Resident {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   certificates Certificate[]
+
+  @@schema("test")
 }
 
 model Household {
@@ -104,14 +113,18 @@ model Household {
   residents Resident[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+
+  @@schema("test")
 }
 
 model Officials {
-  id             String        @id @default(cuid()) // Add a unique identifier
+  id             String        @id @default(cuid())
   punongBarangay String
   secretary      String?
   treasurer      String?
-  certificates   Certificate[] @relation("CertificateOfficials") // Specify the relation name
+  certificates   Certificate[] @relation("CertificateOfficials")
+
+  @@schema("test")
 }
 
 model Certificate {
@@ -127,6 +140,8 @@ model Certificate {
   officialId    String
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  @@schema("test")
 }
 
 enum Role {
@@ -134,17 +149,23 @@ enum Role {
   CAPTAIN
   SECRETARY
   TREASURER
+
+  @@schema("test")
 }
 
 enum Status {
   ACTIVE
   INACTIVE
+
+  @@schema("test")
 }
 
 enum Gender {
   MALE
   FEMALE
   OTHER
+
+  @@schema("test")
 }
 
 enum CivilStatus {
@@ -153,6 +174,8 @@ enum CivilStatus {
   WIDOWED
   DIVORCED
   SEPARATED
+
+  @@schema("test")
 }
 
 enum CertificateType {
@@ -160,4 +183,6 @@ enum CertificateType {
   INDIGENCY
   CLEARANCE
   BUSINESS_PERMIT
+
+  @@schema("test")
 }
