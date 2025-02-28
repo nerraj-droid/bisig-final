@@ -15,7 +15,8 @@ model User {
   email     String    @unique
   name      String?
   password  String
-  role      Role      @default(USER)
+  role      Role      @default(SECRETARY)
+  status    Status    @default(ACTIVE)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   accounts  Account[]
@@ -54,17 +55,38 @@ model Resident {
   firstName   String
   middleName  String?
   lastName    String
+  extensionName String?
+  alias       String?
   birthDate   DateTime
   gender      Gender
   civilStatus CivilStatus
   contactNo   String?
   email       String?
   occupation  String?
+  educationalAttainment String?
+  bloodType   String?
+  religion    String?
+  ethnicGroup String?
+  nationality String      @default("Filipino")
   address     String
   householdId String?
   household   Household?  @relation(fields: [householdId], references: [id])
+  userPhoto   String?
+  motherMaidenName String?
+  motherMiddleName String?
+  motherFirstName  String?
+  fatherName      String?
+  fatherLastName  String?
+  fatherMiddleName String?
+  familySerialNumber String?
+  headOfHousehold Boolean  @default(false)
+  familyRole     String?
+  voterInBarangay Boolean @default(false)
+  votersIdNumber String?
+  lastVotingParticipationDate DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  certificates Certificate[]
 }
 
 model Household {
@@ -92,20 +114,29 @@ model Officials {
 
 model Certificate {
   id            String    @id @default(cuid())
-  residentName  String
-  address       String
+  resident      Resident  @relation(fields: [residentId], references: [id])
+  residentId    String
+  type          CertificateType
   purpose       String
-  controlNumber String
+  controlNumber String    @unique
   status        String
   issuedDate    DateTime?
-  officials     Officials @relation("CertificateOfficials", fields: [officialId], references: [id]) // Specify fields and references
-  officialId    String // Add a foreign key field
+  officials     Officials @relation("CertificateOfficials", fields: [officialId], references: [id])
+  officialId    String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 enum Role {
-  ADMIN
-  STAFF
-  USER
+  SUPER_ADMIN
+  CAPTAIN
+  SECRETARY
+  TREASURER
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
 }
 
 enum Gender {
@@ -120,4 +151,11 @@ enum CivilStatus {
   WIDOWED
   DIVORCED
   SEPARATED
+}
+
+enum CertificateType {
+  RESIDENCY
+  INDIGENCY
+  CLEARANCE
+  BUSINESS_PERMIT
 }

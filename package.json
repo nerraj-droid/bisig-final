@@ -7,13 +7,17 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "ts-node scripts/seed.ts"
+    "seed": "ts-node scripts/seed.ts",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build",
+    "postinstall": "prisma generate",
+    "deploy": "ts-node scripts/deploy.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
     "@prisma/client": "^6.3.1",
     "@radix-ui/react-slot": "^1.1.2",
     "@react-pdf/renderer": "^4.2.1",
+    "@supabase/supabase-js": "^2.49.1",
     "@types/mapbox-gl": "^3.4.1",
     "bcryptjs": "^3.0.0",
     "chart.js": "^4.4.7",
