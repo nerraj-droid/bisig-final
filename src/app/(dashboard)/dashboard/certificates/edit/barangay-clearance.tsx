@@ -7,7 +7,7 @@ export function BarangayClearanceEditor() {
   const [address, setAddress] = useState("");
   const [purpose, setPurpose] = useState("");
   const [controlNumber, setControlNumber] = useState("");
-  const [officials, setOfficials] = useState({
+  const [officials] = useState({
     punongBarangay: "",
     secretary: "",
     treasurer: "",

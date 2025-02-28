@@ -2,11 +2,12 @@ import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { EditHouseholdForm } from "@/components/households/edit-household-form"
 
-export default async function EditHouseholdPage({
-    params,
-}: {
+type Props = {
     params: { householdId: string }
-}) {
+    searchParams: { [key: string]: string | string[] | undefined }
+}
+
+export default async function EditHouseholdPage({ params }: Props) {
     const household = await prisma.household.findUnique({
         where: { id: params.householdId },
     })

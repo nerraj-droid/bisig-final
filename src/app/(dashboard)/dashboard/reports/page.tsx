@@ -5,19 +5,11 @@ import { differenceInYears } from "date-fns"
 
 export default async function ReportsPage() {
     const [
-        stats,
-        residentCount,
         householdsByBarangay,
         genderDistribution,
         civilStatusDistribution,
         residents,
     ] = await Promise.all([
-        prisma.household.aggregate({
-            _count: {
-                _all: true,
-            },
-        }),
-        prisma.resident.count(),
         prisma.household.groupBy({
             by: ["barangay"],
             _count: {
@@ -32,7 +24,7 @@ export default async function ReportsPage() {
                 groups.map(async (group) => {
                     const residents = await prisma.resident.count({
                         where: {
-                            household: {
+                            Household: {
                                 barangay: group.barangay,
                             },
                         },

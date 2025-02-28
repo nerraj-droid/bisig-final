@@ -166,7 +166,7 @@ export default function LoginPage() {
             </div>
 
             <div className="text-center text-sm text-[#64748B]">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/register" className="text-[#3B82F6] hover:text-[#2563EB]">
                 Create an account
               </Link>
@@ -182,7 +182,7 @@ export default function LoginPage() {
           <h2 className="text-4xl font-bold mb-6">What our Users Said.</h2>
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 mb-8">
             <p className="text-lg mb-6">
-              "Managing barangay records and certificates has never been easier. The system streamlines our daily operations and helps us serve our community better."
+              &quot;Managing barangay records and certificates has never been easier. The system streamlines our daily operations and helps us serve our community better.&quot;
             </p>
             <div>
               <p className="font-semibold">Brgy. Captain Jose Santos</p>
