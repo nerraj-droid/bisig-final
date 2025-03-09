@@ -5,6 +5,9 @@ import { prisma } from "@/lib/prisma"
 import { Prisma, Role } from "@prisma/client"
 import { z } from 'zod'
 import { randomUUID } from "crypto"
+import { PrismaClient } from "@prisma/client"
+import { NextRequest } from "next/server"
+
 interface ExtendedSession {
     user?: {
         name?: string | null
@@ -22,38 +25,47 @@ const isAuthorized = (role: Role | undefined) => {
 const residentSchema = z.object({
     firstName: z.string().min(1, 'First name is required'),
     lastName: z.string().min(1, 'Last name is required'),
-    middleName: z.string().optional(),
-    extensionName: z.string().optional(),
-    alias: z.string().optional(),
+    middleName: z.string().optional().nullable(),
+    extensionName: z.string().optional().nullable(),
+    alias: z.string().optional().nullable(),
     birthDate: z.string().refine(date => !isNaN(Date.parse(date)), 'Invalid date'),
     gender: z.enum(['MALE', 'FEMALE', 'OTHER']),
     civilStatus: z.enum(['SINGLE', 'MARRIED', 'WIDOWED', 'DIVORCED', 'SEPARATED']),
     address: z.string().min(1, 'Address is required'),
-    email: z.string().email().optional(),
-    contactNo: z.string().regex(/^(\+63|0)[0-9]{10}$/).optional(),
-    occupation: z.string().optional(),
-    educationalAttainment: z.string().optional(),
-    bloodType: z.string().optional(),
-    religion: z.string().optional(),
-    ethnicGroup: z.string().optional(),
-    nationality: z.string().optional(),
-    userPhoto: z.string().optional(),
-    motherMaidenName: z.string().optional(),
-    motherMiddleName: z.string().optional(),
-    motherFirstName: z.string().optional(),
-    fatherName: z.string().optional(),
-    fatherLastName: z.string().optional(),
-    fatherMiddleName: z.string().optional(),
-    familySerialNumber: z.string().optional(),
+    email: z.string().email().optional().nullable(),
+    contactNo: z.string().optional().nullable(),
+    occupation: z.string().optional().nullable(),
+    employmentStatus: z.string().optional().nullable(),
+    unemploymentReason: z.string().optional().nullable(),
+    educationalAttainment: z.string().optional().nullable(),
+    bloodType: z.string().optional().nullable(),
+    religion: z.string().optional().nullable(),
+    ethnicGroup: z.string().optional().nullable(),
+    nationality: z.string().optional().nullable(),
+    userPhoto: z.string().optional().nullable(),
+    motherMaidenName: z.string().optional().nullable(),
+    motherMiddleName: z.string().optional().nullable(),
+    motherFirstName: z.string().optional().nullable(),
+    fatherName: z.string().optional().nullable(),
+    fatherLastName: z.string().optional().nullable(),
+    fatherMiddleName: z.string().optional().nullable(),
     headOfHousehold: z.boolean().optional(),
-    familyRole: z.string().optional(),
     voterInBarangay: z.boolean().optional(),
-    votersIdNumber: z.string().optional(),
-    lastVotingParticipationDate: z.string().optional(),
-    householdId: z.string().optional(),
+    sectors: z.array(z.string()).optional(),
+    proofOfIdentity: z.string().optional().nullable(),
+    proofOfIdentityUrl: z.string().optional().nullable(),
+    identityType: z.string().optional().nullable(),
+    householdId: z.string().optional().nullable(),
+    // Address components
+    houseNo: z.string().optional().nullable(),
+    street: z.string().optional().nullable(),
+    barangay: z.string().optional().nullable(),
+    city: z.string().optional().nullable(),
+    province: z.string().optional().nullable(),
+    zipCode: z.string().optional().nullable(),
 })
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions) as ExtendedSession
 
@@ -64,8 +76,7 @@ export async function POST(req: Request) {
             )
         }
 
-        // Read the request body once
-        const data = await req.json()
+        const data = await request.json()
 
         // Validate the data using zod schema
         const validatedData = residentSchema.parse(data)
@@ -85,11 +96,12 @@ export async function POST(req: Request) {
                 contactNo: validatedData.contactNo,
                 email: validatedData.email,
                 occupation: validatedData.occupation,
+                employmentStatus: validatedData.employmentStatus,
                 educationalAttainment: validatedData.educationalAttainment,
                 bloodType: validatedData.bloodType,
                 religion: validatedData.religion,
                 ethnicGroup: validatedData.ethnicGroup,
-                nationality: validatedData.nationality,
+                nationality: validatedData.nationality || '',
                 address: validatedData.address,
                 userPhoto: validatedData.userPhoto,
                 motherMaidenName: validatedData.motherMaidenName,
@@ -98,12 +110,12 @@ export async function POST(req: Request) {
                 fatherName: validatedData.fatherName,
                 fatherLastName: validatedData.fatherLastName,
                 fatherMiddleName: validatedData.fatherMiddleName,
-                familySerialNumber: validatedData.familySerialNumber,
                 headOfHousehold: validatedData.headOfHousehold || false,
-                familyRole: validatedData.familyRole,
                 voterInBarangay: validatedData.voterInBarangay || false,
-                votersIdNumber: validatedData.votersIdNumber,
-                lastVotingParticipationDate: validatedData.lastVotingParticipationDate ? new Date(validatedData.lastVotingParticipationDate) : null,
+                sectors: validatedData.sectors || [],
+                // Use either proofOfIdentityUrl or proofOfIdentity
+                proofOfIdentity: validatedData.proofOfIdentityUrl || validatedData.proofOfIdentity,
+                identityType: validatedData.identityType,
                 householdId: validatedData.householdId || null,
             },
             include: {
@@ -119,15 +131,15 @@ export async function POST(req: Request) {
                 errors: error.errors
             }), { status: 400 })
         }
-        console.error(error)
+        console.error("Error creating resident:", error)
         return NextResponse.json(
-            { message: "Something went wrong", error: error instanceof Error ? error.message : String(error) },
+            { message: "Internal server error" },
             { status: 500 }
         )
     }
 }
 
-export async function GET(req: Request) {
+export async function GET(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions) as ExtendedSession
 
@@ -138,82 +150,63 @@ export async function GET(req: Request) {
             )
         }
 
-        const { searchParams } = new URL(req.url, 'http://localhost:3000')
-        const search = searchParams.get("search")
+        const searchParams = request.nextUrl.searchParams
+        const search = searchParams.get('search') || ''
+        const page = parseInt(searchParams.get('page') || '1')
+        const limit = parseInt(searchParams.get('limit') || '10')
+        const skip = (page - 1) * limit
 
-        let where: Prisma.ResidentWhereInput = {}
-
-        if (search) {
-            where = {
+        // Search condition
+        const whereCondition = search
+            ? {
                 OR: [
                     { firstName: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
                     { lastName: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
-                    { extensionName: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
-                    { alias: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
-                    { motherMaidenName: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
-                    { fatherName: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
-                    { familySerialNumber: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
-                    { votersIdNumber: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
+                    { middleName: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
+                    { address: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
                 ],
             }
-        }
+            : {}
 
+        // Get residents with pagination and search
         const residents = await prisma.resident.findMany({
-            where,
-            select: {
-                id: true,
-                firstName: true,
-                middleName: true,
-                lastName: true,
-                extensionName: true,
-                alias: true,
-                birthDate: true,
-                gender: true,
-                civilStatus: true,
-                contactNo: true,
-                email: true,
-                occupation: true,
-                educationalAttainment: true,
-                bloodType: true,
-                religion: true,
-                ethnicGroup: true,
-                nationality: true,
-                address: true,
-                userPhoto: true,
-                motherMaidenName: true,
-                motherMiddleName: true,
-                motherFirstName: true,
-                fatherName: true,
-                fatherLastName: true,
-                fatherMiddleName: true,
-                familySerialNumber: true,
-                headOfHousehold: true,
-                familyRole: true,
-                voterInBarangay: true,
-                votersIdNumber: true,
-                lastVotingParticipationDate: true,
-                Household: {
-                    select: {
-                        id: true,
-                        houseNo: true,
-                        street: true,
-                        barangay: true,
-                        city: true,
-                        province: true,
-                        zipCode: true,
-                    }
-                },
-            },
+            where: whereCondition,
+            skip,
+            take: limit,
             orderBy: {
-                lastName: "asc",
+                lastName: 'asc'
             },
+            include: {
+                Household: true
+            }
         })
 
-        return NextResponse.json(residents)
+        // Format the data to match the expected format
+        const formattedResidents = residents.map(resident => ({
+            id: resident.id,
+            firstName: resident.firstName,
+            middleName: resident.middleName,
+            lastName: resident.lastName,
+            extensionName: resident.extensionName,
+            birthDate: resident.birthDate ? resident.birthDate.toISOString() : '',
+            gender: resident.gender,
+            civilStatus: resident.civilStatus,
+            contactNo: resident.contactNo,
+            email: resident.email,
+            occupation: resident.occupation,
+            voterInBarangay: resident.voterInBarangay,
+            headOfHousehold: resident.headOfHousehold,
+            Household: 'Household' in resident && resident.Household ? {
+                houseNo: resident.Household.houseNo,
+                street: resident.Household.street
+            } : null
+        }))
+
+        return NextResponse.json(formattedResidents)
     } catch (error) {
-        console.error(error)
+        console.error("Error fetching residents:", error)
         return NextResponse.json(
-            { message: "Something went wrong" },
+            { message: "Internal server error" },
             { status: 500 }
         )
     }

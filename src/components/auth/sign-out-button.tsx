@@ -1,14 +1,27 @@
 "use client"
 
 import { signOut } from "next-auth/react"
+import { Slot } from "@radix-ui/react-slot"
+import { forwardRef } from "react"
 
-export function SignOutButton() {
+interface SignOutButtonProps {
+  children?: React.ReactNode
+  asChild?: boolean
+}
+
+export const SignOutButton = forwardRef<HTMLButtonElement, SignOutButtonProps>(
+  ({ children, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
     return (
-        <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="ml-4 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-500"
-        >
-            Sign Out
-        </button>
+      <Comp
+        ref={ref}
+        onClick={() => signOut({ callbackUrl: "/login" })}
+        {...props}
+      >
+        {children || "Sign Out"}
+      </Comp>
     )
-} 
+  }
+)
+
+SignOutButton.displayName = "SignOutButton" 

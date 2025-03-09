@@ -91,6 +91,7 @@ model Resident {
   contactNo                   String?
   email                       String?
   occupation                  String?
+  employmentStatus            String?
   address                     String
   householdId                 String?
   createdAt                   DateTime      @default(now())
@@ -100,13 +101,10 @@ model Resident {
   educationalAttainment       String?
   ethnicGroup                 String?
   extensionName               String?
-  familyRole                  String?
-  familySerialNumber          String?
   fatherLastName              String?
   fatherMiddleName            String?
   fatherName                  String?
   headOfHousehold             Boolean       @default(false)
-  lastVotingParticipationDate DateTime?
   motherFirstName             String?
   motherMaidenName            String?
   motherMiddleName            String?
@@ -114,7 +112,9 @@ model Resident {
   religion                    String?
   userPhoto                   String?
   voterInBarangay             Boolean       @default(false)
-  votersIdNumber              String?
+  sectors                     String[]
+  proofOfIdentity             String?
+  identityType                String?
   Certificate                 Certificate[]
   Household                   Household?    @relation(fields: [householdId], references: [id])
 
