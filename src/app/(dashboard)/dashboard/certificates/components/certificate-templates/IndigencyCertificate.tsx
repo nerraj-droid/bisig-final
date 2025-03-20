@@ -43,23 +43,27 @@ export function IndigencyCertificate({
   const logoRight = templateSettings?.logoRight || "/bagong-pilipinas.png";
   const signatureUrl = templateSettings?.signatureUrl;
   const issuedDate = new Date();
-  
+
+  // Prepare the purpose statement with proper grammar
+  const purposeStatement = purpose
+    ? `for the purpose of ${purpose}`
+    : "for whatever legal purpose it may serve";
+
   // Create the content for the certificate
   const content = (
     <div className="space-y-6">
       <p className="font-semibold text-lg">TO WHOM IT MAY CONCERN:</p>
-      
+
       <p className="text-justify leading-relaxed">
-        This is to certify that <span className="font-bold underline">{residentName}</span>, 
-        <span className="mx-1">{templateSettings?.age ? `${templateSettings.age} years old,` : "of legal age,"}</span> 
+        This is to certify that <span className="font-bold underline">{residentName}</span>,
+        <span className="mx-1">{templateSettings?.age ? `${templateSettings.age} years old,` : "of legal age,"}</span>
         <span className="font-medium">{civilStatus}</span>, Filipino, and a resident of{" "}
-        <span className="font-bold underline">{address}</span> is an <span className="font-bold">INDIGENT</span> in our Barangay.
+        <span className="font-bold underline">{address}</span> is an <span className="font-bold">INDIGENT</span> member of this Barangay.
       </p>
-      
+
       <p className="text-justify leading-relaxed">
         This CERTIFICATION is being issued upon the request of the above-named person on this{" "}
-        <span className="font-medium">{format(issuedDate, "do")} day of {format(issuedDate, "MMMM yyyy")}</span> for the purpose of{" "}
-        <span className="font-bold uppercase">{purpose}</span>.
+        <span className="font-medium">{format(issuedDate, "do")} day of {format(issuedDate, "MMMM yyyy")}</span> {purposeStatement}.
       </p>
     </div>
   );

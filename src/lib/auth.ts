@@ -1,6 +1,7 @@
-import { PrismaClient, Role } from "@prisma/client";
+import { PrismaClient, Role, Status } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { randomUUID } from "crypto";
+import { NextAuthOptions } from "next-auth";
 
 const prisma = new PrismaClient();
 
@@ -13,7 +14,8 @@ interface DefaultUser {
   role: Role;
 }
 
-const auth = {
+// Export the auth utilities separately from authOptions
+export const authUtils = {
   async createAdminUser() {
     const exists = await prisma.user.findFirst({
       where: {
@@ -31,6 +33,7 @@ const auth = {
           password: hashedPassword,
           role: Role.SUPER_ADMIN,
           updatedAt: new Date(),
+          status: Status.ACTIVE,
         },
       });
       console.log("Super Admin user created successfully!");
@@ -67,6 +70,7 @@ const auth = {
             password: hashedPassword,
             role: user.role,
             updatedAt: new Date(),
+            status: Status.ACTIVE,
           },
         });
         console.log(`${user.role} user created successfully!`);
@@ -176,4 +180,5 @@ const auth = {
   },
 };
 
-export default auth;
+// Default export for backward compatibility
+export default authUtils;

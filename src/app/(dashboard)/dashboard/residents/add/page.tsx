@@ -3,9 +3,16 @@
 import { PageTransition } from "@/components/ui/page-transition";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Save, Upload, ChevronDown } from "lucide-react";
+import { ArrowLeft, Save, Upload, ChevronDown, X, Camera } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import Webcam from "react-webcam";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Define available sectors based on requirements
 const AVAILABLE_SECTORS = [
@@ -19,42 +26,41 @@ const AVAILABLE_SECTORS = [
 
 // Define available identity types
 const IDENTITY_TYPES = [
-  "TIN",
-  "SSS",
-  "GSIS",
-  "Unified Multi-Purpose ID",
-  "NBI Clearance",
-  "Driver's License",
-  "Professional Regulations Commission ID",
-  "Police Clearance",
-  "Postal ID",
-  "Voter's ID",
-  "Photo-Bearing Barangay ID/Certificate",
-  "Philhealth Card",
-  "Senior Citizen's ID",
-  "Overseas Workers Welfare Admin ID",
-  "OFW ID",
-  "Seaman's Book",
-  "Alien Cert. / Immigration Cert.",
-  "Government Office ID",
-  "NCWDP ID/Certificate",
-  "Dept. of Social Welfare & Dev ID/Cert",
-  "Firearms License",
-  "Photo-Bearing Credit Card",
-  "Photo-Bearing Health Card",
-  "School ID",
-  "Birth Certificate issued by PSA",
-  "Certificate of Registration for DNFBP",
+  { value: "TIN", label: "TIN" },
+  { value: "SSS", label: "SSS" },
+  { value: "GSIS", label: "GSIS" },
+  { value: "Unified Multi-Purpose ID", label: "Unified Multi-Purpose ID" },
+  { value: "NBI Clearance", label: "NBI Clearance" },
+  { value: "Driver's License", label: "Driver's License" },
+  { value: "Professional Regulations Commission ID", label: "Professional Regulations Commission ID" },
+  { value: "Police Clearance", label: "Police Clearance" },
+  { value: "Postal ID", label: "Postal ID" },
+  { value: "Voter's ID", label: "Voter's ID" },
+  { value: "Photo-Bearing Barangay ID/Certificate", label: "Photo-Bearing Barangay ID/Certificate" },
+  { value: "Philhealth Card", label: "Philhealth Card" },
+  { value: "Senior Citizen's ID", label: "Senior Citizen's ID" },
+  { value: "Overseas Workers Welfare Admin ID", label: "Overseas Workers Welfare Admin ID" },
+  { value: "OFW ID", label: "OFW ID" },
+  { value: "Seaman's Book", label: "Seaman's Book" },
+  { value: "Alien Cert. / Immigration Cert.", label: "Alien Cert. / Immigration Cert." },
+  { value: "Government Office ID", label: "Government Office ID" },
+  { value: "NCWDP ID/Certificate", label: "NCWDP ID/Certificate" },
+  { value: "Dept. of Social Welfare & Dev ID/Cert", label: "Dept. of Social Welfare & Dev ID/Cert" },
+  { value: "Firearms License", label: "Firearms License" },
+  { value: "Photo-Bearing Credit Card", label: "Photo-Bearing Credit Card" },
+  { value: "Photo-Bearing Health Card", label: "Photo-Bearing Health Card" },
+  { value: "School ID", label: "School ID" },
+  { value: "Birth Certificate issued by PSA", label: "Birth Certificate issued by PSA" },
+  { value: "Certificate of Registration for DNFBP", label: "Certificate of Registration for DNFBP" },
 ];
 
 // Define employment status options
 const EMPLOYMENT_STATUS = [
-  "Employed",
-  "Unemployed",
-  "Self-employed",
-  "Student",
-  "Retired",
-  "Other"
+  { value: "Employed", label: "Employed" },
+  { value: "Unemployed", label: "Unemployed" },
+  { value: "Self-employed", label: "Self-employed" },
+  { value: "Student", label: "Student" },
+  { value: "Retired", label: "Retired" },
 ];
 
 // Define unemployment reason options
@@ -89,7 +95,8 @@ export default function AddResidentPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  
+  const [age, setAge] = useState<number | null>(null);
+
   // Address dropdown states
   const [provinces, setProvinces] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
@@ -97,7 +104,7 @@ export default function AddResidentPage() {
   const [isLoadingProvinces, setIsLoadingProvinces] = useState(false);
   const [isLoadingCities, setIsLoadingCities] = useState(false);
   const [isLoadingBarangays, setIsLoadingBarangays] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     // Personal Information
     firstName: '',
@@ -109,11 +116,11 @@ export default function AddResidentPage() {
     gender: '',
     civilStatus: '',
     nationality: 'Filipino',
-    
+
     // Contact Information
     contactNo: '',
     email: '',
-    
+
     // Address Information
     address: '',
     houseNo: '',
@@ -122,18 +129,18 @@ export default function AddResidentPage() {
     city: '',
     province: '',
     zipCode: '',
-    
+
     // Employment & Education
     occupation: '',
     employmentStatus: '',
     unemploymentReason: '',
     educationalAttainment: '',
-    
+
     // Additional Information
     bloodType: '',
     religion: '',
     ethnicGroup: '',
-    
+
     // Parent Information
     fatherName: '',
     fatherMiddleName: '',
@@ -141,16 +148,23 @@ export default function AddResidentPage() {
     motherFirstName: '',
     motherMiddleName: '',
     motherMaidenName: '',
-    
+
     // Status
     voterInBarangay: false,
     headOfHousehold: false,
     sectors: [] as string[],
-    
+
     // Identity
     identityType: '',
-    proofOfIdentity: ''
+    identityNumber: '',
+    proofOfIdentity: '',
+    userPhoto: ''
   });
+
+  // Add state for photo upload
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isWebcamOpen, setIsWebcamOpen] = useState(false);
 
   // Fetch provinces on component mount
   useEffect(() => {
@@ -236,14 +250,33 @@ export default function AddResidentPage() {
     }
   };
 
+  // Add calculateAge function
+  const calculateAge = (birthDate: string) => {
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+
+    return age;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    
+
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData(prev => ({ ...prev, [name]: checked }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
+
+      // Calculate age when birth date changes
+      if (name === 'birthDate' && value) {
+        setAge(calculateAge(value));
+      }
     }
   };
 
@@ -252,22 +285,51 @@ export default function AddResidentPage() {
       const updatedSectors = prev.sectors.includes(sector)
         ? prev.sectors.filter(s => s !== sector)
         : [...prev.sectors, sector];
-      
+
+      console.log("Sectors updated:", updatedSectors);
       return { ...prev, sectors: updatedSectors };
     });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      console.log("Identity document selected:", file.name);
     }
+  };
+
+  // Handle photo file change
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle webcam capture
+  const handleWebcamCapture = (imageSrc: string) => {
+    setPhotoPreview(imageSrc);
+    setIsWebcamOpen(false);
+    // Convert base64 to file
+    fetch(imageSrc)
+      .then(res => res.blob())
+      .then(blob => {
+        const file = new File([blob], "webcam-photo.jpg", { type: "image/jpeg" });
+        setPhotoFile(file);
+      });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setError(null);
-    
+
     try {
       // Validate required fields
       if (!formData.firstName || !formData.lastName || !formData.birthDate || !formData.gender || !formData.civilStatus) {
@@ -275,46 +337,52 @@ export default function AddResidentPage() {
         setIsSaving(false);
         return;
       }
-      
+
       // Validate gender and civilStatus
       const validGenders = ['MALE', 'FEMALE', 'OTHER'];
       const validCivilStatus = ['SINGLE', 'MARRIED', 'WIDOWED', 'DIVORCED', 'SEPARATED'];
-      
+
       if (!validGenders.includes(formData.gender)) {
         setError('Please select a valid gender');
         setIsSaving(false);
         return;
       }
-      
+
       if (!validCivilStatus.includes(formData.civilStatus)) {
         setError('Please select a valid civil status');
         setIsSaving(false);
         return;
       }
-      
-      // If there's a file, upload it first
-      let proofOfIdentityUrl = '';
-      if (selectedFile) {
-        try {
-          const formData = new FormData();
-          formData.append('file', selectedFile);
-          
-          const uploadResponse = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
-          });
-          
-          if (!uploadResponse.ok) {
-            console.warn('File upload failed, continuing without file');
-          } else {
-            const uploadData = await uploadResponse.json();
-            proofOfIdentityUrl = uploadData.url;
-          }
-        } catch (uploadError) {
-          console.warn('File upload error, continuing without file:', uploadError);
-        }
+
+      // Validate employment status and occupation
+      if ((formData.employmentStatus === 'EMPLOYED' || formData.employmentStatus === 'STUDENT') && !formData.occupation) {
+        setError('Occupation is required when employment status is EMPLOYED or STUDENT');
+        setIsSaving(false);
+        return;
       }
-      
+
+      // Validate unemployment reason
+      if (formData.employmentStatus === 'UNEMPLOYED' && !formData.unemploymentReason) {
+        setError('Please select an unemployment reason');
+        setIsSaving(false);
+        return;
+      }
+
+      // Validate ID type and number
+      if (formData.identityType && !formData.identityNumber) {
+        setError('ID number is required when ID type is selected');
+        setIsSaving(false);
+        return;
+      }
+
+      // Ensure identity type is a valid enum value
+      const validIdentityTypes = IDENTITY_TYPES.map(type => type.value);
+      if (formData.identityType && !validIdentityTypes.includes(formData.identityType)) {
+        setError(`Invalid identity type: ${formData.identityType}`);
+        setIsSaving(false);
+        return;
+      }
+
       // Format the address from individual fields
       const formattedAddress = [
         formData.houseNo,
@@ -327,7 +395,68 @@ export default function AddResidentPage() {
       ]
         .filter(Boolean)
         .join(', ');
-      
+
+      // Upload photo if exists
+      let userPhotoUrl = '';
+      if (photoFile) {
+        try {
+          const photoFormData = new FormData();
+          photoFormData.append('file', photoFile);
+          photoFormData.append('type', 'profile-photo');
+
+          const uploadResponse = await fetch('/api/upload', {
+            method: 'POST',
+            body: photoFormData,
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error('Photo upload failed');
+          }
+          const uploadData = await uploadResponse.json();
+          if (!uploadData?.url) {
+            throw new Error('Invalid photo upload response');
+          }
+          userPhotoUrl = uploadData.url;
+        } catch (uploadError) {
+          console.error('Photo upload error:', uploadError);
+          setError('Failed to upload photo. Please try again.');
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      // Upload proof of identity if exists
+      let proofOfIdentityUrl = '';
+      if (selectedFile) {
+        try {
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', selectedFile);
+          uploadFormData.append('type', 'proof-of-identity');
+
+          const uploadResponse = await fetch('/api/upload', {
+            method: 'POST',
+            body: uploadFormData,
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error('File upload failed');
+          }
+          const uploadData = await uploadResponse.json();
+          if (!uploadData?.url) {
+            throw new Error('Invalid file upload response');
+          }
+          proofOfIdentityUrl = uploadData.url;
+
+          // Store the document path but don't modify the displayed identity number
+
+        } catch (uploadError) {
+          console.error('File upload error:', uploadError);
+          setError('Failed to upload proof of identity. Please try again.');
+          setIsSaving(false);
+          return;
+        }
+      }
+
       // Create resident data object with required fields
       const residentData = {
         firstName: formData.firstName,
@@ -349,7 +478,7 @@ export default function AddResidentPage() {
         religion: formData.religion || '',
         ethnicGroup: formData.ethnicGroup || '',
         nationality: formData.nationality || '',
-        userPhoto: '',
+        userPhoto: userPhotoUrl,
         motherMaidenName: formData.motherMaidenName || '',
         motherMiddleName: formData.motherMiddleName || '',
         motherFirstName: formData.motherFirstName || '',
@@ -359,10 +488,13 @@ export default function AddResidentPage() {
         headOfHousehold: Boolean(formData.headOfHousehold),
         voterInBarangay: Boolean(formData.voterInBarangay),
         sectors: Array.isArray(formData.sectors) ? formData.sectors : [],
-        proofOfIdentity: proofOfIdentityUrl || '',
         identityType: formData.identityType || '',
+        // Only include the actual ID number in the identityNumber field
+        identityNumber: formData.identityNumber || '',
+        // Store document path in a hidden field that won't be displayed in the UI
+        ...(proofOfIdentityUrl ? { identityDocumentPath: `DOCUMENT:${proofOfIdentityUrl}` } : {}),
       };
-      
+
       // Send data to API
       const response = await fetch('/api/residents', {
         method: 'POST',
@@ -371,20 +503,23 @@ export default function AddResidentPage() {
         },
         body: JSON.stringify(residentData),
       });
-      
-      const responseData = await response.json();
-      
+
       if (!response.ok) {
-        if (responseData.errors) {
-          // Format validation errors
-          const errorMessages = responseData.errors.map((err: any) => 
+        const errorData = await response.json().catch(() => null);
+        if (errorData?.errors) {
+          const errorMessages = errorData.errors.map((err: any) =>
             `${err.path.join('.')}: ${err.message}`
           ).join(', ');
           throw new Error(`Validation error: ${errorMessages}`);
         }
-        throw new Error(responseData.message || 'Failed to create resident');
+        throw new Error(errorData?.message || 'Failed to create resident');
       }
-      
+
+      const responseData = await response.json();
+      if (!responseData?.id) {
+        throw new Error('Invalid response from server');
+      }
+
       // Redirect to the new resident's detail page
       router.push(`/dashboard/residents/${responseData.id}`);
     } catch (error) {
@@ -393,6 +528,43 @@ export default function AddResidentPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const WebcamDialog = () => {
+    const webcamRef = useRef<Webcam>(null);
+
+    const capture = useCallback(() => {
+      const imageSrc = webcamRef.current?.getScreenshot();
+      if (imageSrc) {
+        handleWebcamCapture(imageSrc);
+      }
+    }, []);
+
+    return (
+      <Dialog open={isWebcamOpen} onOpenChange={setIsWebcamOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Take Photo</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4">
+            <Webcam
+              audio={false}
+              ref={webcamRef}
+              screenshotFormat="image/jpeg"
+              className="rounded-lg"
+            />
+            <div className="flex gap-2">
+              <Button onClick={capture} className="bg-[#006B5E] hover:bg-[#005046]">
+                Capture Photo
+              </Button>
+              <Button variant="outline" onClick={() => setIsWebcamOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
   };
 
   return (
@@ -406,7 +578,7 @@ export default function AddResidentPage() {
             </Link>
             <h1 className="text-xl sm:text-2xl font-bold text-[#006B5E]">ADD NEW RESIDENT</h1>
           </div>
-          <Button 
+          <Button
             className="bg-[#006B5E] hover:bg-[#005046] w-full sm:w-auto"
             onClick={handleSubmit}
             disabled={isSaving}
@@ -440,7 +612,7 @@ export default function AddResidentPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Middle Name</label>
                   <input
@@ -451,7 +623,7 @@ export default function AddResidentPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Last Name *</label>
                   <input
@@ -463,7 +635,7 @@ export default function AddResidentPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Extension Name</label>
                   <input
@@ -486,19 +658,26 @@ export default function AddResidentPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Birth Date *</label>
-                  <input
-                    type="date"
-                    name="birthDate"
-                    value={formData.birthDate}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
-                  />
+                  <div className="relative">
+                    <input
+                      type="date"
+                      name="birthDate"
+                      value={formData.birthDate}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-3 py-2 pr-20 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
+                    />
+                    {age !== null && (
+                      <div className="absolute right-0 top-0 h-full flex items-center pr-3">
+                        <span className="text-sm text-gray-500 bg-white px-2">Age: {age}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Gender *</label>
                   <select
@@ -514,7 +693,7 @@ export default function AddResidentPage() {
                     <option value="OTHER">Other</option>
                   </select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Civil Status *</label>
                   <select
@@ -561,7 +740,7 @@ export default function AddResidentPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Email</label>
                   <input
@@ -711,17 +890,6 @@ export default function AddResidentPage() {
               <h3 className="text-lg font-semibold text-[#006B5E] mb-4 pb-2 border-b">Employment & Education</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Occupation</label>
-                  <input
-                    type="text"
-                    name="occupation"
-                    value={formData.occupation}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Employment Status</label>
                   <select
                     name="employmentStatus"
@@ -731,12 +899,28 @@ export default function AddResidentPage() {
                   >
                     <option value="">Select Employment Status</option>
                     {EMPLOYMENT_STATUS.map(status => (
-                      <option key={status} value={status}>{status}</option>
+                      <option key={status.value} value={status.value}>
+                        {status.label}
+                      </option>
                     ))}
                   </select>
                 </div>
 
-                {formData.employmentStatus === "Unemployed" && (
+                {(formData.employmentStatus === "EMPLOYED") && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Occupation</label>
+                    <input
+                      type="text"
+                      name="occupation"
+                      value={formData.occupation}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
+                    />
+                  </div>
+                )}
+
+                {formData.employmentStatus === "UNEMPLOYED" && (
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Unemployment Reason</label>
                     <select
@@ -816,10 +1000,10 @@ export default function AddResidentPage() {
             {/* Parent Information Section */}
             <div>
               <h3 className="text-lg font-semibold text-[#006B5E] mb-4 pb-2 border-b">Parent Information</h3>
-              
+
               <div className="space-y-6">
                 <div>
-                  <h4 className="text-md font-medium text-gray-700 mb-3">Father's Information</h4>
+                  <h4 className="text-md font-medium text-gray-700 mb-3">Father's Name</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-gray-700">First Name</label>
@@ -831,7 +1015,7 @@ export default function AddResidentPage() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-gray-700">Middle Name</label>
                       <input
@@ -842,7 +1026,7 @@ export default function AddResidentPage() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-gray-700">Last Name</label>
                       <input
@@ -855,9 +1039,9 @@ export default function AddResidentPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div>
-                  <h4 className="text-md font-medium text-gray-700 mb-3">Mother's Information</h4>
+                  <h4 className="text-md font-medium text-gray-700 mb-3">Mother's Maiden Name</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-gray-700">First Name</label>
@@ -869,7 +1053,7 @@ export default function AddResidentPage() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-gray-700">Middle Name</label>
                       <input
@@ -880,7 +1064,7 @@ export default function AddResidentPage() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-gray-700">Maiden Name</label>
                       <input
@@ -899,7 +1083,7 @@ export default function AddResidentPage() {
             {/* Sectors and Status Section */}
             <div>
               <h3 className="text-lg font-semibold text-[#006B5E] mb-4 pb-2 border-b">Sectors & Status</h3>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
@@ -934,9 +1118,21 @@ export default function AddResidentPage() {
                     >
                       <option value="">Select Identity Type</option>
                       {IDENTITY_TYPES.map(type => (
-                        <option key={type} value={type}>{type}</option>
+                        <option key={type.value} value={type.value}>{type.label}</option>
                       ))}
                     </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">ID Number</label>
+                    <input
+                      type="text"
+                      name="identityNumber"
+                      value={formData.identityNumber}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
+                      required={!!formData.identityType}
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -965,15 +1161,68 @@ export default function AddResidentPage() {
                 </div>
               </div>
             </div>
-            
+
+            {/* Photo Section */}
+            <div>
+              <h3 className="text-lg font-semibold text-[#006B5E] mb-4 pb-2 border-b">Photo</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Resident Photo</label>
+                    <div className="flex flex-col items-center gap-4">
+                      {photoPreview && (
+                        <div className="relative w-32 h-32">
+                          <img
+                            src={photoPreview}
+                            alt="Preview"
+                            className="w-full h-full object-cover rounded-lg"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPhotoFile(null);
+                              setPhotoPreview(null);
+                            }}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <label className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">
+                          <Upload className="mr-2 h-4 w-4" />
+                          Upload Photo
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handlePhotoChange}
+                          />
+                        </label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsWebcamOpen(true)}
+                        >
+                          <Camera className="mr-2 h-4 w-4" />
+                          Take Photo
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
               <Link href="/dashboard/residents" className="w-full sm:w-auto">
                 <Button variant="outline" type="button" disabled={isSaving} className="w-full sm:w-auto">
                   Cancel
                 </Button>
               </Link>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full sm:w-auto bg-[#006B5E] hover:bg-[#005046]"
                 disabled={isSaving}
               >
@@ -983,6 +1232,7 @@ export default function AddResidentPage() {
           </form>
         </div>
       </div>
+      <WebcamDialog />
     </PageTransition>
   );
 } 

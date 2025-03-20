@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Gender, CivilStatus } from "@prisma/client";
 import { PageTransition } from "@/components/ui/page-transition";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -11,10 +11,36 @@ import { ResidentList } from "@/components/residents/resident-list";
 
 const prisma = new PrismaClient();
 
+// Define the Resident interface for the list view
+interface Resident {
+  id: string;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  extensionName: string | null;
+  birthDate: string;
+  gender: string;
+  civilStatus: string;
+  contactNo: string | null;
+  email: string | null;
+  occupation: string | null;
+  voterInBarangay: boolean;
+  fatherName: string | null;
+  fatherMiddleName: string | null;
+  fatherLastName: string | null;
+  motherFirstName: string | null;
+  motherMiddleName: string | null;
+  motherMaidenName: string | null;
+  Household: {
+    houseNo: string;
+    street: string;
+  } | null;
+}
+
 async function getResidentsData() {
   // Get total residents
   const totalResidents = await prisma.resident.count();
-  
+
   // Get residents by gender
   const maleResidents = await prisma.resident.count({
     where: { gender: "MALE" }
@@ -22,7 +48,7 @@ async function getResidentsData() {
   const femaleResidents = await prisma.resident.count({
     where: { gender: "FEMALE" }
   });
-  
+
   // Get residents by age group - adjusted for Philippine context
   const childrenResidents = await prisma.resident.count({
     where: {
@@ -31,7 +57,7 @@ async function getResidentsData() {
       }
     }
   });
-  
+
   const youngAdultResidents = await prisma.resident.count({
     where: {
       birthDate: {
@@ -40,7 +66,7 @@ async function getResidentsData() {
       }
     }
   });
-  
+
   const adultResidents = await prisma.resident.count({
     where: {
       birthDate: {
@@ -49,7 +75,7 @@ async function getResidentsData() {
       }
     }
   });
-  
+
   const seniorResidents = await prisma.resident.count({
     where: {
       birthDate: {
@@ -57,7 +83,7 @@ async function getResidentsData() {
       }
     }
   });
-  
+
   // Get all residents with pagination
   const residentsData = await prisma.resident.findMany({
     take: 10,
@@ -68,9 +94,9 @@ async function getResidentsData() {
       Household: true
     }
   });
-  
+
   // Format the data to match the expected format
-  const residents = residentsData.map(resident => ({
+  const residents: Resident[] = residentsData.map(resident => ({
     id: resident.id,
     firstName: resident.firstName,
     middleName: resident.middleName,
@@ -83,13 +109,20 @@ async function getResidentsData() {
     email: resident.email,
     occupation: resident.occupation,
     voterInBarangay: resident.voterInBarangay,
-    headOfHousehold: resident.headOfHousehold,
+    // Parent fields
+    fatherName: resident.fatherName,
+    fatherMiddleName: resident.fatherMiddleName,
+    fatherLastName: resident.fatherLastName,
+    motherFirstName: resident.motherFirstName,
+    motherMiddleName: resident.motherMiddleName,
+    motherMaidenName: resident.motherMaidenName,
+    // Household information
     Household: resident.Household ? {
       houseNo: resident.Household.houseNo,
       street: resident.Household.street
     } : null
   }));
-  
+
   return {
     stats: {
       total: totalResidents,
@@ -110,7 +143,7 @@ async function getResidentsData() {
 
 export default async function ResidentsPage() {
   const data = await getResidentsData();
-  
+
   return (
     <PageTransition>
       <div className="w-full">
@@ -126,69 +159,9 @@ export default async function ResidentsPage() {
             Total Residents: <span className="font-bold text-[#006B5E]">{data.stats.total.toLocaleString()}</span>
           </div>
         </div>
-        
+
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-          {/* 0-17 Years Old */}
-          <div className="bg-white rounded-xl border border-[#F39C12]/30 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <div className="p-4 flex flex-col items-center">
-              <div className="mb-2">
-                <Image src="/icons/child-icon.svg" alt="Children" width={40} height={40} />
-              </div>
-              <div className="text-3xl font-bold text-[#006B5E]">
-                {data.stats.byAge.children.toLocaleString()}
-              </div>
-              <div className="text-xs text-center border border-[#F39C12] rounded-full px-3 py-1 mt-1">
-                0-17 YEARS OLD
-              </div>
-            </div>
-          </div>
-          
-          {/* 18-24 Years Old */}
-          <div className="bg-white rounded-xl border border-[#F39C12]/30 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <div className="p-4 flex flex-col items-center">
-              <div className="mb-2">
-                <Image src="/icons/young-adult-icon.svg" alt="Young Adults" width={40} height={40} />
-              </div>
-              <div className="text-3xl font-bold text-[#006B5E]">
-                {data.stats.byAge.youngAdult.toLocaleString()}
-              </div>
-              <div className="text-xs text-center border border-[#F39C12] rounded-full px-3 py-1 mt-1">
-                18-24 YEARS OLD
-              </div>
-            </div>
-          </div>
-          
-          {/* 25-59 Years Old */}
-          <div className="bg-white rounded-xl border border-[#F39C12]/30 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <div className="p-4 flex flex-col items-center">
-              <div className="mb-2">
-                <Image src="/icons/adult-icon.svg" alt="Adults" width={40} height={40} />
-              </div>
-              <div className="text-3xl font-bold text-[#006B5E]">
-                {data.stats.byAge.adult.toLocaleString()}
-              </div>
-              <div className="text-xs text-center border border-[#F39C12] rounded-full px-3 py-1 mt-1">
-                25-59 YEARS OLD
-              </div>
-            </div>
-          </div>
-          
-          {/* 60+ Years Old (Senior Citizens) */}
-          <div className="bg-white rounded-xl border border-[#F39C12]/30 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <div className="p-4 flex flex-col items-center">
-              <div className="mb-2">
-                <Image src="/icons/senior-icon.svg" alt="Senior Citizens" width={40} height={40} />
-              </div>
-              <div className="text-3xl font-bold text-[#006B5E]">
-                {data.stats.byAge.senior.toLocaleString()}
-              </div>
-              <div className="text-xs text-center border border-[#F39C12] rounded-full px-3 py-1 mt-1">
-                60+ YEARS OLD
-              </div>
-            </div>
-          </div>
-          
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {/* Male */}
           <div className="bg-white rounded-xl border border-[#F39C12]/30 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <div className="p-4 flex flex-col items-center">
@@ -203,7 +176,7 @@ export default async function ResidentsPage() {
               </div>
             </div>
           </div>
-          
+
           {/* Female */}
           <div className="bg-white rounded-xl border border-[#F39C12]/30 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             <div className="p-4 flex flex-col items-center">
@@ -219,27 +192,25 @@ export default async function ResidentsPage() {
             </div>
           </div>
         </div>
-        
+
         {/* Resident List Component */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-[#006B5E] mb-4 md:mb-0">Residents</h2>
-            <div className="flex gap-4">
-              <Button className="bg-white text-[#006B5E] border border-[#006B5E] hover:bg-[#006B5E] hover:text-white transition-colors">
-                <Filter className="mr-2 h-4 w-4" /> FILTER
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-[#006B5E] mb-4 md:mb-0">Residents</h2>
+          <div className="flex gap-4">
+            <Button className="bg-white text-[#006B5E] border border-[#006B5E] hover:bg-[#006B5E] hover:text-white transition-colors">
+              <Filter className="mr-2 h-4 w-4" /> FILTER
+            </Button>
+            <Link href="/dashboard/residents/add">
+              <Button className="bg-[#006B5E] text-white hover:bg-[#005046]">
+                <Plus className="mr-2 h-4 w-4" /> ADD RESIDENT
               </Button>
-              <Link href="/dashboard/residents/add">
-                <Button className="bg-[#006B5E] text-white hover:bg-[#005046]">
-                  <Plus className="mr-2 h-4 w-4" /> ADD RESIDENT
-                </Button>
-              </Link>
-            </div>
+            </Link>
           </div>
-          
-          <Suspense fallback={<p>Loading residents...</p>}>
-            <ResidentList initialResidents={data.residents} />
-          </Suspense>
         </div>
+
+        <Suspense fallback={<p>Loading residents...</p>}>
+          <ResidentList initialResidents={data.residents} />
+        </Suspense>
       </div>
     </PageTransition>
   );

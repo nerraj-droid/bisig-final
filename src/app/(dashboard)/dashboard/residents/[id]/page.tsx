@@ -1,10 +1,8 @@
+import ResidentDetailClient from "./client-page";
 import { PrismaClient } from "@prisma/client";
 import { notFound } from "next/navigation";
-import ResidentDetailClient from "./client-page";
 
-const prisma = new PrismaClient();
-
-// Define extended resident type to include the new fields
+// Define the type interface based on what's used in client-page.tsx
 interface ExtendedResident {
   id: string;
   firstName: string;
@@ -37,23 +35,76 @@ interface ExtendedResident {
     houseNo: string;
     street: string;
   } | null;
+  identityNumber: string | null;
+  userPhoto: string | null;
+  identityIssueDate: string | null;
+  identityExpiry: string | null;
+  identityDocumentPath: string | null;
+  nationality: string | null;
+  religion: string | null;
+  ethnicGroup: string | null;
+  bloodType: string | null;
+  alias: string | null;
   [key: string]: any; // For any other properties
 }
 
+const prisma = new PrismaClient();
+
 async function getResident(id: string): Promise<ExtendedResident | null> {
-  const resident = await prisma.resident.findUnique({
-    where: { id },
-    include: {
-      Household: true
+  try {
+    const resident = await prisma.resident.findUnique({
+      where: { id },
+      include: {
+        Household: true,
+      }
+    });
+
+    if (!resident) {
+      return null;
     }
-  });
 
-  if (!resident) {
+    // Cast to our extended type and then add any processing
+    const baseResident = resident as unknown as ExtendedResident;
+
+    // Process identity document data
+    // Check if identity document path exists in the new field
+    if (baseResident.identityDocumentPath) {
+      if (baseResident.identityDocumentPath.startsWith('DOCUMENT:')) {
+        baseResident.proofOfIdentity = baseResident.identityDocumentPath.substring(9);
+      } else {
+        baseResident.proofOfIdentity = baseResident.identityDocumentPath;
+      }
+    }
+    // Fallback to legacy format if needed
+    else if (baseResident.identityNumber?.startsWith('DOCUMENT:') && !baseResident.proofOfIdentity) {
+      baseResident.proofOfIdentity = baseResident.identityNumber.substring(9);
+    }
+
+    // Make sure boolean fields are properly set
+    baseResident.voterInBarangay = baseResident.voterInBarangay || false;
+    baseResident.headOfHousehold = baseResident.headOfHousehold || false;
+
+    // Ensure sectors is an array
+    baseResident.sectors = baseResident.sectors || [];
+
+    console.log("Processed resident data:", {
+      identityType: baseResident.identityType,
+      identityNumber: baseResident.identityNumber,
+      identityDocumentPath: baseResident.identityDocumentPath,
+      proofOfIdentity: baseResident.proofOfIdentity,
+      occupation: baseResident.occupation,
+      employmentStatus: baseResident.employmentStatus,
+      sectors: baseResident.sectors,
+      fullObject: JSON.stringify(baseResident)
+    });
+
+    return baseResident;
+  } catch (error) {
+    console.error("Error fetching resident:", error);
     return null;
+  } finally {
+    await prisma.$disconnect();
   }
-
-  // Cast to our extended type
-  return resident as unknown as ExtendedResident;
 }
 
 export default async function ResidentDetailPage({ params }: { params: { id: string } }) {

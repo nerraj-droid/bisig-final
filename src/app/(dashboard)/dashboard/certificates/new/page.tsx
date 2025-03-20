@@ -38,7 +38,8 @@ const getDefaultTemplateData = (type: string) => {
     signatures: {
       punongBarangay: "",
       secretary: ""
-    }
+    },
+    purpose: ""
   };
 
   switch (type) {
@@ -52,7 +53,8 @@ const getDefaultTemplateData = (type: string) => {
       return {
         ...baseTemplate,
         title: "CERTIFICATE OF RESIDENCY",
-        content: "This is to certify that {residentName}, of legal age, {civilStatus}, Filipino, is a bonafide resident of {address} for more than six (6) months."
+        content: "This is to certify that {residentName}, of legal age, {civilStatus}, Filipino, is a bonafide resident of {address} for at least six (6) months.",
+        validityMonths: 6
       };
     case "indigency":
       return {
@@ -76,19 +78,20 @@ export default function NewCertificatePage() {
   const searchParams = useSearchParams();
   const type = searchParams.get("type");
   const residentId = searchParams.get("residentId");
+  const purposeFromUrl = searchParams.get("purpose");
   const editMode = searchParams.get("edit") === "true";
-  
+
   const [resident, setResident] = useState<Resident | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(editMode ? "edit" : "preview");
   const [templateData, setTemplateData] = useState<any>(null);
-  
+
   useEffect(() => {
     // Load saved template data from localStorage if available
     const loadTemplateData = () => {
       if (!type) return;
-      
+
       try {
         const savedTemplate = localStorage.getItem(`certificate-template-${type}`);
         if (savedTemplate) {
@@ -101,23 +104,23 @@ export default function NewCertificatePage() {
         setTemplateData(getDefaultTemplateData(type));
       }
     };
-    
+
     loadTemplateData();
   }, [type]);
-  
+
   useEffect(() => {
     const fetchResident = async () => {
       if (!residentId) return;
-      
+
       setLoading(true);
       setError(null);
-      
+
       try {
         const response = await fetch(`/api/residents/${residentId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch resident data');
         }
-        
+
         const data = await response.json();
         setResident(data);
       } catch (err) {
@@ -127,19 +130,19 @@ export default function NewCertificatePage() {
         setLoading(false);
       }
     };
-    
+
     fetchResident();
   }, [residentId]);
 
   const handleSaveTemplate = (data: any) => {
     if (!type) return;
-    
+
     try {
       // Save template to localStorage
       localStorage.setItem(`certificate-template-${type}`, JSON.stringify(data));
       setTemplateData(data);
       setActiveTab("preview");
-      
+
       // Show success message or toast notification
       alert("Template saved successfully!");
     } catch (err) {
@@ -150,7 +153,7 @@ export default function NewCertificatePage() {
 
   // Generate a unique control number
   const controlNumber = `BC-${new Date().getTime()}`;
-  
+
   // This would typically come from your database
   const officials = templateData?.officials || {
     punongBarangay: "Hon. Sample Name",
@@ -158,10 +161,63 @@ export default function NewCertificatePage() {
     treasurer: "Jane Doe",
   };
 
+  // Add residency validation
+  const validateResidency = async (residentId: string) => {
+    try {
+      const response = await fetch(`/api/residents/${residentId}/residency-duration`);
+      if (!response.ok) {
+        throw new Error('Failed to validate residency duration');
+      }
+
+      const data = await response.json();
+      const residencyMonths = data.residencyMonths;
+
+      if (type === 'residency' && residencyMonths < 6) {
+        setError('Resident must have lived in the barangay for at least 6 months to be eligible for a Certificate of Residency.');
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Error validating residency:', err);
+      setError('Failed to validate residency duration. Please try again.');
+      return false;
+    }
+  };
+
+  // Format the purpose text for professional display in the certificate
+  const formatPurpose = (purpose: string) => {
+    if (!purpose) return "";
+
+    // Trim whitespace and ensure proper form
+    let formattedPurpose = purpose.trim();
+
+    // Remove unnecessary prefixes like "for" or "for the purpose of"
+    formattedPurpose = formattedPurpose
+      .replace(/^for\s+the\s+purpose\s+of\s+/i, '')
+      .replace(/^for\s+/i, '')
+      .replace(/^to\s+be\s+used\s+for\s+/i, '')
+      .replace(/^to\s+be\s+used\s+in\s+/i, '')
+      .replace(/^to\s+/i, '');
+
+    // Ensure the purpose starts with a capital letter
+    if (formattedPurpose.length > 0) {
+      formattedPurpose = formattedPurpose.charAt(0).toUpperCase() + formattedPurpose.slice(1);
+    }
+
+    // If the purpose doesn't end with punctuation, add a period
+    const lastChar = formattedPurpose.slice(-1);
+    if (!/[.!?]/.test(lastChar) && formattedPurpose.length > 0) {
+      formattedPurpose += ".";
+    }
+
+    return formattedPurpose;
+  };
+
   if (!type) {
     return <div className="p-6">Invalid certificate type</div>;
   }
-  
+
   if (!templateData) {
     return (
       <div className="p-6 space-y-4">
@@ -170,7 +226,7 @@ export default function NewCertificatePage() {
       </div>
     );
   }
-  
+
   if (loading) {
     return (
       <div className="p-6 space-y-4">
@@ -186,7 +242,7 @@ export default function NewCertificatePage() {
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <div className="p-6">
@@ -206,21 +262,20 @@ export default function NewCertificatePage() {
     );
   }
 
-  // Prepare certificate data
+  // Update certificate data preparation
   const certificateData = {
-    residentName: resident 
+    residentName: resident
       ? `${resident.firstName} ${resident.middleName ? resident.middleName + ' ' : ''}${resident.lastName}`
       : "Juan Dela Cruz",
     address: resident?.address || "123 Sample St., Barangay Sample",
-    purpose: templateData.purpose || "Local Employment",
+    purpose: formatPurpose(purposeFromUrl || templateData.purpose || ""),
     controlNumber,
     officials,
-    businessName: "Sample Business", // This would be relevant only for business permits
-    ownerName: resident 
+    businessName: "Sample Business",
+    ownerName: resident
       ? `${resident.firstName} ${resident.lastName}`
       : "Sample Owner",
     civilStatus: resident?.civilStatus || "Single",
-    // Add template customization properties
     templateSettings: {
       ...templateData,
       barangayName: "SAN VICENTE",
@@ -228,7 +283,6 @@ export default function NewCertificatePage() {
       city: "Quezon City",
       barangayAddress: "11-O Maayusin Extn., Brgy. San Vicente, Diliman, Quezon City 1101",
       contactNumber: "02-4415644",
-      // Add council members for the left sidebar
       councilMembers: [
         "RAUL NARCA",
         "MARIETTA PANABI",
@@ -247,7 +301,7 @@ export default function NewCertificatePage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Generate Certificate</h1>
         <p className="text-muted-foreground">
-          {resident 
+          {resident
             ? `Creating certificate for ${resident.firstName} ${resident.lastName}`
             : "Preview and generate the certificate"
           }
@@ -259,15 +313,15 @@ export default function NewCertificatePage() {
           <TabsTrigger value="preview">Preview Certificate</TabsTrigger>
           <TabsTrigger value="edit">Edit Template</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="preview" className="mt-0">
           <CertificateGenerator type={type as "clearance" | "residency" | "business" | "indigency"} data={certificateData} />
         </TabsContent>
-        
+
         <TabsContent value="edit" className="mt-0">
-          <CertificateEditor 
-            initialData={templateData} 
-            onSave={handleSaveTemplate} 
+          <CertificateEditor
+            initialData={templateData}
+            onSave={handleSaveTemplate}
             onPreview={() => setActiveTab("preview")}
             certificateType={type}
           />

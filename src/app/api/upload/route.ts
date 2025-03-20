@@ -1,88 +1,151 @@
 import { NextRequest, NextResponse } from "next/server";
+import { writeFile, mkdir } from "fs/promises";
+import { join } from "path";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { v4 as uuidv4 } from "uuid";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
+    console.log('Upload API called');
     const session = await getServerSession(authOptions);
+
     if (!session) {
-      return NextResponse.json(
-        { message: "Unauthorized" },
-        { status: 401 }
-      );
+      console.log('Unauthorized upload attempt');
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    // Get the form data
     const formData = await request.formData();
-    const file = formData.get('file') as File;
 
+    const file = formData.get("file") as File;
     if (!file) {
-      return NextResponse.json(
-        { message: "No file provided" },
-        { status: 400 }
-      );
+      console.log('No file provided in upload');
+      return new Response(JSON.stringify({ error: "No file uploaded" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    // Check file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json(
-        { message: "Invalid file type. Only JPEG, PNG, and PDF files are allowed." },
-        { status: 400 }
+    // Log file information
+    console.log(`File upload details - Name: ${file.name}, Type: ${file.type}, Size: ${file.size} bytes`);
+
+    // Get the file type from the form data
+    const fileType = formData.get("type") as string || "proof-of-identity"; // Default to proof-of-identity
+    console.log(`File upload type: ${fileType}`);
+
+    // Validate mime type
+    const validTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/jpg",
+      "application/pdf",
+    ];
+
+    if (!validTypes.includes(file.type)) {
+      console.log(`Invalid file type: ${file.type}`);
+      return new Response(
+        JSON.stringify({
+          error: "Invalid file type. Only JPEG, PNG, and PDF files are allowed.",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
       );
     }
 
     // Check file size (limit to 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { message: "File size exceeds the 5MB limit." },
-        { status: 400 }
+    if (file.size > 5 * 1024 * 1024) {
+      console.log(`File too large: ${file.size} bytes`);
+      return new Response(
+        JSON.stringify({
+          error: "File too large. Maximum file size is 5MB.",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
       );
     }
 
-    // Convert file to buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
     // Generate a unique filename
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${uuidv4()}.${fileExtension}`;
-    
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'proof-of-identity');
-    await mkdir(uploadsDir, { recursive: true });
-    
-    // Save file to local storage
-    const filePath = path.join(uploadsDir, fileName);
-    await writeFile(filePath, buffer);
-    
-    // Generate public URL
-    const publicUrl = `/uploads/proof-of-identity/${fileName}`;
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-    return NextResponse.json({
-      message: "File uploaded successfully",
-      url: publicUrl,
-      path: publicUrl
-    });
+    // Determine file extension
+    const fileExt = file.name.split(".").pop() || "";
+    const uniqueFilename = `${uuidv4()}.${fileExt}`;
+
+    // Determine the appropriate directory based on file type
+    // This structure maintains compatibility with existing uploads
+    let uploadDir = 'uploads/proof-of-identity'; // Default directory
+
+    if (fileType === "profile-photo") {
+      uploadDir = 'uploads/profile-photos';
+    } else if (fileType === "proof-of-identity") {
+      uploadDir = 'uploads/proof-of-identity';
+    } else {
+      uploadDir = 'uploads';
+    }
+
+    // Create full directory path
+    const dirPath = join(process.cwd(), "public", uploadDir);
+
+    // Ensure directory exists
+    await mkdir(dirPath, { recursive: true });
+
+    const filePath = join(dirPath, uniqueFilename);
+
+    try {
+      // Write the file to the filesystem
+      await writeFile(filePath, buffer);
+      console.log(`File saved at ${filePath}`);
+
+      // Return the URL to the uploaded file
+      const url = `/${uploadDir}/${uniqueFilename}`;
+      return new Response(
+        JSON.stringify({
+          url,
+          message: "File uploaded successfully",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    } catch (error) {
+      console.error("Error saving file:", error);
+      return new Response(
+        JSON.stringify({
+          error: "Failed to save file",
+          details: error instanceof Error ? error.message : "Unknown error",
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
   } catch (error) {
-    console.error('Error uploading file:', error);
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
+    console.error("Upload handler error:", error);
+    return new Response(
+      JSON.stringify({
+        error: "Failed to process upload",
+        details: error instanceof Error ? error.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
     );
   }
 }
 
-// Increase the body size limit for file uploads
 export const config = {
   api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
+    bodyParser: false,
   },
 }; 

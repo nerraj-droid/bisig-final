@@ -16,7 +16,12 @@ interface Resident {
     email: string | null
     occupation: string | null
     voterInBarangay: boolean
-    headOfHousehold: boolean
+    fatherName: string | null
+    fatherMiddleName: string | null
+    fatherLastName: string | null
+    motherFirstName: string | null
+    motherMiddleName: string | null
+    motherMaidenName: string | null
     Household: {
         houseNo: string
         street: string
@@ -66,17 +71,17 @@ export function ResidentList({ initialResidents }: ResidentListProps) {
 
     const handleSearch = (value: string) => {
         setSearch(value)
-        
+
         // Clear any existing timeout
         if (searchTimeout) {
             clearTimeout(searchTimeout)
         }
-        
+
         // Set a new timeout
         const timeout = setTimeout(() => {
             fetchResidents(value)
         }, 300)
-        
+
         setSearchTimeout(timeout)
     }
 
@@ -144,12 +149,6 @@ export function ResidentList({ initialResidents }: ResidentListProps) {
                                 scope="col"
                                 className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
                             >
-                                Head of Household
-                            </th>
-                            <th
-                                scope="col"
-                                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                            >
                                 Address
                             </th>
                         </tr>
@@ -157,7 +156,7 @@ export function ResidentList({ initialResidents }: ResidentListProps) {
                     <tbody className="divide-y divide-gray-200 bg-white">
                         {residents.length === 0 ? (
                             <tr>
-                                <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                                     {search.trim() ? 'No residents found matching your search.' : 'No residents found.'}
                                 </td>
                             </tr>
@@ -183,9 +182,6 @@ export function ResidentList({ initialResidents }: ResidentListProps) {
                                     </td>
                                     <td className="whitespace-nowrap px-6 py-4">
                                         {resident.voterInBarangay ? "Yes" : "No"}
-                                    </td>
-                                    <td className="whitespace-nowrap px-6 py-4">
-                                        {resident.headOfHousehold ? "Yes" : "No"}
                                     </td>
                                     <td className="whitespace-nowrap px-6 py-4">
                                         {resident.Household

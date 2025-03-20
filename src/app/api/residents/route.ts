@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../auth/[...nextauth]/route"
 import { prisma } from "@/lib/prisma"
-import { Prisma, Role } from "@prisma/client"
+import { Prisma, Role, Gender, CivilStatus } from "@prisma/client"
 import { z } from 'zod'
 import { randomUUID } from "crypto"
 import { PrismaClient } from "@prisma/client"
@@ -29,8 +29,8 @@ const residentSchema = z.object({
     extensionName: z.string().optional().nullable(),
     alias: z.string().optional().nullable(),
     birthDate: z.string().refine(date => !isNaN(Date.parse(date)), 'Invalid date'),
-    gender: z.enum(['MALE', 'FEMALE', 'OTHER']),
-    civilStatus: z.enum(['SINGLE', 'MARRIED', 'WIDOWED', 'DIVORCED', 'SEPARATED']),
+    gender: z.nativeEnum(Gender),
+    civilStatus: z.nativeEnum(CivilStatus),
     address: z.string().min(1, 'Address is required'),
     email: z.string().email().optional().nullable(),
     contactNo: z.string().optional().nullable(),
@@ -43,20 +43,18 @@ const residentSchema = z.object({
     ethnicGroup: z.string().optional().nullable(),
     nationality: z.string().optional().nullable(),
     userPhoto: z.string().optional().nullable(),
-    motherMaidenName: z.string().optional().nullable(),
-    motherMiddleName: z.string().optional().nullable(),
-    motherFirstName: z.string().optional().nullable(),
     fatherName: z.string().optional().nullable(),
-    fatherLastName: z.string().optional().nullable(),
     fatherMiddleName: z.string().optional().nullable(),
-    headOfHousehold: z.boolean().optional(),
+    fatherLastName: z.string().optional().nullable(),
+    motherFirstName: z.string().optional().nullable(),
+    motherMiddleName: z.string().optional().nullable(),
+    motherMaidenName: z.string().optional().nullable(),
     voterInBarangay: z.boolean().optional(),
     sectors: z.array(z.string()).optional(),
-    proofOfIdentity: z.string().optional().nullable(),
-    proofOfIdentityUrl: z.string().optional().nullable(),
     identityType: z.string().optional().nullable(),
+    identityNumber: z.string().optional().nullable(),
+    identityDocumentPath: z.string().optional().nullable(),
     householdId: z.string().optional().nullable(),
-    // Address components
     houseNo: z.string().optional().nullable(),
     street: z.string().optional().nullable(),
     barangay: z.string().optional().nullable(),
@@ -78,59 +76,69 @@ export async function POST(request: NextRequest) {
 
         const data = await request.json()
 
-        // Validate the data using zod schema
-        const validatedData = residentSchema.parse(data)
-
-        const resident = await prisma.resident.create({
-            data: {
-                id: randomUUID(),
-                updatedAt: new Date(),
-                firstName: validatedData.firstName,
-                middleName: validatedData.middleName,
-                lastName: validatedData.lastName,
-                extensionName: validatedData.extensionName,
-                alias: validatedData.alias,
-                birthDate: new Date(validatedData.birthDate),
-                gender: validatedData.gender,
-                civilStatus: validatedData.civilStatus,
-                contactNo: validatedData.contactNo,
-                email: validatedData.email,
-                occupation: validatedData.occupation,
-                employmentStatus: validatedData.employmentStatus,
-                educationalAttainment: validatedData.educationalAttainment,
-                bloodType: validatedData.bloodType,
-                religion: validatedData.religion,
-                ethnicGroup: validatedData.ethnicGroup,
-                nationality: validatedData.nationality || '',
-                address: validatedData.address,
-                userPhoto: validatedData.userPhoto,
-                motherMaidenName: validatedData.motherMaidenName,
-                motherMiddleName: validatedData.motherMiddleName,
-                motherFirstName: validatedData.motherFirstName,
-                fatherName: validatedData.fatherName,
-                fatherLastName: validatedData.fatherLastName,
-                fatherMiddleName: validatedData.fatherMiddleName,
-                headOfHousehold: validatedData.headOfHousehold || false,
-                voterInBarangay: validatedData.voterInBarangay || false,
-                sectors: validatedData.sectors || [],
-                // Use either proofOfIdentityUrl or proofOfIdentity
-                proofOfIdentity: validatedData.proofOfIdentityUrl || validatedData.proofOfIdentity,
-                identityType: validatedData.identityType,
-                householdId: validatedData.householdId || null,
-            },
-            include: {
-                Household: true,
-            }
-        })
-
-        return NextResponse.json(resident)
-    } catch (error) {
-        if (error instanceof z.ZodError) {
-            return new Response(JSON.stringify({
-                message: 'Validation error',
-                errors: error.errors
-            }), { status: 400 })
+        if (!data) {
+            return NextResponse.json(
+                { message: "No data provided" },
+                { status: 400 }
+            )
         }
+
+        // Validate the data using zod schema
+        try {
+            const validatedData = residentSchema.parse(data)
+
+            const resident = await prisma.resident.create({
+                data: {
+                    id: randomUUID(),
+                    updatedAt: new Date(),
+                    firstName: validatedData.firstName,
+                    middleName: validatedData.middleName,
+                    lastName: validatedData.lastName,
+                    extensionName: validatedData.extensionName,
+                    alias: validatedData.alias,
+                    birthDate: new Date(validatedData.birthDate),
+                    gender: validatedData.gender,
+                    civilStatus: validatedData.civilStatus,
+                    contactNo: validatedData.contactNo,
+                    email: validatedData.email,
+                    occupation: validatedData.occupation,
+                    employmentStatus: validatedData.employmentStatus || "EMPLOYED",
+                    educationalAttainment: validatedData.educationalAttainment,
+                    bloodType: validatedData.bloodType,
+                    religion: validatedData.religion,
+                    ethnicGroup: validatedData.ethnicGroup,
+                    nationality: validatedData.nationality || 'Filipino',
+                    address: validatedData.address,
+                    userPhoto: validatedData.userPhoto,
+                    fatherName: validatedData.fatherName || null,
+                    fatherMiddleName: validatedData.fatherMiddleName || null,
+                    fatherLastName: validatedData.fatherLastName || null,
+                    motherFirstName: validatedData.motherFirstName || null,
+                    motherMiddleName: validatedData.motherMiddleName || null,
+                    motherMaidenName: validatedData.motherMaidenName || null,
+                    voterInBarangay: validatedData.voterInBarangay || false,
+                    sectors: validatedData.sectors || [],
+                    identityType: validatedData.identityType,
+                    identityNumber: validatedData.identityNumber,
+                    identityDocumentPath: validatedData.identityDocumentPath,
+                    householdId: validatedData.householdId,
+                },
+            })
+
+            return NextResponse.json(resident)
+        } catch (validationError) {
+            if (validationError instanceof z.ZodError) {
+                return NextResponse.json(
+                    {
+                        message: "Validation error",
+                        errors: validationError.errors
+                    },
+                    { status: 400 }
+                )
+            }
+            throw validationError
+        }
+    } catch (error) {
         console.error("Error creating resident:", error)
         return NextResponse.json(
             { message: "Internal server error" },
@@ -195,7 +203,6 @@ export async function GET(request: NextRequest) {
             email: resident.email,
             occupation: resident.occupation,
             voterInBarangay: resident.voterInBarangay,
-            headOfHousehold: resident.headOfHousehold,
             Household: 'Household' in resident && resident.Household ? {
                 houseNo: resident.Household.houseNo,
                 street: resident.Household.street

@@ -43,25 +43,29 @@ export function CertificateOfResidency({
   const logoRight = templateSettings?.logoRight || "/bagong-pilipinas.png";
   const signatureUrl = templateSettings?.signatureUrl;
   const issuedDate = new Date();
-  
+
+  // Prepare the purpose statement with proper grammar
+  const purposeStatement = purpose
+    ? `for the purpose of ${purpose}`
+    : "for whatever legal purpose it may serve";
+
   // Create the content for the certificate
   const content = (
     <div className="space-y-6">
       <p className="font-semibold text-lg">TO WHOM IT MAY CONCERN:</p>
-      
+
       <p className="text-justify leading-relaxed">
-        This is to certify that <span className="font-bold underline">{residentName}</span>, 
-        <span className="mx-1">{templateSettings?.age ? `${templateSettings.age} years old,` : "(AGE)"}</span> 
+        This is to certify that <span className="font-bold underline">{residentName}</span>,
+        <span className="mx-1">{templateSettings?.age ? `${templateSettings.age} years old,` : "(AGE)"}</span>
         <span className="font-medium">{civilStatus}</span>, has been a <span className="font-bold">resident</span> of/at{" "}
         <span className="font-bold underline">{address}</span> this Barangay since
         <span className="mx-1 underline">{templateSettings?.yearsOfResidency || "___"}</span>
         or for about <span className="underline">{templateSettings?.yearsOfResidency || "___"}</span>.
       </p>
-      
+
       <p className="text-justify leading-relaxed">
-        This CERTIFICATION is being issued upon the request of{" "}
-        <span className="font-medium">this {format(issuedDate, "do")} day of {format(issuedDate, "MMMM yyyy")}</span> for (the) purpose/s of{" "}
-        <span className="font-bold uppercase">{purpose}</span>.
+        This CERTIFICATION is being issued upon the request of the above-named person on{" "}
+        <span className="font-medium">this {format(issuedDate, "do")} day of {format(issuedDate, "MMMM yyyy")}</span> {purposeStatement}.
       </p>
     </div>
   );

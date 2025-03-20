@@ -24,7 +24,7 @@ export default function LoginPage() {
     const handleComplete = () => setIsNavigating(false);
 
     window.addEventListener("beforeunload", handleStart);
-    
+
     return () => {
       window.removeEventListener("beforeunload", handleStart);
     };
@@ -48,8 +48,12 @@ export default function LoginPage() {
         return;
       }
 
-      setIsNavigating(true); // Set navigating state before routing
-      router.push("/dashboard");
+      // Important: Add a delay before redirecting to ensure the session is properly set
+      setIsNavigating(true);
+      setTimeout(() => {
+        router.push("/dashboard");
+        router.refresh(); // Force a refresh to ensure session is recognized
+      }, 1000);
     } catch (error) {
       setError("An error occurred. Please try again.");
       setIsLoading(false);

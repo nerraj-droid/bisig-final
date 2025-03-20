@@ -27,6 +27,7 @@ export const authOptions: NextAuthOptions = {
             if (user) {
                 token.role = user.role
                 token.status = user.status
+                token.id = user.id
             }
             return token
         },
@@ -34,6 +35,7 @@ export const authOptions: NextAuthOptions = {
             if (session?.user) {
                 session.user.role = token.role
                 session.user.status = token.status
+                session.user.id = token.id as string
             }
             return session
         },

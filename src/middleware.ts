@@ -6,6 +6,11 @@ export default withAuth(
         const token = req.nextauth.token
         const path = req.nextUrl.pathname
 
+        // If no token and trying to access protected routes, redirect to login
+        if (!token && path.startsWith("/dashboard")) {
+            return NextResponse.redirect(new URL("/login", req.url))
+        }
+
         // Define route permissions
         const routePermissions = {
             "/dashboard/users": ["SUPER_ADMIN", "CAPTAIN"],
@@ -23,7 +28,14 @@ export default withAuth(
             }
         }
 
-        return NextResponse.next()
+        // Add CORS headers to allow redirections
+        const response = NextResponse.next()
+        response.headers.append("Access-Control-Allow-Private-Network", "true")
+        response.headers.append("Access-Control-Allow-Origin", "*")
+        response.headers.append("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        response.headers.append("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization")
+
+        return response
     },
     {
         callbacks: {

@@ -79,36 +79,32 @@ export function CertificateEditor({ initialData, onSave, onPreview, certificateT
           <TabsList className="bg-transparent h-auto p-0">
             <TabsTrigger
               value="content"
-              className={`px-4 py-3 rounded-none border-b-2 ${
-                activeTab === "content" ? "border-[#006B5E] text-[#006B5E]" : "border-transparent"
-              }`}
+              className={`px-4 py-3 rounded-none border-b-2 ${activeTab === "content" ? "border-[#006B5E] text-[#006B5E]" : "border-transparent"
+                }`}
             >
               <Type className="mr-2 h-4 w-4" />
               Content
             </TabsTrigger>
             <TabsTrigger
               value="layout"
-              className={`px-4 py-3 rounded-none border-b-2 ${
-                activeTab === "layout" ? "border-[#006B5E] text-[#006B5E]" : "border-transparent"
-              }`}
+              className={`px-4 py-3 rounded-none border-b-2 ${activeTab === "layout" ? "border-[#006B5E] text-[#006B5E]" : "border-transparent"
+                }`}
             >
               <Layout className="mr-2 h-4 w-4" />
               Layout
             </TabsTrigger>
             <TabsTrigger
               value="images"
-              className={`px-4 py-3 rounded-none border-b-2 ${
-                activeTab === "images" ? "border-[#006B5E] text-[#006B5E]" : "border-transparent"
-              }`}
+              className={`px-4 py-3 rounded-none border-b-2 ${activeTab === "images" ? "border-[#006B5E] text-[#006B5E]" : "border-transparent"
+                }`}
             >
               <ImageIcon className="mr-2 h-4 w-4" />
               Images
             </TabsTrigger>
             <TabsTrigger
               value="signatures"
-              className={`px-4 py-3 rounded-none border-b-2 ${
-                activeTab === "signatures" ? "border-[#006B5E] text-[#006B5E]" : "border-transparent"
-              }`}
+              className={`px-4 py-3 rounded-none border-b-2 ${activeTab === "signatures" ? "border-[#006B5E] text-[#006B5E]" : "border-transparent"
+                }`}
             >
               <Signature className="mr-2 h-4 w-4" />
               Signatures
@@ -131,13 +127,38 @@ export function CertificateEditor({ initialData, onSave, onPreview, certificateT
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="purpose">Purpose</Label>
-                  <Input
-                    id="purpose"
+                  <Label htmlFor="purpose">Purpose of Certificate <span className="text-red-500">*</span></Label>
+                  <Select
                     value={data.purpose || ""}
-                    onChange={(e) => handleChange("purpose", e.target.value)}
-                    placeholder="Purpose of Certificate"
-                  />
+                    onValueChange={(value) => handleChange("purpose", value)}
+                  >
+                    <SelectTrigger id="purpose">
+                      <SelectValue placeholder="Select purpose" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="EMPLOYMENT">Employment</SelectItem>
+                      <SelectItem value="SCHOOL_REQUIREMENT">School Requirement</SelectItem>
+                      <SelectItem value="BANK_REQUIREMENT">Bank Requirement</SelectItem>
+                      <SelectItem value="GOVERNMENT_ID">Government ID Application</SelectItem>
+                      <SelectItem value="LOAN_APPLICATION">Loan Application</SelectItem>
+                      <SelectItem value="MEDICAL_ASSISTANCE">Medical Assistance</SelectItem>
+                      <SelectItem value="POLICE_CLEARANCE">Police Clearance</SelectItem>
+                      <SelectItem value="NBI_CLEARANCE">NBI Clearance</SelectItem>
+                      <SelectItem value="PASSPORT_APPLICATION">Passport Application</SelectItem>
+                      <SelectItem value="BUSINESS_PERMIT">Business Permit</SelectItem>
+                      <SelectItem value="SCHOLARSHIP">Scholarship</SelectItem>
+                      <SelectItem value="OTHERS">Others</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {data.purpose === "OTHERS" && (
+                    <Input
+                      id="customPurpose"
+                      value={data.customPurpose || ""}
+                      onChange={(e) => handleChange("customPurpose", e.target.value)}
+                      placeholder="Specify other purpose"
+                      className="mt-2"
+                    />
+                  )}
                 </div>
               </div>
 
