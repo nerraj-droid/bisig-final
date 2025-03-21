@@ -14,6 +14,11 @@ export default async function HouseholdsPage() {
         ...household,
         createdAt: household.createdAt.toISOString(),
         updatedAt: household.updatedAt.toISOString(),
+<<<<<<< Updated upstream
+=======
+        residents: household.Resident,
+        Resident: household.Resident,
+>>>>>>> Stashed changes
       }))
     );
 
