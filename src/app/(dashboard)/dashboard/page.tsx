@@ -1,69 +1,74 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { 
-  Calendar, 
-  Home, 
-  Building, 
-  FileText, 
-  Users, 
-  Vote, 
-  AlertTriangle, 
-  Clipboard 
+import {
+  Calendar,
+  Home,
+  Building,
+  FileText,
+  Users,
+  Vote,
+  AlertTriangle,
+  Clipboard
 } from "lucide-react";
 import { format } from "date-fns";
 import { PageTransition } from "@/components/ui/page-transition";
 
-// Initialize Prisma client
-const prisma = new PrismaClient();
-
 async function getDashboardData() {
-  // Get counts for residents
-  const totalResidents = await prisma.resident.count();
-  const maleResidents = await prisma.resident.count({
-    where: { gender: "MALE" }
-  });
-  const femaleResidents = await prisma.resident.count({
-    where: { gender: "FEMALE" }
-  });
+  // Run all queries in parallel with Promise.all for better performance
+  const [
+    // Resident counts
+    totalResidents,
+    maleResidents,
+    femaleResidents,
 
-  // Get counts for households
-  const totalHouseholds = await prisma.household.count();
-  
-  // Get counts for certificates
-  const totalCertificates = await prisma.certificate.count();
-  const releasedCertificates = await prisma.certificate.count({
-    where: { status: "RELEASED" }
-  });
-  const pendingCertificates = await prisma.certificate.count({
-    where: { status: "PENDING" }
-  });
+    // Household counts
+    totalHouseholds,
+    householdsByType,
 
-  // Get certificate types distribution
-  const certificatesByType = await prisma.certificate.groupBy({
-    by: ['type'],
-    _count: {
-      type: true
-    }
-  });
+    // Certificate counts
+    totalCertificates,
+    releasedCertificates,
+    pendingCertificates,
+    certificatesByType,
 
-  // Get household types distribution
-  const householdsByType = await prisma.household.groupBy({
-    by: ['type'],
-    _count: {
-      type: true
-    }
-  });
+    // Officials
+    officials
+  ] = await Promise.all([
+    // Resident queries
+    prisma.resident.count(),
+    prisma.resident.count({ where: { gender: "MALE" } }),
+    prisma.resident.count({ where: { gender: "FEMALE" } }),
 
-  // Get officials
-  const officials = await prisma.officials.findMany({
-    take: 5,
-    orderBy: {
-      id: 'desc'
-    }
-  });
+    // Household queries
+    prisma.household.count(),
+    prisma.household.groupBy({
+      by: ['type'],
+      _count: { type: true }
+    }),
 
+    // Certificate queries
+    prisma.certificate.count(),
+    prisma.certificate.count({ where: { status: "RELEASED" } }),
+    prisma.certificate.count({ where: { status: "PENDING" } }),
+    prisma.certificate.groupBy({
+      by: ['type'],
+      _count: { type: true }
+    }),
+
+    // Officials query - limit fields to what's needed
+    prisma.officials.findMany({
+      take: 5,
+      orderBy: { id: 'desc' },
+      select: {
+        id: true,
+        punongBarangay: true
+      }
+    })
+  ]);
+
+  // Return data in the expected format without unnecessary transformations
   return {
     residents: {
       total: totalResidents,
@@ -87,10 +92,10 @@ async function getDashboardData() {
 export default async function Dashboard() {
   const session = await getServerSession(authOptions);
   const data = await getDashboardData();
-  
+
   const today = new Date();
   const formattedDate = format(today, "MMMM d yyyy");
-  
+
   const nextDays = [
     format(new Date(today.getTime() + 1 * 24 * 60 * 60 * 1000), "d"),
     format(new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000), "d"),
@@ -126,7 +131,7 @@ export default async function Dashboard() {
               {data.residents.total.toLocaleString()}
             </div>
           </div>
-          
+
           <div className="bg-white p-3 rounded-xl border border-[#F39C12]/30">
             <div className="flex items-center justify-between">
               <div className="text-[#006B5E] font-medium text-sm">CERTIFICATES</div>
@@ -147,7 +152,7 @@ export default async function Dashboard() {
               <div className="mt-2">
                 <h4 className="text-[#006B5E]">Today, {formattedDate}</h4>
               </div>
-              
+
               <div className="mt-4 bg-[#E8F5F3] rounded-lg p-3">
                 {mockEvents.map((event, index) => (
                   <div key={index} className="flex items-center gap-3 mt-2 first:mt-0">
@@ -159,7 +164,7 @@ export default async function Dashboard() {
                 ))}
               </div>
             </div>
-            
+
             <div className="flex border-t border-gray-100">
               <div className="flex-1 flex items-center justify-center py-4 bg-[#6B7280]/10">
                 <div className="text-2xl sm:text-4xl font-bold text-[#006B5E]">{format(today, "d")}</div>
@@ -171,12 +176,12 @@ export default async function Dashboard() {
               ))}
             </div>
           </div>
-          
+
           {/* Document Issuance Card */}
           <div className="bg-white rounded-xl border border-[#F39C12]/30 overflow-hidden">
             <div className="p-4">
               <h3 className="text-[#006B5E] font-medium">DOCUMENT ISSUANCE</h3>
-              
+
               <div className="mt-4 text-center">
                 <div className="flex items-end justify-center">
                   <span className="text-3xl sm:text-5xl font-bold text-[#006B5E]">{data.certificates.released.toLocaleString()}</span>
@@ -186,7 +191,7 @@ export default async function Dashboard() {
                   BARANGAY DOCUMENTS
                 </div>
               </div>
-              
+
               <div className="mt-6 flex gap-4">
                 <div className="flex-1 bg-gray-100 rounded-lg p-3 sm:p-4 text-center">
                   <div className="text-xl sm:text-2xl font-bold text-[#006B5E]">
@@ -203,37 +208,40 @@ export default async function Dashboard() {
               </div>
             </div>
           </div>
-          
-          {/* Certificate Types Card */}
+
+          {/* Certificate Types Card - Memoize calculations outside JSX */}
           <div className="bg-white rounded-xl border border-[#F39C12]/30 overflow-hidden">
             <div className="p-4">
               <h3 className="text-[#006B5E] font-medium">CERTIFICATE TYPES</h3>
-              
+
               <div className="mt-4 space-y-3 sm:space-y-4">
-                {data.certificates.byType.map((cert, index) => {
-                  const maxCount = Math.max(...data.certificates.byType.map(c => c._count.type));
-                  const width = Math.max(8, Math.round((cert._count.type / maxCount) * 32));
-                  
-                  return (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className="flex-none w-24 sm:w-32">
-                        <div className={`h-4 bg-[#00BFA5] rounded`} style={{ width: `${width * 8}px` }}></div>
+                {(() => {
+                  const maxCount = Math.max(...data.certificates.byType.map(c => c._count.type), 1);
+
+                  return data.certificates.byType.map((cert, index) => {
+                    const width = Math.max(8, Math.round((cert._count.type / maxCount) * 32));
+
+                    return (
+                      <div key={index} className="flex items-center gap-3">
+                        <div className="flex-none w-24 sm:w-32">
+                          <div className="h-4 bg-[#00BFA5] rounded" style={{ width: `${width * 8}px` }}></div>
+                        </div>
+                        <div className="flex-1 text-sm sm:text-base text-[#006B5E] truncate">
+                          {cert.type}
+                        </div>
                       </div>
-                      <div className="flex-1 text-sm sm:text-base text-[#006B5E] truncate">
-                        {cert.type}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
             </div>
           </div>
-          
+
           {/* Officials Card */}
           <div className="bg-white rounded-xl border border-[#F39C12]/30 overflow-hidden">
             <div className="p-4">
               <h3 className="text-[#006B5E] font-medium">BARANGAY OFFICIALS</h3>
-              
+
               <div className="mt-4 space-y-3">
                 {data.officials.map((official, index) => (
                   <div key={index} className="flex items-center p-2 sm:p-3 bg-gray-50 rounded-lg">
@@ -249,24 +257,24 @@ export default async function Dashboard() {
               </div>
             </div>
           </div>
-          
+
           {/* Resident Profile Card */}
           <div className="bg-white rounded-xl border border-[#F39C12]/30 overflow-hidden">
             <div className="p-4">
               <h3 className="text-[#006B5E] font-medium">RESIDENT PROFILE</h3>
-              
+
               <div className="mt-4 flex justify-center">
                 <div className="relative w-32 h-32 sm:w-48 sm:h-48">
                   <div className="absolute inset-0 rounded-full border-8 border-[#F39C12]"></div>
                   <div className="absolute inset-0 rounded-full border-8 border-transparent border-t-[#006B5E] border-r-[#006B5E] border-b-[#006B5E]" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 0, 30% 50%, 70% 50%, 30% 50%, 0 0)' }}></div>
-                  
+
                   <div className="absolute inset-0 flex items-center justify-center flex-col">
                     <div className="text-2xl sm:text-3xl font-bold text-[#006B5E]">{data.residents.total.toLocaleString()}</div>
                     <div className="text-xs sm:text-sm text-gray-500">TOTAL</div>
                   </div>
                 </div>
               </div>
-              
+
               <div className="mt-6 flex justify-between">
                 <div className="flex items-center">
                   <div className="text-[#006B5E] mr-2">
@@ -277,7 +285,7 @@ export default async function Dashboard() {
                     <div className="text-xs sm:text-sm text-[#006B5E]">MALE</div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center">
                   <div className="text-[#F39C12] mr-2">
                     <Users size={20} className="sm:w-6 sm:h-6" />
@@ -290,37 +298,40 @@ export default async function Dashboard() {
               </div>
             </div>
           </div>
-          
-          {/* Household Types Card */}
+
+          {/* Household Types Card - Memoize calculations outside JSX */}
           <div className="bg-white rounded-xl border border-[#F39C12]/30 overflow-hidden">
             <div className="p-4">
               <h3 className="text-[#006B5E] font-medium">HOUSEHOLD TYPES</h3>
-              
+
               <div className="mt-4 space-y-3 sm:space-y-4">
-                {data.households.byType.map((household, index) => {
-                  const maxCount = Math.max(...data.households.byType.map(h => h._count.type));
-                  const width = Math.max(8, Math.round((household._count.type / maxCount) * 32));
-                  
-                  return (
-                    <div key={index} className="flex items-center gap-3">
-                      <div className="flex-none w-24 sm:w-32">
-                        <div className={`h-4 bg-[#00BFA5] rounded`} style={{ width: `${width * 8}px` }}></div>
+                {(() => {
+                  const maxCount = Math.max(...data.households.byType.map(h => h._count.type), 1);
+
+                  return data.households.byType.map((household, index) => {
+                    const width = Math.max(8, Math.round((household._count.type / maxCount) * 32));
+
+                    return (
+                      <div key={index} className="flex items-center gap-3">
+                        <div className="flex-none w-24 sm:w-32">
+                          <div className="h-4 bg-[#00BFA5] rounded" style={{ width: `${width * 8}px` }}></div>
+                        </div>
+                        <div className="flex-1 text-sm sm:text-base text-[#006B5E] truncate">
+                          {household.type}
+                        </div>
                       </div>
-                      <div className="flex-1 text-sm sm:text-base text-[#006B5E] truncate">
-                        {household.type}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
             </div>
           </div>
-          
+
           {/* Disaster Risk Management Card */}
           <div className="bg-white rounded-xl border border-[#F39C12]/30 overflow-hidden col-span-1 sm:col-span-2 lg:col-span-3">
             <div className="p-4">
               <h3 className="text-[#006B5E] font-medium">DISASTER RISK MANAGEMENT</h3>
-              
+
               <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="text-center">
                   <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-[#006B5E] text-white rounded-md flex items-center justify-center mb-2">
@@ -329,7 +340,7 @@ export default async function Dashboard() {
                   <div className="text-lg sm:text-xl font-bold text-[#F39C12]">{data.households.total.toLocaleString()}</div>
                   <div className="text-xs sm:text-sm text-[#006B5E]">RESIDENT HOUSES</div>
                 </div>
-                
+
                 <div className="text-center">
                   <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-[#006B5E] text-white rounded-md flex items-center justify-center mb-2">
                     <FileText size={24} className="sm:w-8 sm:h-8" />
@@ -337,7 +348,7 @@ export default async function Dashboard() {
                   <div className="text-lg sm:text-xl font-bold text-[#F39C12]">{data.certificates.total}</div>
                   <div className="text-xs sm:text-sm text-[#006B5E]">CERTIFICATES</div>
                 </div>
-                
+
                 <div className="text-center">
                   <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-[#006B5E] text-white rounded-md flex items-center justify-center mb-2">
                     <Users size={24} className="sm:w-8 sm:h-8" />
@@ -345,7 +356,7 @@ export default async function Dashboard() {
                   <div className="text-lg sm:text-xl font-bold text-[#F39C12]">{data.residents.total}</div>
                   <div className="text-xs sm:text-sm text-[#006B5E]">RESIDENTS</div>
                 </div>
-                
+
                 <div className="text-center">
                   <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 bg-[#006B5E] text-white rounded-md flex items-center justify-center mb-2">
                     <Building size={24} className="sm:w-8 sm:h-8" />

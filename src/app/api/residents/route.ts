@@ -1,12 +1,10 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../auth/[...nextauth]/route"
 import { prisma } from "@/lib/prisma"
 import { Prisma, Role, Gender, CivilStatus } from "@prisma/client"
 import { z } from 'zod'
 import { randomUUID } from "crypto"
-import { PrismaClient } from "@prisma/client"
-import { NextRequest } from "next/server"
 
 interface ExtendedSession {
     user?: {
@@ -14,6 +12,7 @@ interface ExtendedSession {
         email?: string | null
         image?: string | null
         role?: Role
+        id?: string | null
     }
 }
 
@@ -164,19 +163,73 @@ export async function GET(request: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '10')
         const skip = (page - 1) * limit
 
-        // Search condition
-        const whereCondition = search
-            ? {
-                OR: [
-                    { firstName: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
-                    { lastName: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
-                    { middleName: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
-                    { address: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
-                ],
-            }
-            : {}
+        // Build WHERE condition for filtering
+        const whereCondition: Prisma.ResidentWhereInput = {};
 
-        // Get residents with pagination and search
+        // Text search condition
+        if (search) {
+            whereCondition.OR = [
+                { firstName: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
+                { lastName: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
+                { middleName: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
+                { address: { contains: search, mode: 'insensitive' as Prisma.QueryMode } },
+            ];
+        }
+
+        // Process gender filter
+        const gender = searchParams.get('gender')
+        if (gender && (gender === 'MALE' || gender === 'FEMALE')) {
+            whereCondition.gender = gender as Gender
+        }
+
+        // Process civil status filter
+        const civilStatus = searchParams.get('civilStatus')
+        if (civilStatus && ['SINGLE', 'MARRIED', 'WIDOWED', 'DIVORCED', 'SEPARATED'].includes(civilStatus)) {
+            whereCondition.civilStatus = civilStatus as CivilStatus
+        }
+
+        // Process voter filter
+        const voter = searchParams.get('voter')
+        if (voter !== null) {
+            whereCondition.voterInBarangay = voter === 'true'
+        }
+
+        // Process age group filter
+        const ageGroup = searchParams.get('ageGroup')
+        if (ageGroup) {
+            const today = new Date()
+
+            switch (ageGroup) {
+                case 'child':
+                    // Children: 0-12 years
+                    whereCondition.birthDate = {
+                        gte: new Date(today.getFullYear() - 12, today.getMonth(), today.getDate())
+                    }
+                    break
+                case 'young-adult':
+                    // Young Adults: 13-30 years
+                    whereCondition.birthDate = {
+                        lt: new Date(today.getFullYear() - 12, today.getMonth(), today.getDate()),
+                        gte: new Date(today.getFullYear() - 30, today.getMonth(), today.getDate())
+                    }
+                    break
+                case 'adult':
+                    // Adults: 31-60 years
+                    whereCondition.birthDate = {
+                        lt: new Date(today.getFullYear() - 30, today.getMonth(), today.getDate()),
+                        gte: new Date(today.getFullYear() - 60, today.getMonth(), today.getDate())
+                    }
+                    break
+                case 'senior':
+                    // Seniors: 60+ years
+                    whereCondition.birthDate = {
+                        lt: new Date(today.getFullYear() - 60, today.getMonth(), today.getDate())
+                    }
+                    break
+            }
+        }
+
+        // Only request fields that are actually needed to improve performance
         const residents = await prisma.resident.findMany({
             where: whereCondition,
             skip,
@@ -184,32 +237,52 @@ export async function GET(request: NextRequest) {
             orderBy: {
                 lastName: 'asc'
             },
-            include: {
-                Household: true
+            select: {
+                id: true,
+                firstName: true,
+                middleName: true,
+                lastName: true,
+                extensionName: true,
+                birthDate: true,
+                gender: true,
+                civilStatus: true,
+                contactNo: true,
+                email: true,
+                occupation: true,
+                voterInBarangay: true,
+                fatherName: true,
+                fatherMiddleName: true,
+                fatherLastName: true,
+                motherFirstName: true,
+                motherMiddleName: true,
+                motherMaidenName: true,
+                Household: {
+                    select: {
+                        houseNo: true,
+                        street: true
+                    }
+                }
             }
         })
 
-        // Format the data to match the expected format
-        const formattedResidents = residents.map(resident => ({
-            id: resident.id,
-            firstName: resident.firstName,
-            middleName: resident.middleName,
-            lastName: resident.lastName,
-            extensionName: resident.extensionName,
-            birthDate: resident.birthDate ? resident.birthDate.toISOString() : '',
-            gender: resident.gender,
-            civilStatus: resident.civilStatus,
-            contactNo: resident.contactNo,
-            email: resident.email,
-            occupation: resident.occupation,
-            voterInBarangay: resident.voterInBarangay,
-            Household: 'Household' in resident && resident.Household ? {
-                houseNo: resident.Household.houseNo,
-                street: resident.Household.street
-            } : null
-        }))
+        // Run count query in parallel if we need total count
+        let totalCount;
+        if (searchParams.has('withCount')) {
+            totalCount = await prisma.resident.count({
+                where: whereCondition
+            });
+            return NextResponse.json({
+                data: residents,
+                meta: {
+                    total: totalCount,
+                    page,
+                    limit,
+                    pages: Math.ceil(totalCount / limit)
+                }
+            })
+        }
 
-        return NextResponse.json(formattedResidents)
+        return NextResponse.json(residents)
     } catch (error) {
         console.error("Error fetching residents:", error)
         return NextResponse.json(

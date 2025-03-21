@@ -26,32 +26,32 @@ const AVAILABLE_SECTORS = [
 
 // Define available identity types
 const IDENTITY_TYPES = [
-  { value: "TIN", label: "TIN" },
-  { value: "SSS", label: "SSS" },
-  { value: "GSIS", label: "GSIS" },
-  { value: "Unified Multi-Purpose ID", label: "Unified Multi-Purpose ID" },
+  // Primary Government IDs (Widely Accepted)
+  { value: "Philippine Passport", label: "Philippine Passport" },
+  { value: "Driver's License", label: "Driver's License (LTO)" },
+  { value: "Unified Multi-Purpose ID", label: "Unified Multi-Purpose ID (UMID)" },
+  { value: "SSS", label: "Social Security System (SSS) Card" },
+  { value: "GSIS", label: "Government Service Insurance System (GSIS) eCard" },
+  { value: "PhilSys ID", label: "Philippine Identification System ID (PhilSys ID or National ID)" },
+  { value: "PRC ID", label: "Professional Regulation Commission (PRC) ID" },
+  { value: "Voter's ID", label: "Commission on Elections (COMELEC) Voter's ID / Voter's Certification" },
+  { value: "Postal ID", label: "Postal ID (Issued by PHLPost)" },
+  { value: "OWWA ID", label: "Overseas Workers Welfare Administration (OWWA) ID" },
+  { value: "OFW ID", label: "OFW ID (iDOLE Card)" },
+  { value: "Seaman's Book", label: "Seaman's Book (MARINA)" },
+
+  // Secondary Government IDs (Accepted in Some Transactions)
+  { value: "Barangay Clearance", label: "Barangay Clearance with Photo" },
+  { value: "Police Clearance", label: "Police Clearance with Photo" },
   { value: "NBI Clearance", label: "NBI Clearance" },
-  { value: "Driver's License", label: "Driver's License" },
-  { value: "Professional Regulations Commission ID", label: "Professional Regulations Commission ID" },
-  { value: "Police Clearance", label: "Police Clearance" },
-  { value: "Postal ID", label: "Postal ID" },
-  { value: "Voter's ID", label: "Voter's ID" },
-  { value: "Photo-Bearing Barangay ID/Certificate", label: "Photo-Bearing Barangay ID/Certificate" },
-  { value: "Philhealth Card", label: "Philhealth Card" },
-  { value: "Senior Citizen's ID", label: "Senior Citizen's ID" },
-  { value: "Overseas Workers Welfare Admin ID", label: "Overseas Workers Welfare Admin ID" },
-  { value: "OFW ID", label: "OFW ID" },
-  { value: "Seaman's Book", label: "Seaman's Book" },
-  { value: "Alien Cert. / Immigration Cert.", label: "Alien Cert. / Immigration Cert." },
-  { value: "Government Office ID", label: "Government Office ID" },
-  { value: "NCWDP ID/Certificate", label: "NCWDP ID/Certificate" },
-  { value: "Dept. of Social Welfare & Dev ID/Cert", label: "Dept. of Social Welfare & Dev ID/Cert" },
-  { value: "Firearms License", label: "Firearms License" },
-  { value: "Photo-Bearing Credit Card", label: "Photo-Bearing Credit Card" },
-  { value: "Photo-Bearing Health Card", label: "Photo-Bearing Health Card" },
-  { value: "School ID", label: "School ID" },
-  { value: "Birth Certificate issued by PSA", label: "Birth Certificate issued by PSA" },
-  { value: "Certificate of Registration for DNFBP", label: "Certificate of Registration for DNFBP" },
+  { value: "PhilHealth ID", label: "PhilHealth ID" },
+  { value: "Pag-IBIG Card", label: "Pag-IBIG Loyalty Card Plus" },
+  { value: "Senior Citizen ID", label: "Senior Citizen ID" },
+  { value: "PWD ID", label: "PWD (Persons with Disabilities) ID" },
+  { value: "IP ID", label: "Indigenous Peoples (IP) ID" },
+  { value: "Firearms License", label: "Firearms License (PNP-issued)" },
+  { value: "Government Company ID", label: "Company ID (For Government Employees)" },
+  { value: "Student ID", label: "Student ID (For Minors and Students)" },
 ];
 
 // Define employment status options
@@ -355,14 +355,14 @@ export default function AddResidentPage() {
       }
 
       // Validate employment status and occupation
-      if ((formData.employmentStatus === 'EMPLOYED' || formData.employmentStatus === 'STUDENT') && !formData.occupation) {
-        setError('Occupation is required when employment status is EMPLOYED or STUDENT');
+      if ((formData.employmentStatus === 'Employed' || formData.employmentStatus === 'Self-employed') && !formData.occupation) {
+        setError('Occupation is required based on your employment status');
         setIsSaving(false);
         return;
       }
 
       // Validate unemployment reason
-      if (formData.employmentStatus === 'UNEMPLOYED' && !formData.unemploymentReason) {
+      if (formData.employmentStatus === 'Unemployed' && !formData.unemploymentReason) {
         setError('Please select an unemployment reason');
         setIsSaving(false);
         return;
@@ -906,7 +906,7 @@ export default function AddResidentPage() {
                   </select>
                 </div>
 
-                {(formData.employmentStatus === "EMPLOYED") && (
+                {(formData.employmentStatus === "Employed" || formData.employmentStatus === "Self-employed") && (
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Occupation</label>
                     <input
@@ -920,7 +920,7 @@ export default function AddResidentPage() {
                   </div>
                 )}
 
-                {formData.employmentStatus === "UNEMPLOYED" && (
+                {formData.employmentStatus === "Unemployed" && (
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Unemployment Reason</label>
                     <select
