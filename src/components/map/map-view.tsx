@@ -7,12 +7,18 @@ import { MapPin } from 'lucide-react';
 import { useMap } from "./map-context"
 
 // Map styles constants
+// export const MAP_STYLES = {
+//     STREETS: 'https://demotiles.maplibre.org/style.json',
+//     SATELLITE: 'https://tiles.stadiamaps.com/styles/alidade_satellite.json',
+//     TERRAIN: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+// };
 export const MAP_STYLES = {
-    STREETS: 'https://demotiles.maplibre.org/style.json',
-    SATELLITE: 'https://tiles.stadiamaps.com/styles/alidade_satellite.json',
-    TERRAIN: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+    STREETS: 'https://tiles.stadiamaps.com/styles/osm_bright.json', // Stadia Streets (requires API key)
+    SATELLITE: 'https://tiles.stadiamaps.com/styles/alidade_satellite.json', // Stadia Satellite
+    TERRAIN: 'https://tiles.stadiamaps.com/styles/outdoors.json', // Stadia Outdoors (terrain-focused)
+    LIGHT: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json', // CARTO Light
+    DARK: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' // CARTO Dark
 };
-
 // Interfaces
 export interface MapMarker {
     id: string;
@@ -75,10 +81,16 @@ export function MapView({
     // Determine the map style based on the prop
     const getMapStyle = () => {
         switch (mapStyle.toLowerCase()) {
+            case 'streets':
+                return MAP_STYLES.STREETS;
             case 'satellite':
                 return MAP_STYLES.SATELLITE;
             case 'terrain':
                 return MAP_STYLES.TERRAIN;
+            case 'light':
+                return MAP_STYLES.LIGHT;
+            case 'dark':
+                return MAP_STYLES.DARK;
             default:
                 return MAP_STYLES.STREETS;
         }
