@@ -9,7 +9,7 @@ import { useMap } from "./map-context"
 // Map styles constants
 export const MAP_STYLES = {
     STREETS: 'https://demotiles.maplibre.org/style.json',
-    SATELLITE: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+    SATELLITE: 'https://tiles.stadiamaps.com/styles/alidade_satellite.json',
     TERRAIN: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
 };
 

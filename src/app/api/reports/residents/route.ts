@@ -2,12 +2,11 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../../auth/[...nextauth]/route"
 import { prisma } from "@/lib/prisma"
-import { differenceInYears } from "date-fns"
+import { Prisma } from "@prisma/client"
 
 export async function GET(req: Request) {
     try {
         const session = await getServerSession(authOptions)
-
         if (!session) {
             return NextResponse.json(
                 { message: "Unauthorized" },
@@ -16,78 +15,82 @@ export async function GET(req: Request) {
         }
 
         const { searchParams } = new URL(req.url)
-        const format = searchParams.get("format") || "json"
+        const format = searchParams.get("format")
         const filter = searchParams.get("filter")
 
-        const where = filter ? {
-            OR: [
-                { firstName: { contains: filter, mode: "insensitive" } },
-                { lastName: { contains: filter, mode: "insensitive" } },
-                {
-                    household: {
-                        OR: [
-                            { houseNo: { contains: filter, mode: "insensitive" } },
-                            { street: { contains: filter, mode: "insensitive" } },
-                            { barangay: { contains: filter, mode: "insensitive" } },
-                        ],
-                    },
-                },
-            ],
-        } : {}
+        let where: Prisma.ResidentWhereInput = {}
+
+        if (filter) {
+            where = {
+                OR: [
+                    { firstName: { contains: filter, mode: Prisma.QueryMode.insensitive } },
+                    { lastName: { contains: filter, mode: Prisma.QueryMode.insensitive } },
+                    { middleName: { contains: filter, mode: Prisma.QueryMode.insensitive } }
+                ]
+            }
+        }
 
         const residents = await prisma.resident.findMany({
             where,
             include: {
-                household: true,
-            },
-            orderBy: {
-                lastName: "asc",
-            },
+                Household: true
+            }
         })
 
+        if (!residents || residents.length === 0) {
+            return NextResponse.json(
+                { message: "No residents found" },
+                { status: 404 }
+            )
+        }
+
         if (format === "csv") {
-            const csvRows = [
-                // Header
-                [
-                    "Last Name",
-                    "First Name",
-                    "Gender",
-                    "Birth Date",
-                    "Age",
-                    "Civil Status",
-                    "Contact No",
-                    "House No",
-                    "Street",
-                    "Barangay",
-                ].join(","),
-                // Data rows
-                ...residents.map(r => [
-                    r.lastName,
-                    r.firstName,
-                    r.gender,
-                    r.birthDate.toLocaleDateString(),
-                    differenceInYears(new Date(), r.birthDate).toString(),
-                    r.civilStatus,
-                    r.contactNo || "",
-                    r.household.houseNo,
-                    r.household.street,
-                    r.household.barangay,
-                ].join(","))
+            const headers = [
+                "First Name",
+                "Middle Name",
+                "Last Name",
+                "Gender",
+                "Birth Date",
+                "Civil Status",
+                "Voter Status",
+                "House Number",
+                "Street",
+                "Barangay",
+                "Created At"
             ]
 
-            return new Response(csvRows.join("\n"), {
+            const rows = residents.map(r => [
+                r.firstName,
+                r.middleName || "",
+                r.lastName,
+                r.gender,
+                r.birthDate.toISOString(),
+                r.civilStatus,
+                r.voterInBarangay ? "Yes" : "No",
+                r.Household?.houseNo || "",
+                r.Household?.street || "",
+                r.Household?.barangay || "",
+                r.createdAt.toISOString()
+            ])
+
+            const csvContent = [
+                headers.join(","),
+                ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+            ].join("\n")
+
+            return new NextResponse(csvContent, {
                 headers: {
                     "Content-Type": "text/csv",
-                    "Content-Disposition": `attachment; filename="residents-${new Date().toISOString().split("T")[0]}.csv"`,
-                },
+                    "Content-Disposition": `attachment; filename="residents-${new Date().toISOString().split("T")[0]}.csv"`
+                }
             })
         }
 
         return NextResponse.json(residents)
     } catch (error) {
-        console.error(error)
+        console.error("Error fetching residents:", error)
         return NextResponse.json(
-            { message: "Something went wrong" },
+            { message: "Failed to fetch residents" },
             { status: 500 }
         )
     }

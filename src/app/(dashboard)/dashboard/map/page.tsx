@@ -30,7 +30,7 @@ export default function MapPage() {
     const [markers, setMarkers] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedHousehold, setSelectedHousehold] = useState<any>(null);
-    const [mapStyle, setMapStyle] = useState('streets');
+    const [mapStyle, setMapStyle] = useState('satellite');
     const [isMounted, setIsMounted] = useState(false);
     const [showReportPreview, setShowReportPreview] = useState(false);
     const [reportType, setReportType] = useState<'summary' | 'detailed'>('summary');
@@ -83,10 +83,17 @@ export default function MapPage() {
                         latitude: household.latitude,
                         longitude: household.longitude,
                         label: `${household.houseNo || ''} ${household.street || ''}`.trim() || 'Household',
-                        color: 'text-primary'
+                        color: getMarkerColor(household)
                     }));
 
                 setMarkers(mappedMarkers);
+
+                // If we have markers and a mapRef, fit the view to show all markers
+                if (mappedMarkers.length > 0 && mapRef.current) {
+                    setTimeout(() => {
+                        fitMapToMarkers(mappedMarkers);
+                    }, 500);
+                }
             } catch (error) {
                 console.error("Error fetching households:", error);
             } finally {
@@ -98,6 +105,58 @@ export default function MapPage() {
             fetchHouseholds();
         }
     }, [isMounted]);
+
+    // Assign different colors to markers based on household properties
+    const getMarkerColor = (household: any) => {
+        // You can customize the logic here to assign colors based on household properties
+        const residentCount = household.Resident?.length || 0;
+
+        if (residentCount === 0) return 'text-gray-500';
+        if (residentCount > 5) return 'text-red-500';
+        if (residentCount > 3) return 'text-amber-500';
+        return 'text-primary';
+    };
+
+    // Fit map view to show all markers
+    const fitMapToMarkers = (markersToFit = markers) => {
+        if (!mapRef.current || markersToFit.length === 0) return;
+
+        try {
+            // Calculate bounds
+            let minLat = Number.MAX_VALUE;
+            let maxLat = Number.MIN_VALUE;
+            let minLng = Number.MAX_VALUE;
+            let maxLng = Number.MIN_VALUE;
+
+            markersToFit.forEach(marker => {
+                minLat = Math.min(minLat, marker.latitude);
+                maxLat = Math.max(maxLat, marker.latitude);
+                minLng = Math.min(minLng, marker.longitude);
+                maxLng = Math.max(maxLng, marker.longitude);
+            });
+
+            // Add padding
+            const padding = 50;
+
+            mapRef.current.fitBounds(
+                [
+                    [minLng, minLat],
+                    [maxLng, maxLat]
+                ],
+                {
+                    padding: {
+                        top: padding,
+                        bottom: padding,
+                        left: padding,
+                        right: padding
+                    },
+                    duration: 1500
+                }
+            );
+        } catch (error) {
+            console.error("Error fitting map to markers:", error);
+        }
+    };
 
     // Handle location selection from search
     const handleSelectLocation = (coordinates: [number, number], address: string) => {
@@ -164,58 +223,115 @@ export default function MapPage() {
             return;
         }
 
-        // Format date for filename
-        const date = new Date();
-        const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        try {
+            // Format date for filename
+            const date = new Date();
+            const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
-        if (includeResidents) {
-            // Detailed report with resident information
-            let csvContent = "Household ID,House Number,Street,Barangay,City,Resident ID,First Name,Last Name,Birth Date,Age,Gender,Civil Status,Contact Number,Latitude,Longitude\n";
-
-            affectedHouseholds.forEach(household => {
-                if (household.Resident && household.Resident.length > 0) {
-                    household.Resident.forEach((resident: any) => {
-                        const age = calculateAge(resident.birthDate);
-                        csvContent += `${household.id},${household.houseNo || ''},${household.street || ''},${household.barangay || ''},${household.city || ''},${resident.id},${resident.firstName || ''},${resident.lastName || ''},${resident.birthDate || ''},${age},${resident.gender || ''},${resident.civilStatus || ''},${resident.contactNo || ''},${household.latitude},${household.longitude}\n`;
-                    });
-                } else {
-                    // Include household with no residents
-                    csvContent += `${household.id},${household.houseNo || ''},${household.street || ''},${household.barangay || ''},${household.city || ''},,,,,,,,,,${household.latitude},${household.longitude}\n`;
+            // Helper function to escape CSV field values
+            const escapeCSV = (field: any) => {
+                if (field === null || field === undefined) return '';
+                const str = String(field);
+                // If the field contains commas, quotes, or newlines, wrap in quotes and escape inner quotes
+                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                    return `"${str.replace(/"/g, '""')}"`;
                 }
-            });
+                return str;
+            };
 
-            // Create blob and download link
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            let csvContent = '';
+            let filename = '';
+
+            if (includeResidents) {
+                // Detailed report with resident information
+                csvContent = "Household ID,House Number,Street,Barangay,City,Resident ID,First Name,Last Name,Birth Date,Age,Gender,Civil Status,Contact Number,Latitude,Longitude\n";
+
+                affectedHouseholds.forEach(household => {
+                    if (household.Resident && household.Resident.length > 0) {
+                        household.Resident.forEach((resident: any) => {
+                            const age = calculateAge(resident.birthDate);
+                            const row = [
+                                escapeCSV(household.id),
+                                escapeCSV(household.houseNo),
+                                escapeCSV(household.street),
+                                escapeCSV(household.barangay),
+                                escapeCSV(household.city),
+                                escapeCSV(resident.id),
+                                escapeCSV(resident.firstName),
+                                escapeCSV(resident.lastName),
+                                escapeCSV(resident.birthDate),
+                                escapeCSV(age),
+                                escapeCSV(resident.gender),
+                                escapeCSV(resident.civilStatus),
+                                escapeCSV(resident.contactNo),
+                                escapeCSV(household.latitude),
+                                escapeCSV(household.longitude)
+                            ].join(',');
+                            csvContent += row + '\n';
+                        });
+                    } else {
+                        // Include household with no residents
+                        const row = [
+                            escapeCSV(household.id),
+                            escapeCSV(household.houseNo),
+                            escapeCSV(household.street),
+                            escapeCSV(household.barangay),
+                            escapeCSV(household.city),
+                            '', '', '', '', '', '', '', '',
+                            escapeCSV(household.latitude),
+                            escapeCSV(household.longitude)
+                        ].join(',');
+                        csvContent += row + '\n';
+                    }
+                });
+
+                filename = `disaster_relief_detailed_${formattedDate}.csv`;
+            } else {
+                // Simple household summary report
+                csvContent = "Household ID,House Number,Street,Barangay,City,Residents Count,Latitude,Longitude\n";
+
+                affectedHouseholds.forEach(household => {
+                    const residentCount = household.Resident?.length || 0;
+                    const row = [
+                        escapeCSV(household.id),
+                        escapeCSV(household.houseNo),
+                        escapeCSV(household.street),
+                        escapeCSV(household.barangay),
+                        escapeCSV(household.city),
+                        escapeCSV(residentCount),
+                        escapeCSV(household.latitude),
+                        escapeCSV(household.longitude)
+                    ].join(',');
+                    csvContent += row + '\n';
+                });
+
+                filename = `disaster_relief_summary_${formattedDate}.csv`;
+            }
+
+            // Create blob with BOM for Excel compatibility
+            const BOM = "\uFEFF"; // UTF-8 BOM
+            const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+            // Create download link
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.setAttribute('href', url);
-            link.setAttribute('download', `disaster_relief_detailed_${formattedDate}.csv`);
+            link.setAttribute('download', filename);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
-            document.body.removeChild(link);
-        } else {
-            // Simple household summary report
-            let csvContent = "Household ID,House Number,Street,Barangay,City,Residents Count,Latitude,Longitude\n";
 
-            affectedHouseholds.forEach(household => {
-                const residentCount = household.Resident?.length || 0;
-                csvContent += `${household.id},${household.houseNo || ''},${household.street || ''},${household.barangay || ''},${household.city || ''},${residentCount},${household.latitude},${household.longitude}\n`;
-            });
+            // Clean up
+            setTimeout(() => {
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }, 100);
 
-            // Create blob and download link
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.setAttribute('href', url);
-            link.setAttribute('download', `disaster_relief_summary_${formattedDate}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            setShowReportPreview(false);
+        } catch (error) {
+            console.error("Error generating report:", error);
+            alert("An error occurred while generating the report. Please try again.");
         }
-
-        setShowReportPreview(false);
     };
 
     // Toggle relief mode
@@ -348,12 +464,23 @@ export default function MapPage() {
                     <h1 className="text-2xl font-bold text-[#006B5E]">Household Map</h1>
                     <p className="text-gray-500 mt-1">View and manage household locations</p>
                 </div>
-                <Link href="/dashboard/households/new">
-                    <Button className="bg-[#006B5E] hover:bg-[#005046]">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Household
+                <div className="flex space-x-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => fitMapToMarkers()}
+                        disabled={markers.length === 0 || isLoading}
+                        className="hidden sm:flex"
+                    >
+                        <Layers className="mr-2 h-4 w-4" />
+                        Fit to Markers
                     </Button>
-                </Link>
+                    <Link href="/dashboard/households/new">
+                        <Button className="bg-[#006B5E] hover:bg-[#005046]">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Household
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -383,6 +510,18 @@ export default function MapPage() {
                                         <SelectItem value="terrain">Terrain</SelectItem>
                                     </SelectContent>
                                 </Select>
+                            </div>
+
+                            <div className="lg:hidden flex justify-center">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => fitMapToMarkers()}
+                                    disabled={markers.length === 0 || isLoading}
+                                    className="w-full"
+                                >
+                                    <Layers className="mr-2 h-4 w-4" />
+                                    Fit to Markers
+                                </Button>
                             </div>
 
                             <div className="pt-2 border-t">
@@ -452,12 +591,27 @@ export default function MapPage() {
                                     </div>
                                 </div>
                             </CardContent>
-                            <CardFooter>
+                            <CardFooter className="flex flex-col gap-2">
                                 <Link href={`/dashboard/households/${selectedHousehold.id}`} className="w-full">
                                     <Button variant="secondary" className="w-full">
                                         View Details
                                     </Button>
                                 </Link>
+                                <Button
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={() => {
+                                        if (mapRef.current) {
+                                            mapRef.current.flyTo({
+                                                center: [selectedHousehold.longitude, selectedHousehold.latitude],
+                                                zoom: 18,
+                                                duration: 1000
+                                            });
+                                        }
+                                    }}
+                                >
+                                    <MapPin className="mr-2 h-4 w-4" /> Zoom to Location
+                                </Button>
                             </CardFooter>
                         </Card>
                     )}
@@ -479,6 +633,33 @@ export default function MapPage() {
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm">Unmapped:</span>
                                     <Badge variant="secondary">{households.length - markers.length}</Badge>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm">Total Residents:</span>
+                                    <Badge variant="secondary">
+                                        {households.reduce((total, h) => total + (h.Resident?.length || 0), 0)}
+                                    </Badge>
+                                </div>
+                            </div>
+                            <div className="pt-3 mt-3 border-t">
+                                <p className="text-xs text-gray-500 mb-2">Marker Color Legend:</p>
+                                <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                                    <div className="flex items-center">
+                                        <MapPin className="h-4 w-4 text-primary mr-1" />
+                                        <span className="text-xs">1-3 Residents</span>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <MapPin className="h-4 w-4 text-amber-500 mr-1" />
+                                        <span className="text-xs">4-5 Residents</span>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <MapPin className="h-4 w-4 text-red-500 mr-1" />
+                                        <span className="text-xs">6+ Residents</span>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <MapPin className="h-4 w-4 text-gray-500 mr-1" />
+                                        <span className="text-xs">No Residents</span>
+                                    </div>
                                 </div>
                             </div>
                         </CardContent>
@@ -666,18 +847,20 @@ export default function MapPage() {
                                 className="bg-red-600 hover:bg-red-700"
                                 onClick={() => showPreview('summary')}
                                 size="sm"
+                                disabled={affectedHouseholds.length === 0}
                             >
                                 <FileText className="mr-1 h-3 w-3" />
-                                Summary
+                                Summary Report
                             </Button>
                             <Button
                                 type="button"
                                 className="bg-red-600 hover:bg-red-700"
                                 onClick={() => showPreview('detailed')}
                                 size="sm"
+                                disabled={affectedHouseholds.length === 0}
                             >
                                 <FileText className="mr-1 h-3 w-3" />
-                                Detailed
+                                Detailed Report
                             </Button>
                         </div>
                     </DialogFooter>

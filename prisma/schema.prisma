@@ -117,6 +117,7 @@ model Resident {
   identityDocumentPath        String?
   Certificate                 Certificate[]
   Household                   Household?       @relation(fields: [householdId], references: [id])
+  ReliefRecords              ReliefRecord[]
 
   @@schema("public")
 }
@@ -220,6 +221,73 @@ model HouseholdStatistic {
   employedCount  Int
   household      Household @relation(fields: [householdId], references: [id])
 
+  @@schema("public")
+}
+
+model ReliefRecord {
+    id          String    @id @default(cuid())
+    type        String
+    amount      Float
+    status      String    @default("PENDING")
+    notes       String?
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+    residentId  String
+    resident    Resident  @relation(fields: [residentId], references: [id])
+
+    @@schema("public")
+}
+
+// Define the Barangay Information model
+model BarangayInfo {
+  id            String   @id @default("1") // We'll use a single record approach
+  name          String
+  district      String?
+  city          String
+  province      String
+  address       String?
+  contactNumber String?
+  email         String?
+  website       String?
+  postalCode    String?
+  logo          String?  // URL to logo image
+  headerImage   String?  // URL to header image
+  footerText    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@schema("public")
+}
+
+// Define the Council Member model
+model CouncilMember {
+  id        String   @id @default(cuid())
+  name      String
+  position  String
+  imageUrl  String?
+  order     Int      @default(0) // For ordering in the display
+  signature String?  // URL to signature image
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@schema("public")
+}
+
+// Define the Certificate Template model
+model CertificateTemplate {
+  id          String   @id @default(cuid())
+  type        String   // clearance, residency, business, indigency
+  name        String
+  content     String   @db.Text // HTML/template content
+  headerHtml  String?  @db.Text
+  footerHtml  String?  @db.Text
+  cssStyles   String?  @db.Text
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([type, isDefault]) // Only one default template per type
   @@schema("public")
 }
 

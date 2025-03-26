@@ -69,6 +69,7 @@ export const DemographicsChart = forwardRef<HTMLDivElement, DemographicsChartPro
 
     const options = {
         responsive: true,
+        maintainAspectRatio: false,
         animation: {
             duration: 1000,
             animateRotate: true,
@@ -76,45 +77,75 @@ export const DemographicsChart = forwardRef<HTMLDivElement, DemographicsChartPro
         },
         plugins: {
             legend: {
-                position: 'top' as const,
+                position: 'right' as const,
+                align: 'center' as const,
                 labels: {
-                    padding: 20,
+                    padding: 15,
                     usePointStyle: true,
                     font: {
-                        size: 12,
+                        size: 10,
                     },
+                    boxWidth: 8,
+                },
+                display: window.innerWidth > 500, // Hide legend on very small screens
+            },
+            tooltip: {
+                titleFont: {
+                    size: 12,
+                },
+                bodyFont: {
+                    size: 11,
                 },
             },
         },
-        cutout: '50%',
-        radius: '90%',
+        cutout: '45%',
+        radius: '85%',
     }
 
+    // Specific options for mobile
+    const mobileOptions = {
+        ...options,
+        plugins: {
+            ...options.plugins,
+            legend: {
+                ...options.plugins.legend,
+                position: 'bottom' as const,
+            }
+        }
+    }
+
+    // Use the appropriate options based on screen width
+    const chartOptions = window.innerWidth < 768 ? mobileOptions : options;
+
     return (
-        <div ref={ref} className="grid gap-8 md:grid-cols-2">
+        <div ref={ref} className="grid gap-8 grid-cols-1 md:grid-cols-2">
             <div>
                 <div className="mb-4 flex justify-between items-center">
-                    <h3 className="text-lg font-medium">Gender Distribution</h3>
+                    <h3 className="text-base sm:text-lg font-medium">Gender Distribution</h3>
                     <button
                         onClick={() => downloadChartAsImage(genderChartRef, "gender-distribution")}
-                        className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500"
+                        className="rounded-md bg-blue-600 px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-white hover:bg-blue-500"
                     >
                         Export Chart
                     </button>
                 </div>
-                <Pie ref={genderChartRef} data={genderData} options={options} />
+                <div className="h-[200px] sm:h-[220px] md:h-[220px]">
+                    <Pie ref={genderChartRef} data={genderData} options={chartOptions} />
+                </div>
             </div>
             <div>
                 <div className="mb-4 flex justify-between items-center">
-                    <h3 className="text-lg font-medium">Civil Status Distribution</h3>
+                    <h3 className="text-base sm:text-lg font-medium">Civil Status Distribution</h3>
                     <button
                         onClick={() => downloadChartAsImage(civilStatusChartRef, "civil-status-distribution")}
-                        className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500"
+                        className="rounded-md bg-blue-600 px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-white hover:bg-blue-500"
                     >
                         Export Chart
                     </button>
                 </div>
-                <Pie ref={civilStatusChartRef} data={civilStatusData} options={options} />
+                <div className="h-[200px] sm:h-[220px] md:h-[220px]">
+                    <Pie ref={civilStatusChartRef} data={civilStatusData} options={chartOptions} />
+                </div>
             </div>
         </div>
     )
