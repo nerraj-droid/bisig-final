@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 
 // Define available free map styles
 const MAP_STYLES = {
-    streets: 'https://tiles.stadiamaps.com/styles/alidade_smooth.json',
-    satellite: 'https://tiles.stadiamaps.com/styles/alidade_satellite.json',
-    terrain: 'https://tiles.stadiamaps.com/styles/outdoor.json',
+    streets: 'https://tiles.stadiamaps.com/styles/osm_bright.json', // Stadia Streets (requires API key)
+    satellite: 'https://tiles.stadiamaps.com/styles/alidade_satellite.json', // Stadia Satellite
+    terrain: 'https://tiles.stadiamaps.com/styles/outdoors.json', // Stadia Outdoors (terrain-focused)
+    light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json', // CARTO Light
+    dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' // CARTO Dark
 };
 
-type MapStyleType = 'streets' | 'satellite' | 'terrain';
+type MapStyleType = 'streets' | 'satellite' | 'terrain' | 'light' | 'dark';
 
 interface MapSelectorProps {
     initialCoordinates?: {
@@ -46,7 +48,7 @@ const MapSelector = forwardRef<MapSelectorHandle, MapSelectorProps>(({
 }, ref) => {
     // Safe check for browser environment to avoid hydration errors
     const [hasMounted, setHasMounted] = useState(false);
-    const [currentStyle, setCurrentStyle] = useState<MapStyleType>('streets');
+    const [currentStyle, setCurrentStyle] = useState<MapStyleType>('terrain');
     const [isMarkerAnimating, setIsMarkerAnimating] = useState(false);
     const mapRef = useRef<MapRef>(null);
     const prevCoordinatesRef = useRef<{ longitude: number; latitude: number } | null>(null);
@@ -105,7 +107,7 @@ const MapSelector = forwardRef<MapSelectorHandle, MapSelectorProps>(({
 
     // Toggle between map styles
     const toggleMapStyle = () => {
-        const styles: MapStyleType[] = ['streets', 'satellite', 'terrain'];
+        const styles: MapStyleType[] = ['streets', 'satellite', 'terrain', 'light', 'dark'];
         const currentIndex = styles.indexOf(currentStyle);
         const nextIndex = (currentIndex + 1) % styles.length;
         setCurrentStyle(styles[nextIndex]);

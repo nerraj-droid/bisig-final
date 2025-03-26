@@ -30,7 +30,7 @@ export default function MapPage() {
     const [markers, setMarkers] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedHousehold, setSelectedHousehold] = useState<any>(null);
-    const [mapStyle, setMapStyle] = useState('satellite');
+    const [mapStyle, setMapStyle] = useState('terrain');
     const [isMounted, setIsMounted] = useState(false);
     const [showReportPreview, setShowReportPreview] = useState(false);
     const [reportType, setReportType] = useState<'summary' | 'detailed'>('summary');
@@ -508,6 +508,8 @@ export default function MapPage() {
                                         <SelectItem value="streets">Streets</SelectItem>
                                         <SelectItem value="satellite">Satellite</SelectItem>
                                         <SelectItem value="terrain">Terrain</SelectItem>
+                                        <SelectItem value="light">Light</SelectItem>
+                                        <SelectItem value="dark">Dark</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
