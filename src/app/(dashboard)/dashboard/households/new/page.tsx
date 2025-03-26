@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { ArrowLeft, Save, Plus, X, MapPin, Search, Home } from 'lucide-react';
 import { PageTransition } from "@/components/ui/page-transition";
 import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 import dynamic from 'next/dynamic';
 import type { MapSelectorHandle } from '@/components/MapSelector';
 import { toast } from "sonner";
@@ -33,6 +35,9 @@ export default function NewHouseholdPage() {
   const [addressSearch, setAddressSearch] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  
+  // Add form context for the map
+  const mapForm = useForm();
 
   const [formData, setFormData] = useState({
     address: '',
@@ -381,24 +386,28 @@ export default function NewHouseholdPage() {
   };
 
   // Map Component JSX - Update to prevent hydration issues
-  // When rendering the map component, use this pattern:
   const renderMap = () => {
     if (typeof window === 'undefined') return null;
 
     return (
-      <MapWithNoSSR
-        ref={mapRef}
-        initialCoordinates={{
-          longitude: formData.longitude,
-          latitude: formData.latitude,
-          zoom: 10
-        }}
-        onMapClick={handleMapClick}
-        markerCoordinates={{
-          longitude: formData.longitude,
-          latitude: formData.latitude
-        }}
-      />
+      <>
+        <MapWithNoSSR
+          ref={mapRef}
+          initialCoordinates={{
+            longitude: formData.longitude,
+            latitude: formData.latitude,
+            zoom: 10
+          }}
+          onMapClick={handleMapClick}
+          markerCoordinates={{
+            longitude: formData.longitude,
+            latitude: formData.latitude
+          }}
+        />
+        <div className="absolute bottom-3 left-3 z-10 bg-black/70 text-white text-xs px-2 py-1 rounded-md">
+          <p>Tip: Use the layer button in the top left to switch to satellite view for better location selection</p>
+        </div>
+      </>
     );
   };
 
@@ -534,10 +543,9 @@ export default function NewHouseholdPage() {
 
               {/* Map Component */}
               <div className="h-[500px] w-full rounded-md overflow-hidden border border-gray-300 mb-6 relative">
-                {renderMap()}
-                <div className="absolute bottom-3 left-3 z-10 bg-black/70 text-white text-xs px-2 py-1 rounded-md">
-                  <p>Tip: Use the layer button in the top left to switch to satellite view for better location selection</p>
-                </div>
+                <Form {...mapForm}>
+                  {renderMap()}
+                </Form>
               </div>
 
               {/* Selected Location Info */}

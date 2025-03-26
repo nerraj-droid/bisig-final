@@ -2,6 +2,8 @@
 
 import { PageTransition } from "@/components/ui/page-transition";
 import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form"; 
+import { useForm } from "react-hook-form";
 import Link from "next/link";
 import { ArrowLeft, Save, Upload, ChevronDown, X, Camera, Home, Search, Check, ChevronRight, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -144,6 +146,9 @@ export default function AddResidentPage() {
     latitude: 14.5995, // Default to Philippines location
     longitude: 120.9842
   });
+
+  // Add form context for the map component
+  const mapForm = useForm();
 
   // Map related states
   const [addressSearch, setAddressSearch] = useState('');
@@ -857,19 +862,24 @@ export default function AddResidentPage() {
     if (typeof window === 'undefined') return null;
 
     return (
-      <MapWithNoSSR
-        ref={mapRef}
-        initialCoordinates={{
-          longitude: householdFormData.longitude,
-          latitude: householdFormData.latitude,
-          zoom: 10
-        }}
-        onMapClick={handleMapClick}
-        markerCoordinates={{
-          longitude: householdFormData.longitude,
-          latitude: householdFormData.latitude
-        }}
-      />
+      <>
+        <MapWithNoSSR
+          ref={mapRef}
+          initialCoordinates={{
+            longitude: householdFormData.longitude,
+            latitude: householdFormData.latitude,
+            zoom: 10
+          }}
+          onMapClick={handleMapClick}
+          markerCoordinates={{
+            longitude: householdFormData.longitude,
+            latitude: householdFormData.latitude
+          }}
+        />
+        <div className="absolute bottom-3 left-3 z-10 bg-black/70 text-white text-xs px-2 py-1 rounded-md">
+          <p>Tip: Use the layer button in the top left to switch to satellite view for better location selection</p>
+        </div>
+      </>
     );
   };
 
@@ -1799,10 +1809,9 @@ export default function AddResidentPage() {
 
                   {/* Map Component */}
                   <div className="h-[400px] w-full rounded-md overflow-hidden border border-gray-300 mb-6 relative">
-                    {renderMap()}
-                    <div className="absolute bottom-3 left-3 z-10 bg-black/70 text-white text-xs px-2 py-1 rounded-md">
-                      <p>Tip: Use the layer button in the top left to switch to satellite view for better location selection</p>
-                    </div>
+                    <Form {...mapForm}>
+                      {renderMap()}
+                    </Form>
                   </div>
 
                   {/* Selected Location Info */}

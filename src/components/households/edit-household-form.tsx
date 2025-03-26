@@ -6,6 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { Save, MapPin, AlertCircle, Check, ArrowLeft } from "lucide-react"
+import { Form } from "@/components/ui/form"
+import { useForm } from "react-hook-form"
 
 interface Resident {
     id: string
@@ -57,13 +59,52 @@ export function EditHouseholdForm({ household }: EditHouseholdFormProps) {
     const [hasChanges, setHasChanges] = useState(false)
     const [MapComponent, setMapComponent] = useState<any>(null)
     const [isMounted, setIsMounted] = useState(false)
+    
+    // Add form hook for the location map
+    const mapForm = useForm();
 
     // Load the map component only on the client side
     useEffect(() => {
         setIsMounted(true)
-        import("@/components/map/location-picker").then((module) => {
-            setMapComponent(() => module.LocationPicker)
-        })
+        
+        // Use dynamic import with a try/catch to safely load the component
+        const loadMapComponent = async () => {
+            try {
+                // Use a more explicit import approach
+                const module = await import("@/components/map/location-picker");
+                
+                // Add a wrapper around the original component to prevent form interactions
+                const SafeMapComponent = (props: any) => {
+                    // Create a wrapper component that prevents form submission
+                    const handleMapButtonClick = (e: React.MouseEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    };
+                    
+                    return (
+                        <div 
+                            className="safe-map-wrapper"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Add invisible buttons to intercept clicks/events */}
+                            <button 
+                                type="button" 
+                                onClick={handleMapButtonClick}
+                                style={{ display: 'none' }}
+                            />
+                            <module.LocationPicker {...props} />
+                        </div>
+                    );
+                };
+                
+                setMapComponent(() => SafeMapComponent);
+            } catch (error) {
+                console.error("Error loading map component:", error);
+            }
+        };
+        
+        loadMapComponent();
     }, [])
 
     // Check for changes to enable the save button
@@ -101,45 +142,120 @@ export function EditHouseholdForm({ household }: EditHouseholdFormProps) {
     }
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        setError(null)
-        setLoading(true)
+        e.preventDefault();
+        setError(null);
+        setLoading(true);
+
+        console.log("Submitting form...", { household });
+
+        // Confirm we're not in the map style toggle process
+        const target = e.target as HTMLFormElement;
+        const isMapStyleButton = target.classList.contains("map-style-toggle") || 
+                               target.closest(".map-style-toggle");
+        
+        if (isMapStyleButton) {
+            console.log("Map style toggle detected, preventing form submission");
+            setLoading(false);
+            return false;
+        }
 
         try {
-            const res = await fetch(`/api/households/${household.id}`, {
+            // Create a clean data object with only the properties we need
+            const cleanData = {
+                houseNo: formData.houseNo,
+                street: formData.street,
+                barangay: formData.barangay,
+                city: formData.city,
+                province: formData.province,
+                zipCode: formData.zipCode,
+                notes: formData.notes || "",
+                type: formData.type,
+                status: formData.status,
+                latitude: location?.latitude || null,
+                longitude: location?.longitude || null,
+            };
+            
+            // Serialize to JSON string
+            const payload = JSON.stringify(cleanData);
+            
+            // Validate the API endpoint path
+            const apiUrl = `/api/households/${household.id}`;
+            console.log(`Submitting to API: ${apiUrl}`, cleanData);
+            
+            const res = await fetch(apiUrl, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({
-                    ...formData,
-                    latitude: location?.latitude || null,
-                    longitude: location?.longitude || null,
-                }),
-            })
+                body: payload,
+            });
 
+            console.log("Response status:", res.status);
+            
+            // Log headers in a way that's compatible with all TypeScript targets
+            const headers: Record<string, string> = {};
+            res.headers.forEach((value, key) => {
+                headers[key] = value;
+            });
+            console.log("Response headers:", headers);
+
+            // Check if the response is OK (status in 200-299 range)
             if (!res.ok) {
-                const data = await res.json()
-                throw new Error(data.message || "Failed to update household")
+                // Try to parse the error response
+                try {
+                    // Check if response is JSON
+                    const contentType = res.headers.get("content-type");
+                    console.log("Response content type:", contentType);
+                    
+                    if (contentType && contentType.includes("application/json")) {
+                        const errorData = await res.json();
+                        console.log("Error data:", errorData);
+                        throw new Error(errorData.message || `Error ${res.status}: ${res.statusText}`);
+                    } else {
+                        // Handle non-JSON response
+                        const errorText = await res.text();
+                        console.error("Non-JSON error response:", errorText.substring(0, 500) + "...");
+                        throw new Error(`API returned a non-JSON response with status ${res.status}. Please check server logs.`);
+                    }
+                } catch (parseError) {
+                    // If parsing the error fails, just use the status
+                    console.error("Parse error:", parseError);
+                    throw new Error(`Error ${res.status}: ${res.statusText}. Check network tab for details.`);
+                }
+            }
+
+            // Try to parse the success response
+            try {
+                const contentType = res.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    console.warn("API returned non-JSON success response");
+                    const text = await res.text();
+                    console.log("Response text preview:", text.substring(0, 100));
+                } else {
+                    const data = await res.json();
+                    console.log("Success response:", data);
+                }
+            } catch (parseError) {
+                console.warn("Could not parse success response", parseError);
             }
 
             toast("Household updated", {
                 description: "The household information has been saved successfully.",
                 icon: <Check className="h-4 w-4 text-green-500" />
-            })
+            });
 
-            router.push(`/dashboard/households/${household.id}`)
-            router.refresh()
+            router.push(`/dashboard/households/${household.id}`);
+            router.refresh();
         } catch (err) {
-            console.error("Error updating household:", err)
-            setError(err instanceof Error ? err.message : "An unknown error occurred")
+            console.error("Error updating household:", err);
+            setError(err instanceof Error ? err.message : "An unexpected error occurred");
             toast("Update failed", {
                 description: err instanceof Error ? err.message : "Failed to update household",
                 icon: <AlertCircle className="h-4 w-4 text-red-500" />,
                 style: { backgroundColor: 'rgba(254, 226, 226, 0.9)', color: 'rgb(153, 27, 27)' }
-            })
+            });
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
     }
 
@@ -330,16 +446,49 @@ export function EditHouseholdForm({ household }: EditHouseholdFormProps) {
                                     <h3 className="font-medium">Household Location</h3>
                                 </div>
                                 <p className="text-sm text-gray-600">
-                                    Use the map below to select the exact location of this household. Click anywhere on the map or use the search box to find an address.
+                                    Use the map below to select the exact location of this household. Click anywhere on the map.
                                 </p>
                             </div>
 
                             <div className="h-[450px] rounded-md border border-gray-300 overflow-hidden">
                                 {isMounted && MapComponent ? (
-                                    <MapComponent
-                                        initialLocation={location}
-                                        onLocationChange={handleLocationChange}
-                                    />
+                                    // Add an extra wrapper div to prevent form interaction
+                                    <div className="map-wrapper" style={{ height: '100%' }} onClick={(e) => e.stopPropagation()}>
+                                        {/* Add a button that explicitly stops event propagation */}
+                                        <button 
+                                            type="button" 
+                                            style={{ 
+                                                position: 'absolute', 
+                                                right: 10, 
+                                                top: 10, 
+                                                zIndex: 1000, 
+                                                padding: '2px 8px',
+                                                fontSize: '10px',
+                                                background: 'rgba(255,255,255,0.8)',
+                                                border: '1px solid #eee',
+                                                borderRadius: '4px',
+                                                display: 'none' // Hidden visually but still intercepts events
+                                            }}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                return false;
+                                            }}
+                                        >
+                                            Prevent Submit
+                                        </button>
+                                        
+                                        <Form {...mapForm}>
+                                            <div className="map-container p-2" onClick={(e) => e.stopPropagation()}>
+                                                <MapComponent
+                                                    value={location}
+                                                    onChange={handleLocationChange}
+                                                    label="Household Location"
+                                                    description="Click on the map to set the location or enter coordinates manually"
+                                                />
+                                            </div>
+                                        </Form>
+                                    </div>
                                 ) : (
                                     <div className="h-full bg-gray-100 flex items-center justify-center">
                                         <p className="text-gray-500">Loading map...</p>

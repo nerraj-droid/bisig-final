@@ -245,20 +245,25 @@ export function HouseholdForm() {
                 />
 
                 <div className="space-y-4">
-                    <FormLabel>Location</FormLabel>
                     <div className="h-[400px] rounded-md border">
                         <MapProvider>
                             <LocationPicker
-                                initialLocation={form.getValues("latitude") && form.getValues("longitude") ? {
+                                label="Location"
+                                description="Click on the map to set the household location or enter coordinates manually"
+                                value={form.getValues("latitude") && form.getValues("longitude") ? {
                                     latitude: form.getValues("latitude") as number,
                                     longitude: form.getValues("longitude") as number
                                 } : null}
-                                onLocationChange={(location) => {
+                                onChange={(location) => {
                                     if (location) {
                                         form.setValue("latitude", location.latitude)
                                         form.setValue("longitude", location.longitude)
+                                    } else {
+                                        form.setValue("latitude", null)
+                                        form.setValue("longitude", null)
                                     }
                                 }}
+                                error={form.formState.errors.latitude?.message || form.formState.errors.longitude?.message}
                             />
                         </MapProvider>
                     </div>

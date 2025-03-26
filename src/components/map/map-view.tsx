@@ -7,18 +7,47 @@ import { MapPin } from 'lucide-react';
 import { useMap } from "./map-context"
 
 // Map styles constants
-// export const MAP_STYLES = {
-//     STREETS: 'https://demotiles.maplibre.org/style.json',
-//     SATELLITE: 'https://tiles.stadiamaps.com/styles/alidade_satellite.json',
-//     TERRAIN: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-// };
 export const MAP_STYLES = {
-    STREETS: 'https://tiles.stadiamaps.com/styles/osm_bright.json', // Stadia Streets (requires API key)
-    SATELLITE: 'https://tiles.stadiamaps.com/styles/alidade_satellite.json', // Stadia Satellite
-    TERRAIN: 'https://tiles.stadiamaps.com/styles/outdoors.json', // Stadia Outdoors (terrain-focused)
-    LIGHT: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json', // CARTO Light
-    DARK: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' // CARTO Dark
+    // CARTO free tiles - no API key needed, reliable and stable
+    STREETS: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+    LIGHT: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+    DARK: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    
+    // MapLibre demo tiles - free for testing, minimal but works everywhere
+    MAPLIBRE: 'https://demotiles.maplibre.org/style.json',
+    
+    // Free satellite option using ArcGIS World Imagery (defined as inline style below)
+    SATELLITE: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json', // Fallback to CARTO voyager
+    
+    // Updated terrain style with better visualization
+    TERRAIN: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json' // Using CARTO's positron as base
 };
+
+// Direct style object for satellite that can be used in place of URL
+export const SATELLITE_STYLE = {
+    version: 8 as 8,
+    sources: {
+        'arcgis-satellite': {
+            type: 'raster',
+            tiles: [
+                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+            ],
+            tileSize: 256,
+            attribution: '© Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+            maxzoom: 25
+        }
+    },
+    layers: [
+        {
+            id: 'arcgis-satellite-layer',
+            type: 'raster',
+            source: 'arcgis-satellite',
+            minzoom: 0,
+            maxzoom: 19
+        }
+    ]
+};
+
 // Interfaces
 export interface MapMarker {
     id: string;
@@ -78,19 +107,120 @@ export function MapView({
         }
     }, [mapRef, onMapLoad, isMounted]);
 
+    // Configure 3D terrain when terrain style is selected
+    useEffect(() => {
+        if (mapRef.current && mapStyle.toLowerCase() === 'terrain') {
+            const map = mapRef.current;
+            
+            map.on('load', () => {
+                // Access the underlying mapbox map object which has all the methods we need
+                const mapboxMap = map.getMap();
+                
+                // Add terrain source with improved terrain tiles
+                if (!mapboxMap.getSource('terrainSource')) {
+                    mapboxMap.addSource('terrainSource', {
+                        type: 'raster-dem',
+                        // Using freely available OpenMapTiles DEM source
+                        url: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
+                        tileSize: 256,
+                        encoding: 'terrarium' // Specify encoding format for better elevation data
+                    });
+                    
+                    // Set the terrain property with improved configuration
+                    mapboxMap.setTerrain({
+                        source: 'terrainSource',
+                        exaggeration: 1.8 // Increase exaggeration for better visibility
+                    });
+                    
+                    // Add improved hillshading for better visual effect
+                    if (!mapboxMap.getLayer('hillshade')) {
+                        mapboxMap.addLayer({
+                            id: 'hillshade',
+                            type: 'hillshade',
+                            source: 'terrainSource',
+                            layout: { visibility: 'visible' },
+                            paint: { 
+                                'hillshade-shadow-color': '#404040',
+                                'hillshade-highlight-color': '#FFFFFF',
+                                'hillshade-illumination-direction': 315,
+                                'hillshade-exaggeration': 0.7
+                            }
+                        });
+                    }
+                    
+                    // Enhance the map with natural earth-toned colors
+                    try {
+                        // Enhance water features
+                        const waterLayers = mapboxMap.getStyle().layers.filter(layer => 
+                            layer.id.includes('water') || layer.id.includes('lake') || layer.id.includes('river')
+                        );
+                        
+                        waterLayers.forEach(layer => {
+                            if (layer.type === 'fill' && mapboxMap.getLayer(layer.id)) {
+                                mapboxMap.setPaintProperty(layer.id, 'fill-color', '#b3d1ff');
+                            }
+                        });
+                        
+                        // Enhance land features
+                        const landLayers = mapboxMap.getStyle().layers.filter(layer => 
+                            layer.id.includes('land') || layer.id.includes('earth')
+                        );
+                        
+                        landLayers.forEach(layer => {
+                            if (layer.type === 'fill' && mapboxMap.getLayer(layer.id)) {
+                                mapboxMap.setPaintProperty(layer.id, 'fill-color', '#e8e0d8');
+                            }
+                        });
+                    } catch (e) {
+                        console.log('Error enhancing map colors:', e);
+                    }
+                    
+                    // Adjust to a better pitch for terrain viewing
+                    mapboxMap.setPitch(60);
+                    mapboxMap.setBearing(15); // Add slight rotation for better 3D perspective
+                }
+            });
+        }
+    }, [mapRef, mapStyle]);
+
     // Determine the map style based on the prop
     const getMapStyle = () => {
         switch (mapStyle.toLowerCase()) {
             case 'streets':
                 return MAP_STYLES.STREETS;
             case 'satellite':
-                return MAP_STYLES.SATELLITE;
+                // Create an inline satellite style using ESRI ArcGIS World Imagery
+                return {
+                    version: 8 as 8,
+                    sources: {
+                        satellite: {
+                            type: 'raster' as 'raster',
+                            tiles: [
+                                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                            ],
+                            tileSize: 256,
+                            attribution: '© Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+                            maxzoom: 19
+                        }
+                    },
+                    layers: [
+                        {
+                            id: 'satellite-layer',
+                            type: 'raster' as 'raster',
+                            source: 'satellite',
+                            minzoom: 0,
+                            maxzoom: 19
+                        }
+                    ]
+                };
             case 'terrain':
                 return MAP_STYLES.TERRAIN;
             case 'light':
                 return MAP_STYLES.LIGHT;
             case 'dark':
                 return MAP_STYLES.DARK;
+            case 'maplibre':
+                return MAP_STYLES.MAPLIBRE;
             default:
                 return MAP_STYLES.STREETS;
         }
