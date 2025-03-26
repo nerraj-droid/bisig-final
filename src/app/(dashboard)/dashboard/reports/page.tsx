@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { ReportsList } from "@/components/reports/reports-list"
 import { ReportsCharts } from "@/components/reports/reports-charts"
 import { differenceInYears } from "date-fns"
+import { Toaster } from "sonner"
 
 export default async function ReportsPage() {
     const [
@@ -88,6 +89,7 @@ export default async function ReportsPage() {
 
     return (
         <div>
+            <Toaster richColors position="top-right" />
             <ReportsCharts
                 householdsByBarangay={householdsByBarangay}
                 genderDistribution={genderDistribution}

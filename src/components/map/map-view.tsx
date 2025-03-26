@@ -1,99 +1,210 @@
 "use client"
 
-import { useEffect, useRef } from "react"
-import mapboxgl from "mapbox-gl"
-import "mapbox-gl/dist/mapbox-gl.css"
+import React, { useState, useEffect, useRef } from 'react';
+import Map, { Marker, NavigationControl, MapRef, Popup, Source, Layer, MapLayerMouseEvent } from 'react-map-gl/maplibre';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { MapPin } from 'lucide-react';
 import { useMap } from "./map-context"
 
-// Safely set the token
-if (process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
-    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+// Map styles constants
+export const MAP_STYLES = {
+    STREETS: 'https://demotiles.maplibre.org/style.json',
+    SATELLITE: 'https://tiles.stadiamaps.com/styles/alidade_satellite.json',
+    TERRAIN: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+};
+
+// Interfaces
+export interface MapMarker {
+    id: string;
+    latitude: number;
+    longitude: number;
+    label?: string;
+    color?: string;
 }
 
-interface MapViewProps {
-    initialView?: {
-        longitude: number
-        latitude: number
-        zoom: number
-    }
-    markers?: Array<{
-        id: string
-        longitude: number
-        latitude: number
-        description: string
-    }>
-    onMarkerClick?: (id: string) => void
+export interface MapViewSettings {
+    latitude: number;
+    longitude: number;
+    zoom: number;
+}
+
+export interface MapViewProps {
+    initialView: MapViewSettings;
+    markers?: MapMarker[];
+    onMarkerClick?: (markerId: string) => void;
+    mapStyle?: string;
+    onMapClick?: (event: { lngLat: [number, number] }) => void;
+    onMapMove?: (event: { lngLat: [number, number] }) => void;
+    isDrawingBox?: boolean;
+    boxCoordinates?: {
+        north: number;
+        south: number;
+        east: number;
+        west: number;
+    };
+    onMapLoad?: (mapRef: MapRef) => void;
 }
 
 export function MapView({
-    initialView = {
-        longitude: 120.984222,
-        latitude: 14.599512,
-        zoom: 15
-    },
+    initialView,
     markers = [],
-    onMarkerClick
+    onMarkerClick,
+    mapStyle = 'streets',
+    onMapClick,
+    onMapMove,
+    isDrawingBox = false,
+    boxCoordinates,
+    onMapLoad
 }: MapViewProps) {
-    const mapContainer = useRef<HTMLDivElement>(null)
-    const map = useRef<mapboxgl.Map | null>(null)
-    const markerRefs = useRef<{ [key: string]: mapboxgl.Marker }>({})
+    const [isMounted, setIsMounted] = useState(false);
+    const mapRef = useRef<MapRef>(null);
+    const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
     const { setMap } = useMap()
 
     useEffect(() => {
-        if (!mapContainer.current || map.current) return
-        if (!process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
-            console.error("Mapbox token is not set in environment variables");
-            return;
-        }
+        setIsMounted(true);
+    }, []);
 
-        try {
-            map.current = new mapboxgl.Map({
-                container: mapContainer.current,
-                style: "mapbox://styles/mapbox/satellite-streets-v12",
-                center: [initialView.longitude, initialView.latitude],
+    // Provide map reference to parent component
+    useEffect(() => {
+        if (mapRef.current && onMapLoad) {
+            onMapLoad(mapRef.current);
+        }
+    }, [mapRef, onMapLoad, isMounted]);
+
+    // Determine the map style based on the prop
+    const getMapStyle = () => {
+        switch (mapStyle.toLowerCase()) {
+            case 'satellite':
+                return MAP_STYLES.SATELLITE;
+            case 'terrain':
+                return MAP_STYLES.TERRAIN;
+            default:
+                return MAP_STYLES.STREETS;
+        }
+    };
+
+    // Generate GeoJSON for the bounding box
+    const generateBoxGeoJSON = () => {
+        if (!boxCoordinates) return null;
+
+        const { north, south, east, west } = boxCoordinates;
+
+        return {
+            type: 'Feature',
+            geometry: {
+                type: 'Polygon',
+                coordinates: [
+                    [
+                        [west, north],
+                        [east, north],
+                        [east, south],
+                        [west, south],
+                        [west, north]
+                    ]
+                ]
+            },
+            properties: {}
+        };
+    };
+
+    // Drawing box style
+    const boxFillLayer = {
+        id: 'box-fill',
+        type: 'fill',
+        paint: {
+            'fill-color': '#ef4444',
+            'fill-opacity': 0.2
+        }
+    };
+
+    const boxOutlineLayer = {
+        id: 'box-outline',
+        type: 'line',
+        paint: {
+            'line-color': '#dc2626',
+            'line-width': 2,
+            'line-dasharray': [2, 1]
+        }
+    };
+
+    // Handle Map Click and convert to the expected format
+    const handleMapClick = (e: MapLayerMouseEvent) => {
+        if (onMapClick) {
+            const { lng, lat } = e.lngLat;
+            onMapClick({
+                lngLat: [lng, lat]
+            });
+        }
+    };
+
+    // Handle Mouse Move for live preview
+    const handleMouseMove = (e: MapLayerMouseEvent) => {
+        if (onMapMove) {
+            const { lng, lat } = e.lngLat;
+            onMapMove({
+                lngLat: [lng, lat]
+            });
+        }
+    };
+
+    if (!isMounted) {
+        return (
+            <div className="flex h-full w-full items-center justify-center bg-gray-100">
+                <span className="text-gray-500">Loading map...</span>
+            </div>
+        );
+    }
+
+    return (
+        <Map
+            ref={mapRef}
+            mapLib={import('maplibre-gl')}
+            initialViewState={{
+                latitude: initialView.latitude,
+                longitude: initialView.longitude,
                 zoom: initialView.zoom
-            })
+            }}
+            style={{ width: '100%', height: '100%' }}
+            mapStyle={getMapStyle()}
+            onClick={onMapClick ? handleMapClick : undefined}
+            onMouseMove={onMapMove ? handleMouseMove : undefined}
+            cursor={isDrawingBox ? 'crosshair' : 'grab'}
+        >
+            <NavigationControl position="top-right" />
 
-            map.current.addControl(new mapboxgl.NavigationControl())
-            map.current.addControl(new mapboxgl.FullscreenControl())
+            {/* Render custom markers */}
+            {markers.map((marker) => (
+                <Marker
+                    key={marker.id}
+                    latitude={marker.latitude}
+                    longitude={marker.longitude}
+                    onClick={(e) => {
+                        e.originalEvent.stopPropagation();
+                        setSelectedMarker(marker);
+                        if (onMarkerClick) {
+                            onMarkerClick(marker.id);
+                        }
+                    }}
+                >
+                    <div className="cursor-pointer flex flex-col items-center">
+                        <MapPin className={`h-6 w-6 ${marker.color || 'text-red-500'}`} />
+                        <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
+                            <div className="bg-white shadow-md rounded px-1 py-0.5 text-xs whitespace-nowrap">
+                                {marker.label || 'Location'}
+                            </div>
+                        </div>
+                    </div>
+                </Marker>
+            ))}
 
-            // Add markers
-            markers.forEach((marker) => {
-                const el = document.createElement('div')
-                el.className = 'marker'
-                el.style.width = '24px'
-                el.style.height = '24px'
-                el.style.backgroundImage = 'url(/marker.svg)'
-                el.style.backgroundSize = 'cover'
-                el.style.filter = 'invert(14%) sepia(89%) saturate(6453%) hue-rotate(358deg) brightness(97%) contrast(113%)'
-                el.style.cursor = 'pointer'
-
-                const mapMarker = new mapboxgl.Marker(el)
-                    .setLngLat([marker.longitude, marker.latitude])
-                    .setPopup(new mapboxgl.Popup().setHTML(marker.description))
-                    .addTo(map.current!)
-
-                if (onMarkerClick) {
-                    el.addEventListener('click', () => onMarkerClick(marker.id))
-                }
-
-                markerRefs.current[marker.id] = mapMarker
-            })
-
-            setMap(map.current)
-        } catch (error) {
-            console.error("Error initializing map:", error);
-        }
-
-        return () => {
-            // Clean up markers
-            Object.values(markerRefs.current).forEach(marker => marker.remove())
-            markerRefs.current = {}
-            map.current?.remove()
-            map.current = null
-            setMap(null)
-        }
-    }, [initialView.latitude, initialView.longitude, initialView.zoom, markers, onMarkerClick, setMap])
-
-    return <div ref={mapContainer} className="h-[600px] w-full" />
+            {/* Bounding box for disaster relief area */}
+            {boxCoordinates && (
+                <Source id="box-source" type="geojson" data={generateBoxGeoJSON() as any}>
+                    <Layer {...boxFillLayer as any} />
+                    <Layer {...boxOutlineLayer as any} />
+                </Source>
+            )}
+        </Map>
+    );
 } 

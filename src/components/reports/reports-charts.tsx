@@ -62,9 +62,9 @@ export function ReportsCharts({
 
     return (
         <div>
-            <div className="mb-8 flex items-center justify-between">
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h1 className="text-2xl font-bold">Reports</h1>
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-2 sm:gap-4">
                     <button
                         onClick={handlePDFExport}
                         disabled={loading}
@@ -82,36 +82,36 @@ export function ReportsCharts({
                 </div>
             </div>
 
-            <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="rounded-lg bg-white p-6 shadow-sm">
+            <div className="mb-8 grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="rounded-lg bg-white p-4 sm:p-6 shadow-sm">
                     <dt className="text-sm font-medium text-gray-500">Total Households</dt>
-                    <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                    <dd className="mt-1 text-2xl sm:text-3xl font-semibold text-gray-900">
                         {householdsByBarangay.reduce((sum, b) => sum + b.households, 0)}
                     </dd>
                 </div>
-                <div className="rounded-lg bg-white p-6 shadow-sm">
+                <div className="rounded-lg bg-white p-4 sm:p-6 shadow-sm">
                     <dt className="text-sm font-medium text-gray-500">Total Residents</dt>
-                    <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                    <dd className="mt-1 text-2xl sm:text-3xl font-semibold text-gray-900">
                         {householdsByBarangay.reduce((sum, b) => sum + b.residents, 0)}
                     </dd>
                 </div>
-                <div className="rounded-lg bg-white p-6 shadow-sm">
+                <div className="rounded-lg bg-white p-4 sm:p-6 shadow-sm">
                     <dt className="text-sm font-medium text-gray-500">Average Household Size</dt>
-                    <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                    <dd className="mt-1 text-2xl sm:text-3xl font-semibold text-gray-900">
                         {(householdsByBarangay.reduce((sum, b) => sum + b.residents, 0) /
                             householdsByBarangay.reduce((sum, b) => sum + b.households, 0)).toFixed(1)}
                     </dd>
                 </div>
             </div>
 
-            <div className="mb-8 grid gap-6 lg:grid-cols-2">
-                <div className="rounded-lg bg-white p-6 shadow-sm">
+            <div className="mb-8 grid gap-4 sm:gap-6 lg:grid-cols-1 xl:grid-cols-2">
+                <div className="rounded-lg bg-white p-4 sm:p-6 shadow-sm overflow-x-auto">
                     <StatisticsChart
                         ref={statisticsChartRef}
                         householdsByBarangay={householdsByBarangay}
                     />
                 </div>
-                <div className="rounded-lg bg-white p-6 shadow-sm">
+                <div className="rounded-lg bg-white p-4 sm:p-6 shadow-sm">
                     <DemographicsChart
                         ref={demographicsChartRef}
                         genderDistribution={genderDistribution}
@@ -120,7 +120,7 @@ export function ReportsCharts({
                 </div>
             </div>
 
-            <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">
+            <div className="mb-8 rounded-lg bg-white p-4 sm:p-6 shadow-sm">
                 <AgeDistributionChart
                     ref={ageDistributionChartRef}
                     ageGroups={ageGroups}

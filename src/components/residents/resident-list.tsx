@@ -1,7 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Search, ChevronLeft, ChevronRight } from "lucide-react"
+import Link from "next/link"
+import { FilterCriteria } from "@/app/(dashboard)/dashboard/residents/page"
 
 interface Resident {
     id: string
@@ -30,164 +35,187 @@ interface Resident {
 
 interface ResidentListProps {
     initialResidents: Resident[]
+    currentFilters?: FilterCriteria
 }
 
-export function ResidentList({ initialResidents }: ResidentListProps) {
-    const [residents, setResidents] = useState(initialResidents)
-    const [search, setSearch] = useState("")
-    const [isLoading, setIsLoading] = useState(false)
-    const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null)
+export const ResidentList = ({ initialResidents, currentFilters = {} }: ResidentListProps) => {
+    const [residents, setResidents] = useState<Resident[]>(initialResidents)
+    const [searchTerm, setSearchTerm] = useState("")
+    const [loading, setLoading] = useState(false)
+    const [page, setPage] = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
+    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const router = useRouter()
 
-    const fetchResidents = async (searchTerm: string) => {
-        if (!searchTerm.trim()) {
-            setResidents(initialResidents)
-            return
-        }
-
-        setIsLoading(true)
+    const fetchResidents = async (search: string = "", page: number = 1) => {
+        setLoading(true)
         try {
-            const params = new URLSearchParams()
-            params.set("search", searchTerm)
+            // Build query parameters for API call
+            const queryParams = new URLSearchParams()
 
-            const res = await fetch(`/api/residents?${params.toString()}`)
-            if (!res.ok) {
-                throw new Error('Failed to fetch residents')
+            // Add search parameter
+            if (search) {
+                queryParams.append("search", search)
             }
 
-            const data = await res.json()
-            if (Array.isArray(data)) {
-                setResidents(data)
+            // Add pagination parameters
+            queryParams.append("page", page.toString())
+            queryParams.append("limit", "10")
+            queryParams.append("withCount", "true")
+
+            // Add filter parameters from currentFilters
+            if (currentFilters.gender) {
+                queryParams.append("gender", currentFilters.gender)
+            }
+
+            if (currentFilters.civilStatus) {
+                queryParams.append("civilStatus", currentFilters.civilStatus)
+            }
+
+            if (currentFilters.ageGroup) {
+                queryParams.append("ageGroup", currentFilters.ageGroup)
+            }
+
+            if (currentFilters.voterInBarangay !== undefined) {
+                queryParams.append("voter", currentFilters.voterInBarangay.toString())
+            }
+
+            // Fetch data with filters
+            const response = await fetch(`/api/residents?${queryParams.toString()}`)
+            const result = await response.json()
+
+            if (result.meta) {
+                setResidents(result.data)
+                setTotalPages(result.meta.pages)
             } else {
-                console.error('Invalid response format:', data)
+                setResidents(result)
+                setTotalPages(1)
             }
         } catch (error) {
-            console.error('Error searching residents:', error)
-            // Keep the current residents list on error
+            console.error("Error fetching residents:", error)
         } finally {
-            setIsLoading(false)
+            setLoading(false)
         }
     }
 
-    const handleSearch = (value: string) => {
-        setSearch(value)
+    useEffect(() => {
+        // Reset to page 1 when search or filters change
+        setPage(1)
 
-        // Clear any existing timeout
-        if (searchTimeout) {
-            clearTimeout(searchTimeout)
+        // Debounce search input to prevent too many API calls
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current)
         }
 
-        // Set a new timeout
-        const timeout = setTimeout(() => {
-            fetchResidents(value)
+        searchTimeoutRef.current = setTimeout(() => {
+            fetchResidents(searchTerm, 1)
         }, 300)
 
-        setSearchTimeout(timeout)
-    }
-
-    // Clean up the timeout on unmount
-    useEffect(() => {
         return () => {
-            if (searchTimeout) {
-                clearTimeout(searchTimeout)
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current)
             }
         }
-    }, [searchTimeout])
+    }, [searchTerm, currentFilters])
+
+    useEffect(() => {
+        fetchResidents(searchTerm, page)
+    }, [page])
+
+    // Helper function to format name with extension
+    const formatName = (resident: Resident) => {
+        let name = `${resident.lastName}, ${resident.firstName}`
+        if (resident.middleName) {
+            name += ` ${resident.middleName.charAt(0)}.`
+        }
+        if (resident.extensionName) {
+            name += ` ${resident.extensionName}`
+        }
+        return name
+    }
+
+    // Helper function to calculate age
+    const calculateAge = (birthDateString: string) => {
+        const birthDate = new Date(birthDateString)
+        const today = new Date()
+        let age = today.getFullYear() - birthDate.getFullYear()
+        const month = today.getMonth() - birthDate.getMonth()
+        if (month < 0 || (month === 0 && today.getDate() < birthDate.getDate())) {
+            age--
+        }
+        return age
+    }
 
     return (
-        <div>
-            <div className="mb-4 relative">
-                <input
-                    type="text"
-                    placeholder="Search residents by name or address..."
-                    value={search}
-                    onChange={(e) => handleSearch(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#006B5E] focus:ring-1 focus:ring-[#006B5E] focus:outline-none"
-                />
-                {isLoading && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-[#006B5E]"></div>
-                    </div>
-                )}
+        <div className="w-full">
+            {/* Search bar */}
+            <div className="mb-4 flex items-center gap-2">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                    <Input
+                        type="text"
+                        placeholder="Search residents by name, address..."
+                        className="pl-10"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
             </div>
 
-            <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+            {/* Residents table */}
+            <div className="w-full overflow-auto rounded-md border">
+                <table className="w-full text-left text-sm">
+                    <thead className="border-b bg-[#E8F5F3] text-xs uppercase text-[#006B5E]">
                         <tr>
-                            <th
-                                scope="col"
-                                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                            >
-                                Name
-                            </th>
-                            <th
-                                scope="col"
-                                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                            >
-                                Gender
-                            </th>
-                            <th
-                                scope="col"
-                                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                            >
-                                Civil Status
-                            </th>
-                            <th
-                                scope="col"
-                                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                            >
-                                Contact
-                            </th>
-                            <th
-                                scope="col"
-                                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                            >
-                                Voter
-                            </th>
-                            <th
-                                scope="col"
-                                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                            >
-                                Address
-                            </th>
+                            <th className="px-4 py-3">Name</th>
+                            <th className="px-4 py-3">Age</th>
+                            <th className="px-4 py-3">Gender</th>
+                            <th className="px-4 py-3">Contact No.</th>
+                            <th className="px-4 py-3">Address</th>
+                            <th className="px-4 py-3">Action</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                        {residents.length === 0 ? (
+                    <tbody>
+                        {loading ? (
                             <tr>
-                                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
-                                    {search.trim() ? 'No residents found matching your search.' : 'No residents found.'}
+                                <td colSpan={6} className="px-4 py-4 text-center">
+                                    Loading residents...
+                                </td>
+                            </tr>
+                        ) : residents.length === 0 ? (
+                            <tr>
+                                <td colSpan={6} className="px-4 py-4 text-center">
+                                    No residents found.
                                 </td>
                             </tr>
                         ) : (
                             residents.map((resident) => (
-                                <tr
-                                    key={resident.id}
-                                    className="cursor-pointer hover:bg-gray-50"
-                                    onClick={() => router.push(`/dashboard/residents/${resident.id}`)}
-                                >
-                                    <td className="whitespace-nowrap px-6 py-4">
-                                        {resident.lastName}, {resident.firstName} {resident.middleName}
-                                        {resident.extensionName && ` ${resident.extensionName}`}
+                                <tr key={resident.id} className="border-b hover:bg-gray-50">
+                                    <td className="px-4 py-3 font-medium text-[#006B5E]">
+                                        {formatName(resident)}
                                     </td>
-                                    <td className="whitespace-nowrap px-6 py-4">
-                                        {resident.gender}
+                                    <td className="px-4 py-3">
+                                        {resident.birthDate ? calculateAge(resident.birthDate) : "N/A"}
                                     </td>
-                                    <td className="whitespace-nowrap px-6 py-4">
-                                        {resident.civilStatus}
+                                    <td className="px-4 py-3">
+                                        {resident.gender === "MALE" ? "Male" : "Female"}
                                     </td>
-                                    <td className="whitespace-nowrap px-6 py-4">
-                                        {resident.contactNo || "N/A"}
-                                    </td>
-                                    <td className="whitespace-nowrap px-6 py-4">
-                                        {resident.voterInBarangay ? "Yes" : "No"}
-                                    </td>
-                                    <td className="whitespace-nowrap px-6 py-4">
+                                    <td className="px-4 py-3">{resident.contactNo || "N/A"}</td>
+                                    <td className="px-4 py-3">
                                         {resident.Household
                                             ? `${resident.Household.houseNo} ${resident.Household.street}`
-                                            : "No Household"
-                                        }
+                                            : "N/A"}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <Link href={`/dashboard/residents/${resident.id}`}>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="border-[#006B5E] text-[#006B5E] hover:bg-[#006B5E] hover:text-white"
+                                            >
+                                                View
+                                            </Button>
+                                        </Link>
                                     </td>
                                 </tr>
                             ))
@@ -195,6 +223,35 @@ export function ResidentList({ initialResidents }: ResidentListProps) {
                     </tbody>
                 </table>
             </div>
+
+            {/* Pagination controls */}
+            {totalPages > 1 && (
+                <div className="mt-4 flex items-center justify-between">
+                    <div className="text-sm text-gray-500">
+                        Page {page} of {totalPages}
+                    </div>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                            disabled={page === 1}
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                            disabled={page === totalPages}
+                        >
+                            Next
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 } 

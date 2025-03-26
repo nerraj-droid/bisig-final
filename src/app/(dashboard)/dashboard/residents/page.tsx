@@ -1,15 +1,14 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { PrismaClient, Gender, CivilStatus } from "@prisma/client";
+import { Gender, CivilStatus, Prisma } from "@prisma/client";
 import { PageTransition } from "@/components/ui/page-transition";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft, Filter, Plus } from "lucide-react";
+import { ArrowLeft, Filter, Plus, Download } from "lucide-react";
 import Image from "next/image";
 import { Suspense } from "react";
 import { ResidentList } from "@/components/residents/resident-list";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 // Define the Resident interface for the list view
 interface Resident {
@@ -37,86 +36,187 @@ interface Resident {
   } | null;
 }
 
-async function getResidentsData() {
-  // Get total residents
-  const totalResidents = await prisma.resident.count();
+// Supported filter types
+export type FilterCriteria = {
+  gender?: Gender;
+  ageGroup?: 'child' | 'young-adult' | 'adult' | 'senior';
+  civilStatus?: CivilStatus;
+  voterInBarangay?: boolean;
+}
 
-  // Get residents by gender
-  const maleResidents = await prisma.resident.count({
-    where: { gender: "MALE" }
-  });
-  const femaleResidents = await prisma.resident.count({
-    where: { gender: "FEMALE" }
-  });
+async function getResidentsData(page: number = 1, limit: number = 10, filters: FilterCriteria = {}) {
+  // Build WHERE condition dynamically based on filters
+  const whereConditions: Prisma.ResidentWhereInput = {};
 
-  // Get residents by age group - adjusted for Philippine context
-  const childrenResidents = await prisma.resident.count({
-    where: {
-      birthDate: {
-        gte: new Date(new Date().setFullYear(new Date().getFullYear() - 17))
+  // Process gender filter
+  if (filters.gender) {
+    whereConditions.gender = filters.gender;
+  }
+
+  // Process voter filter
+  if (filters.voterInBarangay !== undefined) {
+    whereConditions.voterInBarangay = filters.voterInBarangay;
+  }
+
+  // Process civil status filter
+  if (filters.civilStatus) {
+    whereConditions.civilStatus = filters.civilStatus;
+  }
+
+  // Process age group filter
+  if (filters.ageGroup) {
+    const today = new Date();
+
+    switch (filters.ageGroup) {
+      case 'child':
+        // Children: 0-12 years
+        whereConditions.birthDate = {
+          gte: new Date(today.getFullYear() - 12, today.getMonth(), today.getDate())
+        };
+        break;
+      case 'young-adult':
+        // Young Adults: 13-30 years
+        whereConditions.birthDate = {
+          lt: new Date(today.getFullYear() - 12, today.getMonth(), today.getDate()),
+          gte: new Date(today.getFullYear() - 30, today.getMonth(), today.getDate())
+        };
+        break;
+      case 'adult':
+        // Adults: 31-60 years
+        whereConditions.birthDate = {
+          lt: new Date(today.getFullYear() - 30, today.getMonth(), today.getDate()),
+          gte: new Date(today.getFullYear() - 60, today.getMonth(), today.getDate())
+        };
+        break;
+      case 'senior':
+        // Seniors: 60+ years
+        whereConditions.birthDate = {
+          lt: new Date(today.getFullYear() - 60, today.getMonth(), today.getDate())
+        };
+        break;
+    }
+  }
+
+  // Run all queries in parallel for better performance
+  const [
+    totalResidents,
+    maleResidents,
+    femaleResidents,
+    childrenCount,
+    youngAdultsCount,
+    adultsCount,
+    seniorsCount,
+    residentsList
+  ] = await Promise.all([
+    // Use the same where conditions for the filtered query
+    prisma.resident.count({
+      where: whereConditions
+    }),
+
+    // These are standard counts with gender filters applied
+    prisma.resident.count({
+      where: {
+        gender: "MALE",
+        ...(filters.ageGroup && whereConditions.birthDate ? { birthDate: whereConditions.birthDate } : {}),
+        ...(filters.civilStatus ? { civilStatus: whereConditions.civilStatus } : {}),
+        ...(filters.voterInBarangay !== undefined ? { voterInBarangay: whereConditions.voterInBarangay } : {})
       }
-    }
-  });
-
-  const youngAdultResidents = await prisma.resident.count({
-    where: {
-      birthDate: {
-        gte: new Date(new Date().setFullYear(new Date().getFullYear() - 24)),
-        lte: new Date(new Date().setFullYear(new Date().getFullYear() - 18))
+    }),
+    prisma.resident.count({
+      where: {
+        gender: "FEMALE",
+        ...(filters.ageGroup && whereConditions.birthDate ? { birthDate: whereConditions.birthDate } : {}),
+        ...(filters.civilStatus ? { civilStatus: whereConditions.civilStatus } : {}),
+        ...(filters.voterInBarangay !== undefined ? { voterInBarangay: whereConditions.voterInBarangay } : {})
       }
-    }
-  });
+    }),
 
-  const adultResidents = await prisma.resident.count({
-    where: {
-      birthDate: {
-        gte: new Date(new Date().setFullYear(new Date().getFullYear() - 59)),
-        lte: new Date(new Date().setFullYear(new Date().getFullYear() - 25))
+    // Age group counts with gender/other filters applied
+    prisma.resident.count({
+      where: {
+        ...(filters.gender ? { gender: whereConditions.gender } : {}),
+        ...(filters.civilStatus ? { civilStatus: whereConditions.civilStatus } : {}),
+        ...(filters.voterInBarangay !== undefined ? { voterInBarangay: whereConditions.voterInBarangay } : {}),
+        ...(filters.ageGroup && filters.ageGroup === 'child' ? {} : {
+          birthDate: {
+            gte: new Date(new Date().setFullYear(new Date().getFullYear() - 12))
+          }
+        })
       }
-    }
-  });
-
-  const seniorResidents = await prisma.resident.count({
-    where: {
-      birthDate: {
-        lte: new Date(new Date().setFullYear(new Date().getFullYear() - 60))
+    }),
+    prisma.resident.count({
+      where: {
+        ...(filters.gender ? { gender: whereConditions.gender } : {}),
+        ...(filters.civilStatus ? { civilStatus: whereConditions.civilStatus } : {}),
+        ...(filters.voterInBarangay !== undefined ? { voterInBarangay: whereConditions.voterInBarangay } : {}),
+        ...(filters.ageGroup && filters.ageGroup === 'young-adult' ? {} : {
+          birthDate: {
+            lt: new Date(new Date().setFullYear(new Date().getFullYear() - 12)),
+            gte: new Date(new Date().setFullYear(new Date().getFullYear() - 30))
+          }
+        })
       }
-    }
-  });
+    }),
+    prisma.resident.count({
+      where: {
+        ...(filters.gender ? { gender: whereConditions.gender } : {}),
+        ...(filters.civilStatus ? { civilStatus: whereConditions.civilStatus } : {}),
+        ...(filters.voterInBarangay !== undefined ? { voterInBarangay: whereConditions.voterInBarangay } : {}),
+        ...(filters.ageGroup && filters.ageGroup === 'adult' ? {} : {
+          birthDate: {
+            lt: new Date(new Date().setFullYear(new Date().getFullYear() - 30)),
+            gte: new Date(new Date().setFullYear(new Date().getFullYear() - 60))
+          }
+        })
+      }
+    }),
+    prisma.resident.count({
+      where: {
+        ...(filters.gender ? { gender: whereConditions.gender } : {}),
+        ...(filters.civilStatus ? { civilStatus: whereConditions.civilStatus } : {}),
+        ...(filters.voterInBarangay !== undefined ? { voterInBarangay: whereConditions.voterInBarangay } : {}),
+        ...(filters.ageGroup && filters.ageGroup === 'senior' ? {} : {
+          birthDate: {
+            lt: new Date(new Date().setFullYear(new Date().getFullYear() - 60))
+          }
+        })
+      }
+    }),
 
-  // Get all residents with pagination
-  const residentsData = await prisma.resident.findMany({
-    take: 10,
-    orderBy: {
-      lastName: 'asc'
-    },
-    include: {
-      Household: true
-    }
-  });
+    // Main data query with pagination
+    prisma.resident.findMany({
+      where: whereConditions,
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        Household: true,
+      },
+      orderBy: {
+        lastName: 'asc',
+      },
+    }),
+  ]);
 
-  // Format the data to match the expected format
-  const residents: Resident[] = residentsData.map(resident => ({
+  // Format resident data to match the Resident interface
+  const formattedResidents: Resident[] = residentsList.map(resident => ({
     id: resident.id,
     firstName: resident.firstName,
-    middleName: resident.middleName,
+    middleName: resident.middleName || '',
     lastName: resident.lastName,
-    extensionName: resident.extensionName,
+    extensionName: resident.extensionName || '',
     birthDate: resident.birthDate ? resident.birthDate.toISOString() : '',
     gender: resident.gender,
-    civilStatus: resident.civilStatus,
-    contactNo: resident.contactNo,
-    email: resident.email,
-    occupation: resident.occupation,
+    civilStatus: resident.civilStatus || '',
+    contactNo: resident.contactNo || '',
+    email: resident.email || '',
+    occupation: resident.occupation || '',
     voterInBarangay: resident.voterInBarangay,
-    // Parent fields
-    fatherName: resident.fatherName,
-    fatherMiddleName: resident.fatherMiddleName,
-    fatherLastName: resident.fatherLastName,
-    motherFirstName: resident.motherFirstName,
-    motherMiddleName: resident.motherMiddleName,
-    motherMaidenName: resident.motherMaidenName,
-    // Household information
+    fatherName: resident.fatherName || '',
+    fatherMiddleName: resident.fatherMiddleName || '',
+    fatherLastName: resident.fatherLastName || '',
+    motherFirstName: resident.motherFirstName || '',
+    motherMiddleName: resident.motherMiddleName || '',
+    motherMaidenName: resident.motherMaidenName || '',
     Household: resident.Household ? {
       houseNo: resident.Household.houseNo,
       street: resident.Household.street
@@ -124,25 +224,78 @@ async function getResidentsData() {
   }));
 
   return {
-    stats: {
-      total: totalResidents,
-      byGender: {
-        male: maleResidents,
-        female: femaleResidents
-      },
-      byAge: {
-        children: childrenResidents,
-        youngAdult: youngAdultResidents,
-        adult: adultResidents,
-        senior: seniorResidents
-      }
-    },
-    residents
+    totalResidents,
+    maleResidents,
+    femaleResidents,
+    childrenCount,
+    youngAdultsCount,
+    adultsCount,
+    seniorsCount,
+    residentsList: formattedResidents,
   };
 }
 
-export default async function ResidentsPage() {
-  const data = await getResidentsData();
+export default async function ResidentsPage({
+  searchParams
+}: {
+  searchParams: { [key: string]: string | string[] | undefined }
+}) {
+  // Parse and validate filter parameters
+  const filters: FilterCriteria = {};
+
+  // Gender filter
+  if (searchParams.gender) {
+    const gender = searchParams.gender.toString().toUpperCase();
+    if (gender === 'MALE' || gender === 'FEMALE') {
+      filters.gender = gender as Gender;
+    }
+  }
+
+  // Age group filter
+  if (searchParams.ageGroup) {
+    const ageGroup = searchParams.ageGroup.toString().toLowerCase();
+    if (['child', 'young-adult', 'adult', 'senior'].includes(ageGroup)) {
+      filters.ageGroup = ageGroup as FilterCriteria['ageGroup'];
+    }
+  }
+
+  // Civil status filter
+  if (searchParams.civilStatus) {
+    const civilStatus = searchParams.civilStatus.toString().toUpperCase();
+    if (['SINGLE', 'MARRIED', 'WIDOWED', 'DIVORCED', 'SEPARATED'].includes(civilStatus)) {
+      filters.civilStatus = civilStatus as CivilStatus;
+    }
+  }
+
+  // Voter filter
+  if (searchParams.voter) {
+    filters.voterInBarangay = searchParams.voter === 'true';
+  }
+
+  // Get page number
+  const page = searchParams.page ? parseInt(searchParams.page.toString()) : 1;
+
+  // Fetch filtered data
+  const data = await getResidentsData(page, 10, filters);
+
+  // Generate filter description
+  const filterDescriptions = [];
+  if (filters.gender) filterDescriptions.push(filters.gender === 'MALE' ? 'Male' : 'Female');
+  if (filters.ageGroup) {
+    const ageGroupLabels = {
+      'child': 'Children (0-12)',
+      'young-adult': 'Young Adults (13-30)',
+      'adult': 'Adults (31-60)',
+      'senior': 'Senior Citizens (60+)'
+    };
+    filterDescriptions.push(ageGroupLabels[filters.ageGroup]);
+  }
+  if (filters.civilStatus) filterDescriptions.push(filters.civilStatus.charAt(0) + filters.civilStatus.slice(1).toLowerCase());
+  if (filters.voterInBarangay !== undefined) filterDescriptions.push(filters.voterInBarangay ? 'Voters' : 'Non-voters');
+
+  const filterDescription = filterDescriptions.length > 0
+    ? `Filtered: ${filterDescriptions.join(', ')}`
+    : '';
 
   return (
     <PageTransition>
@@ -156,9 +309,31 @@ export default async function ResidentsPage() {
             <h1 className="text-2xl font-bold text-[#006B5E]">RESIDENT'S LIST</h1>
           </div>
           <div className="text-sm text-gray-500">
-            Total Residents: <span className="font-bold text-[#006B5E]">{data.stats.total.toLocaleString()}</span>
+            Total Residents: <span className="font-bold text-[#006B5E]">{data.totalResidents.toLocaleString()}</span>
           </div>
         </div>
+
+        {/* Filter description if filters are applied */}
+        {filterDescription && (
+          <div className="bg-[#E8F5F3] p-3 rounded-md mb-4 text-[#006B5E] flex justify-between items-center">
+            <div>{filterDescription}</div>
+            <div className="flex gap-2">
+              <Link href={`/api/residents/export${Object.keys(filters).length ?
+                `?${Object.entries(filters)
+                  .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
+                  .join('&')}`
+                : ''
+                }`} target="_blank">
+                <Button variant="outline" size="sm" className="h-8">
+                  <Download className="h-4 w-4 mr-1" /> Download Data
+                </Button>
+              </Link>
+              <Link href="/dashboard/residents">
+                <Button variant="outline" size="sm" className="h-8">Clear Filters</Button>
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -169,11 +344,14 @@ export default async function ResidentsPage() {
                 <Image src="/icons/male-icon.svg" alt="Male" width={40} height={40} />
               </div>
               <div className="text-3xl font-bold text-[#006B5E]">
-                {data.stats.byGender.male.toLocaleString()}
+                {data.maleResidents.toLocaleString()}
               </div>
               <div className="text-xs text-center border border-[#F39C12] rounded-full px-3 py-1 mt-1">
                 MALE
               </div>
+              <Link href={`/dashboard/residents?gender=MALE${filters.ageGroup ? `&ageGroup=${filters.ageGroup}` : ''}${filters.civilStatus ? `&civilStatus=${filters.civilStatus}` : ''}${filters.voterInBarangay !== undefined ? `&voter=${filters.voterInBarangay}` : ''}`} className="mt-2 text-xs text-[#006B5E] hover:underline">
+                Filter Male Only
+              </Link>
             </div>
           </div>
 
@@ -184,10 +362,50 @@ export default async function ResidentsPage() {
                 <Image src="/icons/female-icon.svg" alt="Female" width={40} height={40} />
               </div>
               <div className="text-3xl font-bold text-[#006B5E]">
-                {data.stats.byGender.female.toLocaleString()}
+                {data.femaleResidents.toLocaleString()}
               </div>
               <div className="text-xs text-center border border-[#F39C12] rounded-full px-3 py-1 mt-1">
                 FEMALE
+              </div>
+              <Link href={`/dashboard/residents?gender=FEMALE${filters.ageGroup ? `&ageGroup=${filters.ageGroup}` : ''}${filters.civilStatus ? `&civilStatus=${filters.civilStatus}` : ''}${filters.voterInBarangay !== undefined ? `&voter=${filters.voterInBarangay}` : ''}`} className="mt-2 text-xs text-[#006B5E] hover:underline">
+                Filter Female Only
+              </Link>
+            </div>
+          </div>
+
+          {/* Age Group Cards */}
+          <div className="bg-white rounded-xl border border-[#F39C12]/30 overflow-hidden shadow-sm hover:shadow-md transition-shadow col-span-1 sm:col-span-2">
+            <div className="p-4">
+              <h3 className="text-[#006B5E] font-medium text-center mb-3">AGE GROUPS</h3>
+              <div className="grid grid-cols-4 gap-2">
+                <div className="text-center">
+                  <div className="font-bold text-lg text-[#006B5E]">{data.childrenCount}</div>
+                  <div className="text-xs text-gray-600">Children</div>
+                  <Link href={`/dashboard/residents?ageGroup=child${filters.gender ? `&gender=${filters.gender}` : ''}${filters.civilStatus ? `&civilStatus=${filters.civilStatus}` : ''}${filters.voterInBarangay !== undefined ? `&voter=${filters.voterInBarangay}` : ''}`} className="mt-1 text-xs text-[#006B5E] hover:underline block">
+                    Filter
+                  </Link>
+                </div>
+                <div className="text-center">
+                  <div className="font-bold text-lg text-[#006B5E]">{data.youngAdultsCount}</div>
+                  <div className="text-xs text-gray-600">Young Adults</div>
+                  <Link href={`/dashboard/residents?ageGroup=young-adult${filters.gender ? `&gender=${filters.gender}` : ''}${filters.civilStatus ? `&civilStatus=${filters.civilStatus}` : ''}${filters.voterInBarangay !== undefined ? `&voter=${filters.voterInBarangay}` : ''}`} className="mt-1 text-xs text-[#006B5E] hover:underline block">
+                    Filter
+                  </Link>
+                </div>
+                <div className="text-center">
+                  <div className="font-bold text-lg text-[#006B5E]">{data.adultsCount}</div>
+                  <div className="text-xs text-gray-600">Adults</div>
+                  <Link href={`/dashboard/residents?ageGroup=adult${filters.gender ? `&gender=${filters.gender}` : ''}${filters.civilStatus ? `&civilStatus=${filters.civilStatus}` : ''}${filters.voterInBarangay !== undefined ? `&voter=${filters.voterInBarangay}` : ''}`} className="mt-1 text-xs text-[#006B5E] hover:underline block">
+                    Filter
+                  </Link>
+                </div>
+                <div className="text-center">
+                  <div className="font-bold text-lg text-[#006B5E]">{data.seniorsCount}</div>
+                  <div className="text-xs text-gray-600">Seniors</div>
+                  <Link href={`/dashboard/residents?ageGroup=senior${filters.gender ? `&gender=${filters.gender}` : ''}${filters.civilStatus ? `&civilStatus=${filters.civilStatus}` : ''}${filters.voterInBarangay !== undefined ? `&voter=${filters.voterInBarangay}` : ''}`} className="mt-1 text-xs text-[#006B5E] hover:underline block">
+                    Filter
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
@@ -197,9 +415,11 @@ export default async function ResidentsPage() {
         <div className="flex flex-col md:flex-row justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-[#006B5E] mb-4 md:mb-0">Residents</h2>
           <div className="flex gap-4">
-            <Button className="bg-white text-[#006B5E] border border-[#006B5E] hover:bg-[#006B5E] hover:text-white transition-colors">
-              <Filter className="mr-2 h-4 w-4" /> FILTER
-            </Button>
+            <Link href="/dashboard/residents/filter">
+              <Button className="bg-white text-[#006B5E] border border-[#006B5E] hover:bg-[#006B5E] hover:text-white transition-colors">
+                <Filter className="mr-2 h-4 w-4" /> ADVANCED FILTER
+              </Button>
+            </Link>
             <Link href="/dashboard/residents/add">
               <Button className="bg-[#006B5E] text-white hover:bg-[#005046]">
                 <Plus className="mr-2 h-4 w-4" /> ADD RESIDENT
@@ -209,7 +429,10 @@ export default async function ResidentsPage() {
         </div>
 
         <Suspense fallback={<p>Loading residents...</p>}>
-          <ResidentList initialResidents={data.residents} />
+          <ResidentList
+            initialResidents={data.residentsList}
+            currentFilters={filters}
+          />
         </Suspense>
       </div>
     </PageTransition>

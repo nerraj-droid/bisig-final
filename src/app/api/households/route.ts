@@ -21,20 +21,13 @@ const isAuthorized = (role: Role | undefined) => {
 
 // Define validation schema
 const householdSchema = z.object({
-    houseNo: z.string().min(1, "House number is required"),
-    street: z.string().min(1, "Street is required"),
-    barangay: z.string().min(1, "Barangay is required"),
-    city: z.string().min(1, "City is required"),
-    province: z.string().min(1, "Province is required"),
-    zipCode: z.string().min(1, "ZIP code is required"),
-    latitude: z.number().nullable(),
-    longitude: z.number().nullable(),
-    type: z.nativeEnum(HouseholdType).default(HouseholdType.SINGLE_FAMILY),
-    status: z.nativeEnum(HouseholdStatus).default(HouseholdStatus.ACTIVE),
+    address: z.string().min(1, "Address is required"),
+    latitude: z.number().nullable().optional(),
+    longitude: z.number().nullable().optional(),
     notes: z.string().optional(),
 })
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
     try {
         const session = await getServerSession(authOptions) as ExtendedSession
 
@@ -45,13 +38,48 @@ export async function POST(req: Request) {
             )
         }
 
-        const data = await req.json()
-        const validatedData = householdSchema.parse(data)
+        const data = await request.json()
 
+        // Basic validation
+        if (!data.address) {
+            return NextResponse.json(
+                { message: 'Address is required' },
+                { status: 400 }
+            )
+        }
+
+        // Extract resident IDs from request
+        const { residentIds = [], headOfHousehold = '', address, notes = '', ...otherData } = data
+
+        // Set default address components
+        const addressParts = address.split(',');
+        const houseNo = addressParts[0]?.trim() || 'N/A';
+        const street = addressParts[1]?.trim() || 'N/A';
+        const barangay = addressParts[2]?.trim() || 'Barangay';
+        const city = addressParts[3]?.trim() || 'City';
+        const province = addressParts[4]?.trim() || 'Province';
+        const zipCode = addressParts[5]?.trim() || '0000';
+
+        // Add head of household info to notes
+        let householdNotes = notes;
+        if (headOfHousehold) {
+            householdNotes += `\nHead of Household ID: ${headOfHousehold}`;
+        }
+
+        // Create the household
         const household = await prisma.household.create({
             data: {
                 id: randomUUID(),
-                ...validatedData,
+                houseNo,
+                street,
+                barangay,
+                city,
+                province,
+                zipCode,
+                notes: householdNotes,
+                type: HouseholdType.SINGLE_FAMILY,
+                status: HouseholdStatus.ACTIVE,
+                ...otherData,  // This includes latitude and longitude
                 createdAt: new Date(),
                 updatedAt: new Date(),
                 mergedFrom: [],
@@ -62,78 +90,99 @@ export async function POST(req: Request) {
             },
         })
 
-        return NextResponse.json(household)
-    } catch (error) {
-        if (error instanceof z.ZodError) {
-            return NextResponse.json(
-                { message: "Validation error", errors: error.errors },
-                { status: 400 }
-            )
+        console.log(`Created household with ID: ${household.id}`);
+
+        // Process residents if any were provided
+        const validResidentIds = Array.isArray(residentIds)
+            ? residentIds.filter((id: string) => id && typeof id === 'string')
+            : [];
+
+        if (validResidentIds.length > 0) {
+            try {
+                // Update each resident with the new household ID
+                await Promise.all(
+                    validResidentIds.map(async (residentId: string) => {
+                        return prisma.resident.update({
+                            where: { id: residentId },
+                            data: {
+                                householdId: household.id
+                            },
+                        })
+                    })
+                );
+                console.log(`Updated ${validResidentIds.length} residents with household ID`);
+            } catch (residentError) {
+                console.error('Error updating residents:', residentError);
+                // Continue with the response even if resident updates fail
+            }
         }
 
-        console.error(error)
         return NextResponse.json(
-            { message: "Something went wrong" },
+            {
+                message: 'Household created successfully',
+                household: {
+                    id: household.id,
+                    address: address,
+                    residents: household.Resident
+                }
+            },
+            { status: 201 }
+        )
+    } catch (error) {
+        console.error('Error creating household:', error)
+        return NextResponse.json(
+            { message: 'Failed to create household', error: (error as Error).message },
             { status: 500 }
         )
     }
 }
 
-export async function GET(req: Request) {
+export async function GET(request: Request) {
     try {
-        const session = await getServerSession(authOptions) as ExtendedSession
+        const { searchParams } = new URL(request.url);
+        const limit = parseInt(searchParams.get('limit') || '500', 10);
+        const page = parseInt(searchParams.get('page') || '1', 10);
+        const skip = (page - 1) * limit;
 
-        if (!session?.user) {
-            return NextResponse.json(
-                { message: "Unauthorized" },
-                { status: 401 }
-            )
-        }
-
-        const { searchParams } = new URL(req.url)
-        const search = searchParams.get("search")
-        const type = searchParams.get("type") as HouseholdType | null
-        const status = searchParams.get("status") as HouseholdStatus | null
-
-        let where: Prisma.HouseholdWhereInput = {}
-
-        if (search) {
-            where = {
-                OR: [
-                    { houseNo: { contains: search, mode: "insensitive" } },
-                    { street: { contains: search, mode: "insensitive" } },
-                    { barangay: { contains: search, mode: "insensitive" } },
-                    { city: { contains: search, mode: "insensitive" } },
-                    { province: { contains: search, mode: "insensitive" } },
-                    { zipCode: { contains: search, mode: "insensitive" } },
-                ],
-            }
-        }
-
-        if (type) {
-            where = { ...where, type }
-        }
-
-        if (status) {
-            where = { ...where, status }
-        }
-
+        // Get all households with their coordinates and basic information
         const households = await prisma.household.findMany({
-            where,
-            include: {
-                Resident: true,
+            select: {
+                id: true,
+                houseNo: true,
+                street: true,
+                barangay: true,
+                city: true,
+                latitude: true,
+                longitude: true,
+                Resident: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        birthDate: true,
+                        gender: true,
+                        civilStatus: true,
+                        contactNo: true,
+                    },
+                },
+            },
+            where: {
+                latitude: { not: null },
+                longitude: { not: null }
             },
             orderBy: {
-                createdAt: "desc",
+                createdAt: 'desc',
             },
-        })
+            take: limit,
+            skip: skip
+        });
 
-        return NextResponse.json(households)
+        return NextResponse.json(households);
     } catch (error) {
-        console.error(error)
+        console.error('Error fetching households:', error);
         return NextResponse.json(
-            { message: "Something went wrong" },
+            { error: 'Error fetching households' },
             { status: 500 }
-        )
+        );
     }
 } 

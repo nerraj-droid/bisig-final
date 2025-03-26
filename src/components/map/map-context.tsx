@@ -1,22 +1,20 @@
 "use client"
 
-import { createContext, useContext, useState, ReactNode } from "react"
-import mapboxgl from "mapbox-gl"
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+import type { MapRef } from 'react-map-gl/maplibre';
 
 interface MapContextType {
-    map: mapboxgl.Map | null
-    setMap: (map: mapboxgl.Map | null) => void
+    map: MapRef | null
+    setMap: (map: MapRef | null) => void
 }
 
-const defaultContextValue: MapContextType = {
+const MapContext = createContext<MapContextType>({
     map: null,
     setMap: () => { }
-};
-
-const MapContext = createContext<MapContextType>(defaultContextValue)
+});
 
 export function MapProvider({ children }: { children: ReactNode }) {
-    const [map, setMap] = useState<mapboxgl.Map | null>(null)
+    const [map, setMap] = useState<MapRef | null>(null)
 
     return (
         <MapContext.Provider value={{ map, setMap }}>
@@ -26,9 +24,5 @@ export function MapProvider({ children }: { children: ReactNode }) {
 }
 
 export function useMap() {
-    const context = useContext(MapContext)
-    if (context === undefined) {
-        throw new Error("useMap must be used within a MapProvider")
-    }
-    return context
+    return useContext(MapContext)
 } 

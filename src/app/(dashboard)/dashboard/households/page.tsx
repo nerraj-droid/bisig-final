@@ -15,7 +15,7 @@ export default async function HouseholdsPage() {
         createdAt: household.createdAt.toISOString(),
         updatedAt: household.updatedAt.toISOString(),
         residents: household.Resident,
-        Resident: undefined,
+        Resident: household.Resident,
       }))
     );
 
