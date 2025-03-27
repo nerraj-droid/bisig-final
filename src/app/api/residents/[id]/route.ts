@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 // GET /api/residents/[id]
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } | Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -20,9 +20,7 @@ export async function GET(
       );
     }
 
-    // Ensure params is properly awaited
-    const resolvedParams = params instanceof Promise ? await params : params;
-    const id = resolvedParams.id;
+    const id = params.id;
 
     const resident = await prisma.resident.findUnique({
       where: { id },
@@ -66,7 +64,7 @@ export async function GET(
 // PUT /api/residents/[id]
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } | Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -78,19 +76,7 @@ export async function PUT(
       );
     }
 
-    // Ensure params is properly awaited
-    let resolvedParams;
-    try {
-      resolvedParams = params instanceof Promise ? await params : params;
-    } catch (error) {
-      console.log(`Error resolving params: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      return new Response(
-        JSON.stringify({ message: "Failed to resolve request parameters" }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const id = resolvedParams.id;
+    const id = params.id;
 
     // Parse request body
     let data;
@@ -249,7 +235,7 @@ export async function PUT(
 // DELETE /api/residents/[id]
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } | Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -261,9 +247,7 @@ export async function DELETE(
       );
     }
 
-    // Ensure params is properly awaited
-    const resolvedParams = params instanceof Promise ? await params : params;
-    const id = resolvedParams.id;
+    const id = params.id;
 
     // Check if resident exists
     const existingResident = await prisma.resident.findUnique({
@@ -277,7 +261,7 @@ export async function DELETE(
       );
     }
 
-    // Delete resident
+    // Delete the resident
     await prisma.resident.delete({
       where: { id },
     });
@@ -289,7 +273,6 @@ export async function DELETE(
   } catch (error) {
     console.log(`Error deleting resident: ${error instanceof Error ? error.message : 'Unknown error'}`);
 
-    // Create a safe error message
     let errorMessage = "Internal server error";
     if (error instanceof Error) {
       errorMessage = error.message;

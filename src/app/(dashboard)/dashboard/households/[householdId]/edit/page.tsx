@@ -4,12 +4,12 @@ import { EditHouseholdForm } from "@/components/households/edit-household-form"
 import Link from "next/link"
 import { ChevronRight, Home, Users } from "lucide-react"
 
-type Props = {
+export default async function EditHouseholdPage({
+    params,
+}: {
     params: { householdId: string }
-    searchParams: { [key: string]: string | string[] | undefined }
-}
-
-export default async function EditHouseholdPage({ params }: Props) {
+    searchParams?: { [key: string]: string | string[] | undefined }
+}) {
     const household = await prisma.household.findUnique({
         where: { id: params.householdId },
         include: {
@@ -59,4 +59,4 @@ export default async function EditHouseholdPage({ params }: Props) {
             </div>
         </div>
     )
-} 
+}

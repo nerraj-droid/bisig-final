@@ -16,11 +16,11 @@ export default function Home() {
       <section className="relative pt-20 pb-24 overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 bg-grid-blue-5"></div>
-        
+
         {/* Floating Elements */}
         <div className="absolute top-40 right-10 w-64 h-64 rounded-full bg-blue-400 blur-3xl opacity-20 animate-float"></div>
         <div className="absolute bottom-20 left-10 w-48 h-48 rounded-full bg-indigo-500 blur-3xl opacity-10 animate-float-delay"></div>
-        
+
         <div className="container mx-auto px-4">
           <div className="flex flex-col lg:flex-row items-center gap-12">
             <div className="lg:w-1/2 z-10">
@@ -32,25 +32,25 @@ export default function Home() {
                 System in <span className="text-gradient">Governance</span>
               </h1>
               <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-xl animate-fade-in-up-2">
-                Empowering Barangays across the Philippines with modern digital tools for efficient governance, 
+                Empowering Barangays across the Philippines with modern digital tools for efficient governance,
                 transparent operations, and enhanced community services.
               </p>
-              
+
               <div className="flex flex-col sm:flex-row gap-4 animate-fade-in-up-3">
-                <a 
-                  href="/request-demo" 
+                <a
+                  href="/request-demo"
                   className="px-8 py-4 bg-gradient-to-r from-blue-700 to-blue-900 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition duration-300 hover-lift text-center"
                 >
                   Request a Demo
                 </a>
-                <a 
-                  href="#features" 
+                <a
+                  href="#features"
                   className="px-8 py-4 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold shadow-sm hover:shadow-md transition duration-300 hover-lift text-center"
                 >
                   Explore Features
                 </a>
               </div>
-              
+
               <div className="mt-8 flex items-center gap-4 text-gray-600 animate-fade-in-up-4">
                 <div className="flex -space-x-2">
                   <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-xs text-blue-800">P1</div>
@@ -61,13 +61,13 @@ export default function Home() {
                 <span className="text-sm">Trusted by 100+ Barangays Nationwide</span>
               </div>
             </div>
-            
+
             <div className="lg:w-1/2 relative animate-fade-in-up-2">
               <div className="relative z-10">
                 <div className="w-full h-full rounded-3xl overflow-hidden shadow-2xl border-8 border-white">
-                  <img 
-                    src="/bisig-logo.jpg" 
-                    alt="Modern Barangay Operations" 
+                  <img
+                    src="/brgy-aerial.jpg"
+                    alt="Modern Barangay Operations"
                     className="w-full h-auto object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
@@ -107,18 +107,18 @@ export default function Home() {
             <h3 className="text-xl font-semibold text-gray-700 mb-2">Trusted by Government Agencies</h3>
             <p className="text-gray-500 max-w-md mx-auto">Empowering digital transformation across Philippine government institutions</p>
           </div>
-          
+
           <div className="relative overflow-hidden py-6">
             {/* Background elements */}
             <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-transparent to-blue-50 z-10 pointer-events-none"></div>
-            
+
             <div className="flex justify-around items-center gap-8 flex-wrap md:flex-nowrap animate-marquee">
               {/* DILG Logo */}
               <div className="relative w-32 h-32 grayscale hover:grayscale-0 transition-all duration-500 flex-shrink-0 hover:scale-110 transform cursor-pointer group">
                 <div className="w-full h-full flex items-center justify-center bg-white rounded-lg shadow-md group-hover:shadow-lg border border-gray-100 transition-all">
                   <div className="relative w-24 h-24">
                     <Image
-                      src="/logos/dilg-logo.png" 
+                      src="/logos/dilg-logo.png"
                       alt="DILG Logo"
                       fill
                       className="object-contain p-2"
@@ -130,7 +130,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Bagong Pilipinas Logo */}
               <div className="relative w-40 h-32 grayscale hover:grayscale-0 transition-all duration-500 flex-shrink-0 hover:scale-110 transform cursor-pointer group animate-bounce-slow">
                 <div className="w-full h-full flex items-center justify-center rounded-lg bg-white shadow-md group-hover:shadow-lg border border-gray-100 transition-all">
@@ -148,13 +148,13 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              
+
               {/* DICT Logo */}
               <div className="relative w-32 h-32 grayscale hover:grayscale-0 transition-all duration-500 flex-shrink-0 hover:scale-110 transform cursor-pointer group animate-bounce-slow-alt">
                 <div className="w-full h-full flex items-center justify-center rounded-lg bg-white shadow-md group-hover:shadow-lg border border-gray-100 transition-all">
                   <div className="relative w-24 h-24">
                     <Image
-                      src="/logos/dict-logo.jpg"
+                      src="/logos/dict-logo.png"
                       alt="DICT Logo"
                       fill
                       className="object-contain p-2"
@@ -166,7 +166,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              
+
               {/* BISIG Logo */}
               <div className="relative w-32 h-32 grayscale hover:grayscale-0 transition-all duration-500 flex-shrink-0 hover:scale-110 transform cursor-pointer group animate-bounce-slow-alt">
                 <div className="w-full h-full flex items-center justify-center rounded-lg bg-white shadow-md group-hover:shadow-lg border border-gray-100 transition-all">
@@ -186,7 +186,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-          
+
           {/* Partnership benefits */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
             <div className="flex items-center gap-3 p-4 rounded-lg hover:bg-blue-50 transition-colors">
@@ -200,7 +200,7 @@ export default function Home() {
                 <p className="text-sm text-gray-600">Deployed across multiple regions</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3 p-4 rounded-lg hover:bg-blue-50 transition-colors">
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                 <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -212,7 +212,7 @@ export default function Home() {
                 <p className="text-sm text-gray-600">Follows DICT security protocols</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3 p-4 rounded-lg hover:bg-blue-50 transition-colors">
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                 <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -234,7 +234,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-grid-blue-5"></div>
         <div className="absolute top-20 left-10 w-64 h-64 rounded-full bg-blue-400 blur-3xl opacity-10"></div>
         <div className="absolute bottom-20 right-10 w-80 h-80 rounded-full bg-indigo-500 blur-3xl opacity-10"></div>
-        
+
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <div className="inline-block px-4 py-1 rounded-full bg-blue-100 text-blue-800 font-medium mb-4">
@@ -246,7 +246,7 @@ export default function Home() {
               compliance, and community service.
             </p>
           </div>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Feature Card 1 - Resident Information Management */}
             <div className="bg-white rounded-2xl shadow-lg p-8 hover-lift hover:shadow-xl transition-all duration-300 border border-gray-100">
@@ -280,7 +280,7 @@ export default function Home() {
                 </li>
               </ul>
             </div>
-            
+
             {/* Feature Card 2 - Document Management */}
             <div className="bg-white rounded-2xl shadow-lg p-8 hover-lift hover:shadow-xl transition-all duration-300 border border-gray-100">
               <div className="w-14 h-14 bg-indigo-100 rounded-lg flex items-center justify-center mb-6">
@@ -313,7 +313,7 @@ export default function Home() {
                 </li>
               </ul>
             </div>
-            
+
             {/* Feature Card 3 - Case Management */}
             <div className="bg-white rounded-2xl shadow-lg p-8 hover-lift hover:shadow-xl transition-all duration-300 border border-gray-100">
               <div className="w-14 h-14 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
@@ -346,7 +346,7 @@ export default function Home() {
                 </li>
               </ul>
             </div>
-            
+
             {/* Feature Card 4 - Disaster Management */}
             <div className="bg-white rounded-2xl shadow-lg p-8 hover-lift hover:shadow-xl transition-all duration-300 border border-gray-100">
               <div className="w-14 h-14 bg-red-100 rounded-lg flex items-center justify-center mb-6">
@@ -379,7 +379,7 @@ export default function Home() {
                 </li>
               </ul>
             </div>
-            
+
             {/* Feature Card 5 - Financial Management */}
             <div className="bg-white rounded-2xl shadow-lg p-8 hover-lift hover:shadow-xl transition-all duration-300 border border-gray-100">
               <div className="w-14 h-14 bg-green-100 rounded-lg flex items-center justify-center mb-6">
@@ -413,7 +413,7 @@ export default function Home() {
               </ul>
             </div>
           </div>
-          
+
           <div className="flex justify-center mt-12">
             <Link href="/request-demo">
               <Button className="bg-[#1e3a8a] hover:bg-[#1e3a8a]/90 text-white px-6 py-3 rounded-full text-lg font-semibold shadow-md hover:shadow-lg transition-all">
@@ -430,7 +430,7 @@ export default function Home() {
       {/* New Statistics Section */}
       <section className="py-16 px-4 bg-white relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/hero-pattern.svg')] opacity-5"></div>
-        
+
         <div className="container mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-[#1e3a8a] mb-4">Making an Impact Across the Philippines</h2>
@@ -438,7 +438,7 @@ export default function Home() {
               Our digital solutions are transforming barangay operations throughout the country
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* Stat 1 */}
             <div className="bg-gradient-to-br from-blue-50 to-white p-8 rounded-2xl shadow-lg border border-blue-100 transform transition-transform hover:-translate-y-1 hover:shadow-xl text-center">
@@ -456,7 +456,7 @@ export default function Home() {
               <p className="text-gray-600 font-medium">Barangays Using BISIG</p>
               <p className="text-sm text-gray-500 mt-2">Across multiple provinces</p>
             </div>
-            
+
             {/* Stat 2 */}
             <div className="bg-gradient-to-br from-orange-50 to-white p-8 rounded-2xl shadow-lg border border-orange-100 transform transition-transform hover:-translate-y-1 hover:shadow-xl text-center">
               <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center mx-auto mb-4">
@@ -473,7 +473,7 @@ export default function Home() {
               <p className="text-gray-600 font-medium">Certificates Generated</p>
               <p className="text-sm text-gray-500 mt-2">Digital & verifiable</p>
             </div>
-            
+
             {/* Stat 3 */}
             <div className="bg-gradient-to-br from-green-50 to-white p-8 rounded-2xl shadow-lg border border-green-100 transform transition-transform hover:-translate-y-1 hover:shadow-xl text-center">
               <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
@@ -490,7 +490,7 @@ export default function Home() {
               <p className="text-gray-600 font-medium">Data Integrity</p>
               <p className="text-sm text-gray-500 mt-2">Reliable resident records</p>
             </div>
-            
+
             {/* Stat 4 */}
             <div className="bg-gradient-to-br from-purple-50 to-white p-8 rounded-2xl shadow-lg border border-purple-100 transform transition-transform hover:-translate-y-1 hover:shadow-xl text-center">
               <div className="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
@@ -508,7 +508,7 @@ export default function Home() {
               <p className="text-sm text-gray-500 mt-2">More efficient processes</p>
             </div>
           </div>
-          
+
           <div className="mt-12 text-center">
             <Link href="/request-demo">
               <Button className="bg-gradient-to-r from-[#1e3a8a] to-[#1e40af] text-white px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all">
@@ -523,12 +523,12 @@ export default function Home() {
       <section className="relative mt-16 py-20 px-4 overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900">
         {/* Background Pattern */}
         <div className="absolute inset-0 bg-grid-white-5 opacity-30"></div>
-        
+
         {/* Floating Elements */}
         <div className="absolute top-20 left-10 w-24 h-24 rounded-full bg-blue-500 opacity-20 animate-float"></div>
         <div className="absolute bottom-20 right-10 w-32 h-32 rounded-full bg-indigo-500 opacity-20 animate-float-delay"></div>
         <div className="absolute top-40 right-1/4 w-16 h-16 rounded-full bg-purple-500 opacity-10 animate-bounce-slow"></div>
-        
+
         <div className="container mx-auto max-w-5xl relative z-10">
           <div className="text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white text-shadow animate-fade-in-up-1">
@@ -538,22 +538,22 @@ export default function Home() {
               Join hundreds of Barangays across the Philippines already using BiSiG to streamline operations,
               improve community engagement, and deliver better services.
             </p>
-            
+
             <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-12 animate-fade-in-up-3">
-              <a 
-                href="/request-demo" 
+              <a
+                href="/request-demo"
                 className="px-8 py-4 bg-white text-blue-900 rounded-xl font-bold shadow-lg hover:shadow-xl transition duration-300 hover-lift text-lg"
               >
                 Request a Demo
               </a>
-              <a 
-                href="#contact" 
+              <a
+                href="#contact"
                 className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-xl font-bold hover:bg-white/10 transition duration-300 text-lg"
               >
                 Contact Us
               </a>
             </div>
-            
+
             <div className="flex items-center justify-center gap-8 animate-fade-in-up-4">
               <div className="flex flex-col items-center">
                 <div className="text-white text-4xl font-bold mb-1">100+</div>
@@ -577,11 +577,11 @@ export default function Home() {
         {/* Background with modern gradient and pattern */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#1e3a8a] via-[#1e40af] to-[#1e3a8a] z-0"></div>
         <div className="absolute inset-0 bg-[url('/cta-pattern.svg')] opacity-10 z-0"></div>
-        
+
         {/* Floating elements */}
         <div className="absolute top-1/4 left-10 w-32 h-32 bg-white/5 rounded-full blur-3xl z-0"></div>
         <div className="absolute bottom-1/4 right-10 w-40 h-40 bg-blue-400/10 rounded-full blur-3xl z-0"></div>
-        
+
         {/* Content */}
         <div className="container mx-auto text-center relative z-10">
           <div className="max-w-3xl mx-auto">
@@ -594,7 +594,7 @@ export default function Home() {
                 Digital Transformation Initiative
               </span>
             </div>
-            
+
             {/* Heading with highlight */}
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
               Ready to Transform Your <span className="relative inline-block px-2">
@@ -602,13 +602,13 @@ export default function Home() {
                 <span className="relative">Barangay</span>
               </span>?
             </h2>
-            
+
             {/* Subheading */}
             <p className="text-xl mb-10 text-blue-100">
               Join the growing network of digital-first barangays across the Philippines.
               Streamline operations, enhance resident services, and build a more connected community.
             </p>
-            
+
             {/* CTA Buttons with modern design */}
             <div className="flex flex-col sm:flex-row gap-5 justify-center">
               <Link href="/login">
@@ -628,7 +628,7 @@ export default function Home() {
                 </Button>
               </Link>
             </div>
-            
+
             {/* Compliance badges */}
             <div className="mt-16 flex flex-col items-center justify-center">
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 max-w-lg mx-auto">
@@ -654,7 +654,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="mt-8 flex items-center justify-center">
                 <p className="text-sm text-white/60">© 2024 BISIG - Barangay Information System Integration Gateway</p>
               </div>
@@ -675,7 +675,7 @@ export default function Home() {
               See what our users are saying about how BiSiG has transformed their barangay operations and community services.
             </p>
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             {/* Testimonial 1 */}
             <div className="bg-white rounded-2xl shadow-lg p-8 hover-lift hover:shadow-xl transition-all duration-300 border border-gray-100">
@@ -709,7 +709,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            
+
             {/* Testimonial 2 */}
             <div className="bg-white rounded-2xl shadow-lg p-8 hover-lift hover:shadow-xl transition-all duration-300 border border-gray-100">
               <div className="flex items-center mb-6">
@@ -742,7 +742,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            
+
             {/* Testimonial 3 */}
             <div className="bg-white rounded-2xl shadow-lg p-8 hover-lift hover:shadow-xl transition-all duration-300 border border-gray-100">
               <div className="flex items-center mb-6">
@@ -776,10 +776,10 @@ export default function Home() {
               </div>
             </div>
           </div>
-          
+
           <div className="text-center mt-12">
-            <a 
-              href="/testimonials" 
+            <a
+              href="/testimonials"
               className="inline-flex items-center text-blue-700 font-medium hover:text-blue-800"
             >
               View all success stories

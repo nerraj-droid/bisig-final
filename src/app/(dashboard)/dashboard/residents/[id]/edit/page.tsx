@@ -55,10 +55,15 @@ const EMPLOYMENT_STATUS = [
   "RETIRED"
 ];
 
-export default function ResidentEditPage({ params }: { params: { id: string } | Promise<{ id: string }> }) {
-  // Safely use params regardless of whether it's a promise or not
-  const unwrappedParams = params instanceof Promise ? use(params) : params;
-  const residentId = unwrappedParams.id;
+export default function ResidentEditPage({
+  params,
+  searchParams
+}: {
+  params: { id: string }
+  searchParams?: { [key: string]: string | string[] | undefined }
+}) {
+  // Get the resident ID from params
+  const residentId = params.id;
   const router = useRouter();
   const [resident, setResident] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
