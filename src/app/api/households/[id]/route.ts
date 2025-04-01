@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { authOptions } from "../../auth/[...nextauth]/route"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { Role, HouseholdType, HouseholdStatus } from "@prisma/client"
 import { z } from "zod"
@@ -125,9 +125,9 @@ export async function PATCH(
         const validationResult = householdUpdateSchema.safeParse(data);
         if (!validationResult.success) {
             return NextResponse.json(
-                { 
-                    message: "Invalid data provided", 
-                    errors: validationResult.error.errors 
+                {
+                    message: "Invalid data provided",
+                    errors: validationResult.error.errors
                 },
                 { status: 400 }
             );

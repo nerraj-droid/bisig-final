@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { authOptions } from "@/lib/auth"
 import { RegisterForm } from "@/components/auth/register-form"
 import { Role } from "@prisma/client"
 import Link from "next/link"

@@ -59,11 +59,13 @@ export default function ResidentEditPage({
   params,
   searchParams
 }: {
-  params: { id: string }
+  params: { id: string } | Promise<{ id: string }>
   searchParams?: { [key: string]: string | string[] | undefined }
 }) {
-  // Get the resident ID from params
-  const residentId = params.id;
+  // Unwrap params from Promise using React.use()
+  const resolvedParams = params instanceof Promise ? use(params) : params;
+  const residentId = resolvedParams.id;
+
   const router = useRouter();
   const [resident, setResident] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { authOptions } from "../../auth/[...nextauth]/route"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { Role } from "@prisma/client"
 
@@ -11,7 +11,7 @@ export async function GET() {
 
         // Everyone can read barangay info, no authorization required for GET
 
-        const barangayInfo = await prisma.BarangayInfo.findFirst({
+        const barangayInfo = await prisma.barangayInfo.findFirst({
             where: { id: "1" },
         }) || {
             id: "1",
@@ -79,7 +79,7 @@ export async function PUT(req: Request) {
             }
 
             // Check if record exists
-            const existingInfo = await prisma.BarangayInfo.findFirst({
+            const existingInfo = await prisma.barangayInfo.findFirst({
                 where: { id: id || "1" },
             })
 
@@ -87,7 +87,7 @@ export async function PUT(req: Request) {
 
             if (existingInfo) {
                 // Update existing record
-                barangayInfo = await prisma.BarangayInfo.update({
+                barangayInfo = await prisma.barangayInfo.update({
                     where: { id: id || "1" },
                     data: {
                         name,
@@ -107,7 +107,7 @@ export async function PUT(req: Request) {
                 })
             } else {
                 // Create new record
-                barangayInfo = await prisma.BarangayInfo.create({
+                barangayInfo = await prisma.barangayInfo.create({
                     data: {
                         id: id || "1",
                         name,

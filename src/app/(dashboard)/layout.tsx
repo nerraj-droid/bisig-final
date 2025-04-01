@@ -1,15 +1,10 @@
-import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import Link from "next/link";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
-
-  if (!session) {
-    redirect("/login");
-  }
 
   // Navigation items based on user role
   const navigationItems = [
@@ -19,10 +14,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: "/dashboard/map", label: "Map", roles: ["SUPER_ADMIN", "CAPTAIN", "SECRETARY"] },
     { href: "/dashboard/certificates", label: "Certificates", roles: ["SUPER_ADMIN", "CAPTAIN", "SECRETARY"] },
     { href: "/dashboard/reports", label: "Reports", roles: ["SUPER_ADMIN", "CAPTAIN", "TREASURER"] },
+    { href: "/dashboard/finance", label: "Finance", roles: ["SUPER_ADMIN", "CAPTAIN", "TREASURER"] },
     { href: "/dashboard/users", label: "Users", roles: ["SUPER_ADMIN", "CAPTAIN"] },
   ];
 
-  const userRole = session.user.role || "SECRETARY";
+  const userRole = session?.user.role || "SECRETARY";
 
   return (
     <div className="min-h-screen bg-gray-100">

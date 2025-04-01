@@ -2,8 +2,12 @@ import { PrismaClient, Role, Status } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { randomUUID } from "crypto";
 import { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { prisma } from "./prisma";
+import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+const prismaClient = new PrismaClient();
 
 type UserStatus = "ACTIVE" | "INACTIVE";
 
@@ -14,10 +18,18 @@ interface DefaultUser {
   role: Role;
 }
 
+interface ExtendedUser {
+  id: string;
+  email: string;
+  name: string | null;
+  role: Role;
+  status: Status;
+}
+
 // Export the auth utilities separately from authOptions
 export const authUtils = {
   async createAdminUser() {
-    const exists = await prisma.user.findFirst({
+    const exists = await prismaClient.user.findFirst({
       where: {
         email: "admin@example.com",
       },
@@ -25,7 +37,7 @@ export const authUtils = {
 
     if (!exists) {
       const hashedPassword = await hash("admin123", 10);
-      await prisma.user.create({
+      await prismaClient.user.create({
         data: {
           id: randomUUID(),
           email: "admin@example.com",
@@ -62,7 +74,7 @@ export const authUtils = {
 
       for (const user of defaultUsers) {
         const hashedPassword = await hash(user.password, 10);
-        await prisma.user.create({
+        await prismaClient.user.create({
           data: {
             id: randomUUID(),
             email: user.email,
@@ -81,10 +93,10 @@ export const authUtils = {
   },
 
   async seedHouseholds() {
-    const householdsCount = await prisma.household.count();
+    const householdsCount = await prismaClient.household.count();
 
     if (householdsCount === 0) {
-      await prisma.household.createMany({
+      await prismaClient.household.createMany({
         data: [
           {
             id: randomUUID(),
@@ -119,14 +131,14 @@ export const authUtils = {
   },
 
   async seedResidents() {
-    const residentsCount = await prisma.resident.count();
+    const residentsCount = await prismaClient.resident.count();
 
     if (residentsCount === 0) {
       // Get the first household for sample data
-      const household = await prisma.household.findFirst();
+      const household = await prismaClient.household.findFirst();
 
       if (household) {
-        await prisma.resident.createMany({
+        await prismaClient.resident.createMany({
           data: [
             {
               id: randomUUID(),
@@ -178,6 +190,98 @@ export const authUtils = {
       console.log("Residents already exist!");
     }
   },
+};
+
+export const authOptions: NextAuthOptions = {
+  pages: {
+    signIn: "/login",
+    signOut: "/login",
+    error: "/login", // Error code passed in query string as ?error=
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+  session: {
+    strategy: "jwt" as const,
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  debug: process.env.NODE_ENV === "development",
+  cookies: {
+    sessionToken: {
+      name: process.env.NODE_ENV === "production" ? "__Secure-next-auth.session-token" : "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = (user as ExtendedUser).role;
+        token.status = (user as ExtendedUser).status;
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session?.user) {
+        session.user.role = token.role;
+        session.user.status = token.status;
+        session.user.id = token.id as string;
+      }
+      return session;
+    },
+  },
+  providers: [
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Missing credentials");
+        }
+
+        const user = await prismaClient.user.findUnique({
+          where: {
+            email: credentials.email,
+          },
+        });
+
+        if (!user || !user.password) {
+          throw new Error("Invalid credentials");
+        }
+
+        const isValid = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
+
+        if (!isValid) {
+          throw new Error("Invalid credentials");
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          status: user.status,
+        };
+      },
+    }),
+  ],
+};
+
+// Helper to check if a user is authorized based on role
+export const isAuthorized = (
+  role: Role | undefined,
+  allowedRoles: Role[] = [Role.SUPER_ADMIN, Role.CAPTAIN, Role.SECRETARY]
+) => {
+  return role ? allowedRoles.includes(role) : false;
 };
 
 // Default export for backward compatibility

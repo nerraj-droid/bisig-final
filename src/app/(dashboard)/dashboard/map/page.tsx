@@ -30,7 +30,7 @@ export default function MapPage() {
     const [markers, setMarkers] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedHousehold, setSelectedHousehold] = useState<any>(null);
-    const [mapStyle, setMapStyle] = useState('terrain');
+    const [mapStyle, setMapStyle] = useState('streets');
     const [isMounted, setIsMounted] = useState(false);
     const [showReportPreview, setShowReportPreview] = useState(false);
     const [reportType, setReportType] = useState<'summary' | 'detailed'>('summary');
