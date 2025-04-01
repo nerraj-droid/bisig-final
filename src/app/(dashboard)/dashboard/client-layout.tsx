@@ -152,6 +152,11 @@ export default function ClientDashboardLayout({
       icon: <BarChart3 size={20} />
     },
     {
+      href: "/dashboard/finance",
+      label: "Finance",
+      icon: <Wallet size={20} />
+    },
+    {
       href: "/dashboard/users",
       label: "Users",
       icon: <UserCog size={20} />

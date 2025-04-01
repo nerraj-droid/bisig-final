@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation"
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { Role, Status } from "@prisma/client"
 import Link from "next/link"
@@ -16,7 +16,9 @@ export const metadata: Metadata = {
 interface EditUserPageProps {
     params: {
         id: string
-    }
+    } | Promise<{
+        id: string
+    }>
 }
 
 export default async function EditUserPage({ params }: EditUserPageProps) {
@@ -26,9 +28,12 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
         redirect("/dashboard")
     }
 
+    // Resolve params if they're a promise
+    const resolvedParams = await Promise.resolve(params);
+
     const user = await prisma.user.findUnique({
         where: {
-            id: params.id,
+            id: resolvedParams.id,
         },
         select: {
             id: true,

@@ -66,6 +66,7 @@ model Household {
   mergedFrom  String[]      // IDs of households that were merged into this one
   history     Json[]        // Array of historical changes
   statistics  HouseholdStatistic?
+  financialTransactions Transaction[]
 
   @@schema("public")
 }
@@ -118,6 +119,7 @@ model Resident {
   Certificate                 Certificate[]
   Household                   Household?       @relation(fields: [householdId], references: [id])
   ReliefRecords              ReliefRecord[]
+  financialTransactions Transaction[]
 
   @@schema("public")
 }
@@ -143,6 +145,9 @@ model User {
   status    Status    @default(ACTIVE)
   Account   Account[]
   Session   Session[]
+  createdTransactions   Transaction[] @relation("TransactionCreator")
+  approvedTransactions  Transaction[] @relation("TransactionApprover")
+  financialPermissions  FinancialPermission[]
 
   @@schema("public")
 }
@@ -288,6 +293,143 @@ model CertificateTemplate {
   updatedAt   DateTime @updatedAt
 
   @@unique([type, isDefault]) // Only one default template per type
+  @@schema("public")
+}
+
+// Financial Management Module - New Models
+model FiscalYear {
+  id            String      @id @default(cuid())
+  year          String      @unique // e.g. "2023-2024"
+  startDate     DateTime
+  endDate       DateTime
+  isActive      Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  budgets       Budget[]
+  transactions  Transaction[]
+
+  @@schema("public")
+}
+
+model Budget {
+  id              String       @id @default(cuid())
+  fiscalYearId    String
+  fiscalYear      FiscalYear   @relation(fields: [fiscalYearId], references: [id])
+  categoryId      String
+  category        BudgetCategory @relation(fields: [categoryId], references: [id])
+  amount          Float
+  description     String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  transactions    Transaction[]
+
+  @@schema("public")
+}
+
+model BudgetCategory {
+  id              String       @id @default(cuid())
+  code            String       @unique // Standard COA category code
+  name            String
+  description     String?
+  parentId        String?
+  parent          BudgetCategory? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children        BudgetCategory[] @relation("CategoryHierarchy")
+  budgets         Budget[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@schema("public")
+}
+
+enum TransactionType {
+  REVENUE
+  EXPENSE
+  TRANSFER
+
+  @@schema("public")
+}
+
+enum TransactionStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  VOIDED
+
+  @@schema("public")
+}
+
+model Transaction {
+  id              String       @id @default(cuid())
+  type            TransactionType
+  referenceNumber String       @unique
+  date            DateTime
+  amount          Float
+  description     String
+  fiscalYearId    String
+  fiscalYear      FiscalYear   @relation(fields: [fiscalYearId], references: [id])
+  budgetId        String?
+  budget          Budget?      @relation(fields: [budgetId], references: [id])
+  supplierId      String?
+  supplier        Supplier?    @relation(fields: [supplierId], references: [id])
+  residentId      String?
+  resident        Resident?    @relation(fields: [residentId], references: [id])
+  householdId     String?
+  household       Household?   @relation(fields: [householdId], references: [id])
+  attachments     Attachment[]
+  createdById     String
+  createdBy       User         @relation("TransactionCreator", fields: [createdById], references: [id])
+  approvedById    String?
+  approvedBy      User?        @relation("TransactionApprover", fields: [approvedById], references: [id])
+  status          TransactionStatus
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@schema("public")
+}
+
+model Supplier {
+  id              String       @id @default(cuid())
+  name            String
+  contactPerson   String?
+  phone           String?
+  email           String?
+  address         String?
+  taxId           String?
+  transactions    Transaction[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@schema("public")
+}
+
+model Attachment {
+  id              String       @id @default(cuid())
+  filename        String
+  path            String
+  type            String
+  size            Int
+  transactionId   String
+  transaction     Transaction  @relation(fields: [transactionId], references: [id])
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@schema("public")
+}
+
+model FinancialPermission {
+  id                    String       @id @default(cuid())
+  userId                String
+  user                  User         @relation(fields: [userId], references: [id])
+  canCreateBudget       Boolean      @default(false)
+  canApproveBudget      Boolean      @default(false)
+  canCreateTransaction  Boolean      @default(false)
+  canApproveTransaction Boolean      @default(false)
+  canViewReports        Boolean      @default(false)
+  transactionAmountLimit Float?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
   @@schema("public")
 }
 

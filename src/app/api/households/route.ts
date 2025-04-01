@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { authOptions } from "../auth/[...nextauth]/route"
+import { authOptions, isAuthorized } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { Prisma, Role, HouseholdType, HouseholdStatus } from "@prisma/client"
 import { z } from "zod"
@@ -13,10 +13,6 @@ interface ExtendedSession {
         image?: string | null
         role?: Role
     }
-}
-
-const isAuthorized = (role: Role | undefined) => {
-    return role === Role.SUPER_ADMIN || role === Role.CAPTAIN || role === Role.SECRETARY
 }
 
 // Define validation schema

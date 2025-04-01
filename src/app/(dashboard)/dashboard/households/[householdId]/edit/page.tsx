@@ -7,11 +7,14 @@ import { ChevronRight, Home, Users } from "lucide-react"
 export default async function EditHouseholdPage({
     params,
 }: {
-    params: { householdId: string }
+    params: { householdId: string } | Promise<{ householdId: string }>
     searchParams?: { [key: string]: string | string[] | undefined }
 }) {
+    // Await the params object (if it's a promise)
+    const resolvedParams = await Promise.resolve(params);
+
     const household = await prisma.household.findUnique({
-        where: { id: params.householdId },
+        where: { id: resolvedParams.householdId },
         include: {
             Resident: {
                 select: {

@@ -6,9 +6,13 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 
-export default function ResidentDeletePage({ params }: { params: { id: string } }) {
+export default function ResidentDeletePage({ params }: { params: { id: string } | Promise<{ id: string }> }) {
+  // Unwrap params from Promise using React.use()
+  const resolvedParams = params instanceof Promise ? use(params) : params;
+  const residentId = resolvedParams.id;
+
   const router = useRouter();
   const [resident, setResident] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -18,7 +22,7 @@ export default function ResidentDeletePage({ params }: { params: { id: string } 
   useEffect(() => {
     async function fetchResident() {
       try {
-        const response = await fetch(`/api/residents/${params.id}`);
+        const response = await fetch(`/api/residents/${residentId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch resident');
         }
@@ -33,14 +37,14 @@ export default function ResidentDeletePage({ params }: { params: { id: string } 
     }
 
     fetchResident();
-  }, [params.id]);
+  }, [residentId]);
 
   const handleDelete = async () => {
     setIsDeleting(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/residents/${params.id}`, {
+      const response = await fetch(`/api/residents/${residentId}`, {
         method: 'DELETE',
       });
 
@@ -93,7 +97,7 @@ export default function ResidentDeletePage({ params }: { params: { id: string } 
       <div className="w-full">
         {/* Back button and page title */}
         <div className="flex items-center mb-6">
-          <Link href={`/dashboard/residents/${params.id}`} className="text-[#006B5E] hover:text-[#F39C12] transition-colors mr-4">
+          <Link href={`/dashboard/residents/${residentId}`} className="text-[#006B5E] hover:text-[#F39C12] transition-colors mr-4">
             <ArrowLeft size={24} />
           </Link>
           <h1 className="text-2xl font-bold text-[#006B5E]">DELETE RESIDENT</h1>
@@ -117,13 +121,13 @@ export default function ResidentDeletePage({ params }: { params: { id: string } 
           )}
 
           <div className="flex gap-3 justify-end">
-            <Link href={`/dashboard/residents/${params.id}`}>
+            <Link href={`/dashboard/residents/${residentId}`}>
               <Button variant="outline" disabled={isDeleting}>
                 Cancel
               </Button>
             </Link>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleDelete}
               disabled={isDeleting}
             >

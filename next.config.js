@@ -14,6 +14,13 @@ const nextConfig = {
     // your project has type errors.
     ignoreBuildErrors: true,
   },
+  // Enable Next.js 15 middleware features
+  experimental: {
+    serverComponentsExternalPackages: ['next-auth'],
+    trustHostHeader: true,
+  },
+  // Force cookie security with secure settings
+  poweredByHeader: false,
 }
 
 module.exports = nextConfig 

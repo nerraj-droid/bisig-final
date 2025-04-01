@@ -14,11 +14,15 @@ type HouseholdStatus = PrismaHouseholdStatus
 interface PageProps {
     params: {
         householdId: string
-    }
+    } | Promise<{
+        householdId: string
+    }>
 }
 
 export default async function HouseholdPage({ params }: PageProps) {
-    const { householdId } = params;
+    // Resolve params if they're a promise
+    const resolvedParams = await Promise.resolve(params);
+    const { householdId } = resolvedParams;
 
     try {
         const household = await prisma.household.findUnique({

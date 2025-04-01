@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,36 @@ import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const { data: session, status } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  // Check for error from URL
+  useEffect(() => {
+    const errorFromUrl = searchParams.get("error");
+    if (errorFromUrl) {
+      if (errorFromUrl === "CredentialsSignin") {
+        setError("Invalid email or password");
+      } else {
+        setError(`Authentication error: ${errorFromUrl}`);
+      }
+    }
+  }, [searchParams]);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (status === "authenticated" && session) {
+      console.log("Login page: User is authenticated, redirecting to", callbackUrl);
+      setIsNavigating(true);
+      router.push(callbackUrl);
+    }
+  }, [status, session, router, callbackUrl]);
 
   // Handle navigation state
   useEffect(() => {
@@ -36,25 +60,24 @@ export default function LoginPage() {
     setError("");
 
     try {
+      // Direct redirect approach for more reliable auth flow
+      console.log("Attempting to sign in with credentials, redirect=true");
       const result = await signIn("credentials", {
         email,
         password,
-        redirect: false,
+        callbackUrl,
+        redirect: true,
       });
 
+      // The code below won't execute if redirect: true
+      // as the browser will be redirected by NextAuth
+      console.log("SignIn result:", result);
       if (result?.error) {
         setError("Invalid email or password");
         setIsLoading(false);
-        return;
       }
-
-      // Important: Add a delay before redirecting to ensure the session is properly set
-      setIsNavigating(true);
-      setTimeout(() => {
-        router.push("/dashboard");
-        router.refresh(); // Force a refresh to ensure session is recognized
-      }, 1000);
     } catch (error) {
+      console.error("Login error:", error);
       setError("An error occurred. Please try again.");
       setIsLoading(false);
     }
@@ -173,7 +196,7 @@ export default function LoginPage() {
                 className="w-full border border-gray-300 h-12 rounded-full flex items-center justify-center gap-2"
                 onClick={() => {
                   setIsNavigating(true);
-                  signIn("google", { callbackUrl: "/dashboard" });
+                  signIn("google", { callbackUrl });
                 }}
                 disabled={isLoading}
               >
