@@ -118,6 +118,7 @@ model Resident {
   Certificate                 Certificate[]
   Household                   Household?       @relation(fields: [householdId], references: [id])
   ReliefRecords              ReliefRecord[]
+  BlotterParties             BlotterParty[]
 
   @@schema("public")
 }
@@ -288,6 +289,146 @@ model CertificateTemplate {
   updatedAt   DateTime @updatedAt
 
   @@unique([type, isDefault]) // Only one default template per type
+  @@schema("public")
+}
+
+// Define the Blotter Case model
+model BlotterCase {
+  id                String               @id @default(cuid())
+  caseNumber        String               @unique
+  reportDate        DateTime             @default(now())
+  incidentDate      DateTime
+  incidentTime      String?
+  incidentLocation  String
+  incidentType      String
+  incidentDescription String
+  status            BlotterCaseStatus    @default(PENDING)
+  priority          BlotterPriority      @default(MEDIUM)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  createdById       String?              // User who created the record
+  entertainedBy     String?              // Official who entertained the report
+  
+  // Relationships
+  parties           BlotterParty[]
+  hearings          BlotterHearing[]
+  statusUpdates     BlotterStatusUpdate[]
+  attachments       BlotterAttachment[]
+
+  @@schema("public")
+}
+
+// Enum for Blotter case status
+enum BlotterCaseStatus {
+  PENDING
+  ONGOING
+  RESOLVED
+  ESCALATED
+
+  @@schema("public")
+}
+
+// Enum for Blotter case priority
+enum BlotterPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+
+  @@schema("public")
+}
+
+// Party involved in a Blotter case (complainant or respondent)
+model BlotterParty {
+  id              String          @id @default(cuid())
+  blotterCaseId   String
+  residentId      String?         // Optional link to registered resident
+  partyType       BlotterPartyType
+  firstName       String
+  middleName      String?
+  lastName        String
+  address         String
+  contactNumber   String?
+  email           String?
+  isResident      Boolean         @default(false)
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Relationships
+  blotterCase     BlotterCase    @relation(fields: [blotterCaseId], references: [id], onDelete: Cascade)
+  resident        Resident?      @relation(fields: [residentId], references: [id])
+
+  @@schema("public")
+}
+
+// Enum for party types
+enum BlotterPartyType {
+  COMPLAINANT
+  RESPONDENT
+  WITNESS
+
+  @@schema("public")
+}
+
+// Hearing/Mediation records for a Blotter case
+model BlotterHearing {
+  id              String          @id @default(cuid())
+  blotterCaseId   String
+  date            DateTime
+  time            String
+  location        String
+  status          HearingStatus   @default(SCHEDULED)
+  notes           String?
+  minutesNotes    String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Relationships
+  blotterCase     BlotterCase    @relation(fields: [blotterCaseId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
+}
+
+// Enum for hearing status
+enum HearingStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+
+  @@schema("public")
+}
+
+// Status updates for a Blotter case
+model BlotterStatusUpdate {
+  id              String          @id @default(cuid())
+  blotterCaseId   String
+  status          BlotterCaseStatus
+  notes           String?
+  updatedById     String          // User who updated the status
+  createdAt       DateTime        @default(now())
+  
+  // Relationships
+  blotterCase     BlotterCase    @relation(fields: [blotterCaseId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
+}
+
+// Attachments for a Blotter case
+model BlotterAttachment {
+  id              String          @id @default(cuid())
+  blotterCaseId   String
+  name            String
+  type            String
+  size            String
+  path            String          // Path to the stored file
+  uploadedById    String          // User who uploaded the file
+  createdAt       DateTime        @default(now())
+  
+  // Relationships
+  blotterCase     BlotterCase    @relation(fields: [blotterCaseId], references: [id], onDelete: Cascade)
+
   @@schema("public")
 }
 

@@ -5,20 +5,77 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 First, run the development server:
 
 ```bash
+# To run with local database
+npm run dev:local
+
+# To run with Supabase
+npm run dev:supabase
+
+# Standard dev command (uses current .env settings)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database Management
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This project supports both local PostgreSQL and Supabase for database management. Below are instructions for setting up and switching between environments.
+
+### Environment Setup
+
+1. Create two environment files:
+   - `.env.local` - Contains local database connection strings
+   - `.env.supabase` - Contains Supabase connection strings
+
+Example `.env.local`:
+
+```
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/bisig_db"
+DIRECT_URL="postgresql://postgres:postgres@localhost:5432/bisig_db"
+```
+
+### Local Database Setup
+
+1. Create a PostgreSQL database named `bisig_db`
+2. Push the schema to your local database:
+
+   ```bash
+   npx prisma db push
+   ```
+
+3. Seed your local database with sample data:
+
+   ```bash
+   npm run seed:local
+   ```
+
+### Database Migrations
+
+For **local development**:
+
+- Use `npx prisma db push` for quick schema updates without migration history
+- Perfect for local experimentation and testing
+
+For **Supabase** (production/staging):
+
+- Use `npx prisma migrate dev --name your_migration_name` to create tracked migrations
+- This creates migration history files for proper change management
+- Supports rollbacks and safer schema evolution
+
+### Switching Environments
+
+The following scripts are available for switching between environments:
+
+```bash
+# Switch to local database and run dev server
+npm run dev:local
+
+# Switch to Supabase and run dev server
+npm run dev:supabase
+
+# Seed the local database (copies .env.local to .env first)
+npm run seed:local
+```
 
 ## Learn More
 

@@ -147,6 +147,11 @@ export default function ClientDashboardLayout({
       icon: <FileText size={20} />
     },
     {
+      href: "/dashboard/blotter",
+      label: "Blotter Management",
+      icon: <Shield size={20} />
+    },
+    {
       href: "/dashboard/reports",
       label: "Reports",
       icon: <BarChart3 size={20} />

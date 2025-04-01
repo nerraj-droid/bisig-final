@@ -16,7 +16,8 @@ import {
   Award,
   TrendingUp,
   User,
-  ChevronRight
+  ChevronRight,
+  ShieldAlert
 } from "lucide-react";
 import { format, subDays } from "date-fns";
 import { PageTransition } from "@/components/ui/page-transition";
@@ -571,6 +572,90 @@ export default async function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Blotter Management */}
+        <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-6 flex items-center justify-between border-b border-gray-200">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="h-6 w-6 text-blue-600" />
+              <h2 className="font-bold text-xl">BLOTTER MANAGEMENT</h2>
+            </div>
+            <Link href="/dashboard/blotter" className="text-sm text-blue-600 hover:underline flex items-center">
+              <span>Manage Blotter</span>
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          <div className="p-6">
+            {/* Statistics */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <p className="text-sm text-gray-500 mb-1">Total Cases</p>
+                <p className="text-3xl font-bold text-blue-600">24</p>
+              </div>
+              <div className="bg-green-50 rounded-lg p-4">
+                <p className="text-sm text-gray-500 mb-1">Closed Cases</p>
+                <p className="text-3xl font-bold text-green-600">16</p>
+              </div>
+            </div>
+
+            {/* Status Breakdown */}
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-gray-500 mb-3">Case Status</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="bg-yellow-50 rounded p-3">
+                  <p className="text-xs text-gray-500">Pending</p>
+                  <p className="text-xl font-bold text-yellow-600">8</p>
+                </div>
+                <div className="bg-blue-50 rounded p-3">
+                  <p className="text-xs text-gray-500">Ongoing</p>
+                  <p className="text-xl font-bold text-blue-600">10</p>
+                </div>
+                <div className="bg-green-50 rounded p-3">
+                  <p className="text-xs text-gray-500">Resolved</p>
+                  <p className="text-xl font-bold text-green-600">5</p>
+                </div>
+                <div className="bg-red-50 rounded p-3">
+                  <p className="text-xs text-gray-500">Escalated</p>
+                  <p className="text-xl font-bold text-red-600">1</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Cases */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-3">Recent Cases</h3>
+              <div className="space-y-2">
+                <div className="border border-gray-100 rounded-lg p-3 flex justify-between hover:bg-gray-50">
+                  <div>
+                    <p className="font-medium text-sm">BLT-2025-0024</p>
+                    <p className="text-xs text-gray-500">Noise Complaint</p>
+                  </div>
+                  <p className="text-xs text-gray-500">Mar 30, 2025</p>
+                </div>
+                <div className="border border-gray-100 rounded-lg p-3 flex justify-between hover:bg-gray-50">
+                  <div>
+                    <p className="font-medium text-sm">BLT-2025-0023</p>
+                    <p className="text-xs text-gray-500">Property Dispute</p>
+                  </div>
+                  <p className="text-xs text-gray-500">Mar 29, 2025</p>
+                </div>
+                <div className="border border-gray-100 rounded-lg p-3 flex justify-between hover:bg-gray-50">
+                  <div>
+                    <p className="font-medium text-sm">BLT-2025-0022</p>
+                    <p className="text-xs text-gray-500">Theft</p>
+                  </div>
+                  <p className="text-xs text-gray-500">Mar 28, 2025</p>
+                </div>
+              </div>
+              <div className="mt-4 text-center">
+                <Link href="/dashboard/blotter" className="text-sm text-blue-600 hover:underline">
+                  View all blotter cases
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </PageTransition>
   );

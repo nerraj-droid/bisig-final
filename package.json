@@ -4,10 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:local": "copy .env.local .env && next dev --turbopack",
+    "dev:supabase": "copy .env.supabase .env && next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "seed": "ts-node scripts/seed.ts",
+    "seed:local": "copy .env.local .env && npx prisma db seed",
     "vercel-build": "prisma generate && prisma migrate deploy && NODE_OPTIONS=--max_old_space_size=4096 next build",
     "postinstall": "prisma generate",
     "deploy": "ts-node scripts/deploy.ts",
@@ -31,7 +34,7 @@
     "@react-pdf/renderer": "^4.2.1",
     "@supabase/supabase-js": "^2.49.1",
     "@types/lodash.debounce": "^4.0.9",
-    "bcryptjs": "^3.0.0",
+    "bcryptjs": "^3.0.2",
     "chart.js": "^4.4.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -71,7 +74,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^29.5.14",
     "@types/mapbox-gl": "^3.4.1",
-    "@types/node": "^20.17.19",
+    "@types/node": "^20.17.28",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -86,6 +89,9 @@
     "tailwindcss": "^3.4.1",
     "ts-jest": "^29.2.6",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.8.2"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   }
 }
