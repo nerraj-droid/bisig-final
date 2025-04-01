@@ -1,7 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['images.unsplash.com', 'placehold.co'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+      },
+    ],
   },
   eslint: {
     // Warning: This allows production builds to successfully complete even if
@@ -11,7 +20,7 @@ const nextConfig = {
   typescript: {
     // !! WARN !!
     // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
+    // your project has type errors. Good to consider Jarren, okay?
     ignoreBuildErrors: true,
   },
   // Enable Next.js 15 middleware features

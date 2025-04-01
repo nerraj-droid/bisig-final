@@ -41,7 +41,7 @@ export async function POST(req: Request) {
         const statuses = ["PENDING", "APPROVED", "DISTRIBUTED", "REJECTED"]
 
         // Create sample relief records
-        const reliefRecords = []
+        const reliefRecords: Awaited<ReturnType<typeof prisma.reliefRecord.create>>[] = []
 
         for (const resident of residents) {
             // Create 1-3 relief records per resident

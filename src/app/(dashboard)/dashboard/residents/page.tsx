@@ -279,7 +279,7 @@ export default async function ResidentsPage({
   const data = await getResidentsData(page, 10, filters);
 
   // Generate filter description
-  const filterDescriptions = [];
+  const filterDescriptions: string[] = [];
   if (filters.gender) filterDescriptions.push(filters.gender === 'MALE' ? 'Male' : 'Female');
   if (filters.ageGroup) {
     const ageGroupLabels = {
