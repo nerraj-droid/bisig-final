@@ -92,10 +92,22 @@ export default function BlotterList({
                       </Button>
                       
                       {(caseItem.status === 'ESCALATED' || caseItem.status === 'CERTIFIED') && (
-                        <Button asChild size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
+                        <Button asChild size="sm" className="bg-amber-600 hover:bg-amber-700 text-white flex items-center">
                           <Link href={`/dashboard/certificates/new/cfa?caseId=${caseItem.id}`}>
-                            Generate CFA
+                            <FileText className="h-3.5 w-3.5 mr-1" /> Generate CFA
                           </Link>
+                        </Button>
+                      )}
+                      
+                      {caseItem.status !== 'ESCALATED' && caseItem.status !== 'CERTIFIED' && (
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="text-gray-400 cursor-not-allowed"
+                          title="Case must be escalated or certified to generate CFA"
+                          disabled
+                        >
+                          <FileText className="h-3.5 w-3.5 mr-1" /> Generate CFA
                         </Button>
                       )}
                     </div>

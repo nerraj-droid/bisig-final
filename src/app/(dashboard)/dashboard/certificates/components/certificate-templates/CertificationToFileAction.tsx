@@ -31,57 +31,138 @@ export default function CertificationToFileAction({
   const formattedCertDate = new Date(certificationDate);
   const formattedIncidentDate = new Date(incidentDate);
 
+  // Styles for better PDF output
+  const styles = {
+    container: {
+      fontFamily: 'Arial, sans-serif',
+      padding: '40px',
+      maxWidth: '800px',
+      margin: '0 auto',
+      color: '#000',
+      lineHeight: '1.5',
+      position: 'relative' as 'relative',
+    },
+    header: {
+      textAlign: 'center' as 'center', 
+      marginBottom: '30px'
+    },
+    logo: {
+      height: '64px',
+      width: '64px',
+      marginRight: '10px'
+    },
+    headerText: {
+      margin: '0',
+      padding: '0'
+    },
+    title: {
+      fontSize: '24px',
+      fontWeight: 'bold',
+      textAlign: 'center' as 'center',
+      marginTop: '24px',
+      marginBottom: '30px',
+      textTransform: 'uppercase' as 'uppercase'
+    },
+    content: {
+      marginBottom: '30px',
+      textAlign: 'justify' as 'justify'
+    },
+    paragraph: {
+      marginBottom: '16px'
+    },
+    emphasis: {
+      fontWeight: 'bold'
+    },
+    signature: {
+      marginTop: '60px',
+      display: 'flex',
+      justifyContent: 'space-between'
+    },
+    certInfo: {
+      textAlign: 'left' as 'left'
+    },
+    signatureBlock: {
+      width: '220px',
+      textAlign: 'center' as 'center'
+    },
+    signatureName: {
+      fontWeight: 'bold',
+      textTransform: 'uppercase' as 'uppercase',
+      marginBottom: '4px'
+    },
+    signatureTitle: {
+      borderTop: '1px solid #000',
+      paddingTop: '4px'
+    },
+    footer: {
+      marginTop: '60px',
+      textAlign: 'center' as 'center',
+      color: '#666',
+      fontSize: '12px'
+    },
+    controlNumber: {
+      position: 'absolute' as 'absolute',
+      bottom: '10px',
+      right: '10px',
+      color: '#666',
+      fontSize: '10px'
+    }
+  };
+
   return (
-    <div className="certificate-container p-10 max-w-4xl mx-auto bg-white">
-      <div className="certificate-header text-center mb-8">
-        <div className="flex justify-center items-center mb-2">
-          <img src="/barangay-logo.png" alt="Barangay Logo" className="h-16 w-16 mr-2" />
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '8px'}}>
+          <img src="/barangay-logo.png" alt="Barangay Logo" style={styles.logo} />
           <div>
-            <h1 className="text-xl font-bold">Republic of the Philippines</h1>
-            <h2 className="text-lg">City/Municipality of _______________</h2>
-            <h2 className="text-lg font-semibold">Barangay {barangayName}</h2>
+            <h1 style={{...styles.headerText, fontSize: '18px', fontWeight: 'bold'}}>Republic of the Philippines</h1>
+            <h2 style={{...styles.headerText, fontSize: '16px'}}>City/Municipality of _______________</h2>
+            <h2 style={{...styles.headerText, fontSize: '16px', fontWeight: 'bold'}}>Barangay {barangayName}</h2>
           </div>
         </div>
-        <h1 className="text-2xl font-bold mt-6 uppercase">CERTIFICATION TO FILE ACTION</h1>
+        <h1 style={styles.title}>Certification to File Action</h1>
       </div>
 
-      <div className="certificate-body text-justify space-y-6">
-        <p>
-          This is to certify that the case entitled <span className="font-semibold">"{caseTitle}"</span> with case number <span className="font-semibold">{caseNumber}</span> between complainant <span className="font-semibold">{complainantName}</span> and respondent <span className="font-semibold">{respondentName}</span> was filed before the Lupong Tagapamayapa of this Barangay.
+      <div style={styles.content}>
+        <p style={styles.paragraph}>
+          This is to certify that the case entitled <span style={styles.emphasis}>"{caseTitle}"</span> with case number <span style={styles.emphasis}>{caseNumber}</span> between complainant <span style={styles.emphasis}>{complainantName}</span> and respondent <span style={styles.emphasis}>{respondentName}</span> was filed before the Lupong Tagapamayapa of this Barangay.
         </p>
 
-        <p>
-          The dispute involves: <span className="font-semibold">{incidentDescription}</span> which occurred on <span className="font-semibold">{format(formattedIncidentDate, "MMMM d, yyyy")}</span>.
+        <p style={styles.paragraph}>
+          The dispute involves: <span style={styles.emphasis}>{incidentDescription}</span> which occurred on <span style={styles.emphasis}>{format(formattedIncidentDate, "MMMM d, yyyy")}</span>.
         </p>
 
-        <p>
+        <p style={styles.paragraph}>
           Despite efforts to conciliate and/or mediate the dispute between the parties, no amicable settlement was reached and no agreement to arbitrate was entered into by the parties.
         </p>
 
-        <p>
+        <p style={styles.paragraph}>
           After the lapse of the mediation/conciliation procedure, this certification is issued pursuant to Section 412 of the Local Government Code of 1991 to enable the complainant to file the appropriate action in court.
         </p>
 
-        <p>
+        <p style={styles.paragraph}>
           The complainant is hereby allowed to file the appropriate action in the proper court/government office.
         </p>
       </div>
 
-      <div className="certificate-footer mt-10">
-        <div className="flex justify-between">
-          <div className="left-section">
-            <p>Issued on: {format(formattedCertDate, "MMMM d, yyyy")}</p>
-            <p>Control No.: {controlNumber}</p>
-          </div>
-          <div className="right-section text-center w-64">
-            <p className="font-bold uppercase">{punongBarangay}</p>
-            <p className="border-t border-black pt-1">Punong Barangay</p>
-          </div>
+      <div style={styles.signature}>
+        <div style={styles.certInfo}>
+          <p>Issued on: {format(formattedCertDate, "MMMM d, yyyy")}</p>
+          <p>Control No.: {controlNumber}</p>
         </div>
-        <div className="text-center mt-16 text-sm text-gray-500">
-          <p>{footerText}</p>
-          <p className="mt-1">Verify this certificate at: https://barangay-portal.gov.ph/verify</p>
+        <div style={styles.signatureBlock}>
+          <p style={styles.signatureName}>{punongBarangay}</p>
+          <p style={styles.signatureTitle}>Punong Barangay</p>
         </div>
+      </div>
+      
+      <div style={styles.footer}>
+        <p>{footerText}</p>
+        <p style={{marginTop: '4px'}}>Verify this certificate at: https://barangay-portal.gov.ph/verify</p>
+      </div>
+      
+      <div style={styles.controlNumber}>
+        CFA-{controlNumber}
       </div>
     </div>
   );

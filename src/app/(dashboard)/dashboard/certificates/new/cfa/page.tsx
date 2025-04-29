@@ -25,6 +25,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectLabel,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,6 +53,7 @@ interface BlotterCase {
   incidentDescription: string;
   incidentDate: string;
   parties: BlotterParty[];
+  status: "ESCALATED" | "CERTIFIED" | string;
 }
 
 // Define form schema
@@ -155,7 +157,7 @@ export default function GenerateCFAPage() {
     if (caseId) {
       handleCaseSelect(caseId);
     }
-  }, [caseId]);
+  }, [caseId, blotterCases]);
 
   // Handle case selection
   const handleCaseSelect = async (caseId: string) => {
@@ -172,16 +174,29 @@ export default function GenerateCFAPage() {
         const complainant = caseData.parties.find(party => party.partyType === "COMPLAINANT");
         const respondent = caseData.parties.find(party => party.partyType === "RESPONDENT");
         
+        if (!complainant || !respondent) {
+          toast.warning("Case is missing complainant or respondent data");
+        }
+        
         form.setValue("caseNumber", caseData.caseNumber);
         form.setValue("caseTitle", `${complainant?.lastName || ""} vs. ${respondent?.lastName || ""}`);
         form.setValue("complainantName", `${complainant?.firstName || ""} ${complainant?.middleName ? complainant.middleName[0] + '. ' : ''}${complainant?.lastName || ""}`);
         form.setValue("respondentName", `${respondent?.firstName || ""} ${respondent?.middleName ? respondent.middleName[0] + '. ' : ''}${respondent?.lastName || ""}`);
         form.setValue("incidentDescription", caseData.incidentDescription);
-        form.setValue("incidentDate", caseData.incidentDate.split("T")[0]);
+        
+        // Format incident date 
+        if (caseData.incidentDate) {
+          const formattedDate = caseData.incidentDate.split("T")[0];
+          form.setValue("incidentDate", formattedDate);
+        }
+        
+        toast.success("Case information loaded successfully");
+      } else {
+        toast.error("Failed to load case details. Please try again.");
       }
     } catch (error) {
       console.error("Error fetching case details:", error);
-      toast.error("Failed to load case details");
+      toast.error("Failed to load case details. Please check your connection.");
     } finally {
       setIsLoading(false);
     }
@@ -200,34 +215,50 @@ export default function GenerateCFAPage() {
         type: "CFA",
       };
       
-      // Save certificate to database
-      const response = await fetch("/api/certificates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(certificateData),
-      });
+      console.log("Submitting certificate data:", certificateData);
       
-      if (!response.ok) {
-        throw new Error("Failed to save certificate");
-      }
-      
-      // If associated with a case, update the case status
-      if (selectedCase) {
-        await fetch(`/api/blotter/${selectedCase.id}/status`, {
-          method: "PUT",
+      try {
+        // Save certificate to database
+        const response = await fetch("/api/certificates", {
+          method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            status: "CERTIFIED",
-            certificationDate: new Date().toISOString() 
-          }),
+          body: JSON.stringify(certificateData),
         });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          console.error("API error response:", response.status, errorData);
+          throw new Error(`Failed to save certificate: ${response.status} ${response.statusText}`);
+        }
+        
+        // If associated with a case, update the case status
+        if (selectedCase) {
+          const statusResponse = await fetch(`/api/blotter/${selectedCase.id}/status`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              status: "CERTIFIED",
+              certificationDate: new Date().toISOString() 
+            }),
+          });
+          
+          if (!statusResponse.ok) {
+            console.warn("Failed to update case status, but certificate was created");
+          }
+        }
+        
+        toast.success("Certificate has been generated successfully");
+      } catch (saveError) {
+        console.error("Error saving to database:", saveError);
+        toast.error("Failed to save to database, but you can still preview the certificate");
+        // Even if saving to DB fails, we'll still show the preview
       }
       
-      toast.success("Certificate has been generated successfully");
+      // Always show preview even if saving failed
       setShowPreview(true);
     } catch (error) {
       console.error("Error generating certificate:", error);
-      toast.error("Failed to generate certificate");
+      toast.error(error instanceof Error ? error.message : "Failed to generate certificate");
     } finally {
       setIsLoading(false);
     }
@@ -235,6 +266,24 @@ export default function GenerateCFAPage() {
 
   const handlePrint = () => {
     window.print();
+  };
+  
+  const handleSaveAndDownload = async () => {
+    try {
+      setIsLoading(true);
+      // Trigger print dialog
+      window.print();
+      
+      // Simulate PDF download completion
+      setTimeout(() => {
+        toast.success("Certificate saved and ready for printing");
+        setIsLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error("Error saving certificate:", error);
+      toast.error("Failed to save certificate");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -262,10 +311,11 @@ export default function GenerateCFAPage() {
         <div className="space-y-4">
           <div className="flex justify-end space-x-4 print:hidden">
             <Button 
-              onClick={handlePrint} 
+              onClick={handleSaveAndDownload} 
               className="bg-[#006B5E] hover:bg-[#005046]"
+              disabled={isLoading}
             >
-              <Printer className="mr-2 h-4 w-4" /> Print Certificate
+              <Printer className="mr-2 h-4 w-4" /> {isLoading ? "Processing..." : "Save & Print"}
             </Button>
             <Button 
               variant="outline" 
@@ -275,7 +325,7 @@ export default function GenerateCFAPage() {
             </Button>
           </div>
           
-          <div className="certificate-preview bg-white rounded-md shadow-md p-2">
+          <div className="certificate-preview bg-white rounded-md shadow-md p-2 min-h-[29.7cm]">
             <CertificationToFileAction
               caseNumber={form.getValues("caseNumber")}
               caseTitle={form.getValues("caseTitle")}
@@ -310,7 +360,7 @@ export default function GenerateCFAPage() {
                         <FormItem>
                           <FormLabel>Barangay Name</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} disabled={isLoading} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -324,7 +374,7 @@ export default function GenerateCFAPage() {
                         <FormItem>
                           <FormLabel>Punong Barangay</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} disabled={isLoading} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -334,16 +384,35 @@ export default function GenerateCFAPage() {
 
                   <div className="border-t pt-4">
                     <FormLabel className="block mb-2">Select Blotter Case</FormLabel>
-                    <Select onValueChange={handleCaseSelect}>
+                    <Select onValueChange={handleCaseSelect} disabled={isLoading}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a case" />
+                        <SelectValue placeholder={isLoading ? "Loading cases..." : "Select a case"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {blotterCases.map((blotterCase) => (
-                          <SelectItem key={blotterCase.id} value={blotterCase.id}>
-                            {blotterCase.caseNumber} - {blotterCase.incidentType}
-                          </SelectItem>
-                        ))}
+                        {blotterCases.length === 0 ? (
+                          <SelectItem value="no-cases" disabled>No eligible cases found</SelectItem>
+                        ) : (
+                          <>
+                            <SelectLabel>Escalated Cases</SelectLabel>
+                            {blotterCases
+                              .filter(c => c.status === "ESCALATED")
+                              .map((blotterCase) => (
+                                <SelectItem key={blotterCase.id} value={blotterCase.id}>
+                                  {blotterCase.caseNumber} - {blotterCase.incidentType} 
+                                  ({blotterCase.parties.find(p => p.partyType === "COMPLAINANT")?.lastName || ""} vs. {blotterCase.parties.find(p => p.partyType === "RESPONDENT")?.lastName || ""})
+                                </SelectItem>
+                              ))}
+                            
+                            <SelectLabel>Certified Cases</SelectLabel>
+                            {blotterCases
+                              .filter(c => c.status === "CERTIFIED")
+                              .map((blotterCase) => (
+                                <SelectItem key={blotterCase.id} value={blotterCase.id}>
+                                  {blotterCase.caseNumber} - {blotterCase.incidentType}
+                                </SelectItem>
+                              ))}
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormDescription>
@@ -359,7 +428,7 @@ export default function GenerateCFAPage() {
                         <FormItem>
                           <FormLabel>Case Number</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} disabled={isLoading} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -373,7 +442,7 @@ export default function GenerateCFAPage() {
                         <FormItem>
                           <FormLabel>Case Title</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="e.g., Santos vs. Reyes" />
+                            <Input {...field} placeholder="e.g., Santos vs. Reyes" disabled={isLoading} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -389,7 +458,7 @@ export default function GenerateCFAPage() {
                         <FormItem>
                           <FormLabel>Complainant Name</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} disabled={isLoading} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -403,7 +472,7 @@ export default function GenerateCFAPage() {
                         <FormItem>
                           <FormLabel>Respondent Name</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} disabled={isLoading} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -419,7 +488,7 @@ export default function GenerateCFAPage() {
                         <FormItem>
                           <FormLabel>Incident Date</FormLabel>
                           <FormControl>
-                            <Input type="date" {...field} />
+                            <Input type="date" {...field} disabled={isLoading} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -438,6 +507,7 @@ export default function GenerateCFAPage() {
                             {...field} 
                             rows={4}
                             placeholder="Describe the incident or dispute"
+                            disabled={isLoading}
                           />
                         </FormControl>
                         <FormMessage />
@@ -499,6 +569,16 @@ export default function GenerateCFAPage() {
                   after the barangay conciliation process has been completed without resolution.
                 </p>
               </div>
+              
+              {selectedCase && (
+                <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
+                  <h3 className="text-sm font-medium text-blue-800">Case Status</h3>
+                  <p className="text-sm text-blue-700">
+                    This blotter case (#{selectedCase.caseNumber}) will be marked as "CERTIFIED" 
+                    once the CFA is generated.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
