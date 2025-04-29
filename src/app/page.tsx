@@ -38,14 +38,8 @@ export default function Home() {
 
               <div className="flex flex-col sm:flex-row gap-4 animate-fade-in-up-3">
                 <a
-                  href="/request-demo"
-                  className="px-8 py-4 bg-gradient-to-r from-blue-700 to-blue-900 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition duration-300 hover-lift text-center"
-                >
-                  Request a Demo
-                </a>
-                <a
                   href="#features"
-                  className="px-8 py-4 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold shadow-sm hover:shadow-md transition duration-300 hover-lift text-center"
+                  className="px-8 py-4 bg-gradient-to-r from-blue-700 to-blue-900 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition duration-300 hover-lift text-center"
                 >
                   Explore Features
                 </a>
@@ -414,16 +408,16 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex justify-center mt-12">
-            <Link href="/request-demo">
+          {/* <div className="flex justify-center mt-12">
+            <Link href="#contact">
               <Button className="bg-[#1e3a8a] hover:bg-[#1e3a8a]/90 text-white px-6 py-3 rounded-full text-lg font-semibold shadow-md hover:shadow-lg transition-all">
-                Request Full Feature Demo
+                Contact Us
                 <svg className="ml-2 w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
               </Button>
             </Link>
-          </div>
+          </div> */}
         </div>
       </section>
 
@@ -509,13 +503,13 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-12 text-center">
-            <Link href="/request-demo">
+          {/* <div className="mt-12 text-center">
+            <Link href="#contact">
               <Button className="bg-gradient-to-r from-[#1e3a8a] to-[#1e40af] text-white px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all">
-                See How BISIG Can Transform Your Barangay
+                Contact Us
               </Button>
             </Link>
-          </div>
+          </div> */}
         </div>
       </section>
 
@@ -541,17 +535,19 @@ export default function Home() {
 
             <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-12 animate-fade-in-up-3">
               <a
-                href="/request-demo"
-                className="px-8 py-4 bg-white text-blue-900 rounded-xl font-bold shadow-lg hover:shadow-xl transition duration-300 hover-lift text-lg"
+                href="/login"
+                className="px-8 py-4 bg-gradient-to-r from-[#eab308] to-[#d97706] text-[#1e3a8a] hover:from-[#facc15] hover:to-[#eab308] rounded-xl font-bold shadow-lg hover:shadow-xl transition duration-300 hover-lift text-lg"
               >
-                Request a Demo
+                Access the System
               </a>
-              <a
-                href="#contact"
-                className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-xl font-bold hover:bg-white/10 transition duration-300 text-lg"
-              >
-                Contact Us
-              </a>
+              <Link href="#contact">
+                <Button variant="outline" className="bg-transparent border-2 border-white text-white hover:bg-white/10 px-10 py-7 h-auto rounded-xl text-lg font-semibold transition-all duration-300 w-full sm:w-auto group">
+                  <span>Contact Us</span>
+                  <svg className="ml-2 h-5 w-5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Button>
+              </Link>
             </div>
 
             <div className="flex items-center justify-center gap-8 animate-fade-in-up-4">
@@ -619,9 +615,9 @@ export default function Home() {
                   </svg>
                 </Button>
               </Link>
-              <Link href="/request-demo">
+              <Link href="#contact">
                 <Button variant="outline" className="bg-transparent border-2 border-white text-white hover:bg-white/10 px-10 py-7 h-auto rounded-xl text-lg font-semibold transition-all duration-300 w-full sm:w-auto group">
-                  <span>Request a Demo</span>
+                  <span>Contact Us</span>
                   <svg className="ml-2 h-5 w-5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>

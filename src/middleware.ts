@@ -6,7 +6,7 @@ export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
 
     // Public routes that don't need authentication checks
-    const publicRoutes = ['/', '/about', '/contact', '/request-demo']
+    const publicRoutes = ['/', '/about', '/contact']
     if (publicRoutes.some(route => pathname === route || pathname.startsWith(`${route}/`))) {
         return NextResponse.next()
     }
@@ -73,7 +73,6 @@ export const config = {
         '/landing/:path*',
         '/about',
         '/contact',
-        '/request-demo',
         '/dashboard/:path*',
         '/api/:path*',
     ],

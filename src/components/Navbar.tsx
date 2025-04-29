@@ -11,8 +11,8 @@ export default function Navbar() {
           {/* Logo */}
           <a href="/" className="flex items-center">
             <div className="h-10 w-10 relative rounded-full overflow-hidden mr-2">
-              <Image 
-                src="/bisig-logo.jpg" 
+              <Image
+                src="/bisig-logo.jpg"
                 alt="BiSiG Logo"
                 fill
                 className="object-cover"
@@ -21,21 +21,21 @@ export default function Navbar() {
             </div>
             <span className="text-xl font-bold text-blue-900">BiSiG</span>
           </a>
-          
+
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
             <a href="#features" className="text-gray-600 hover:text-blue-700 font-medium">Features</a>
             <a href="#testimonials" className="text-gray-600 hover:text-blue-700 font-medium">Testimonials</a>
             <a href="#ai-capabilities" className="text-gray-600 hover:text-blue-700 font-medium">AI Capabilities</a>
             <a href="/about" className="text-gray-600 hover:text-blue-700 font-medium">About</a>
-            <a href="/request-demo" className="px-5 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition duration-300 font-medium">
-              Request Demo
+            <a href="/login" className="px-5 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition duration-300 font-medium">
+              Login
             </a>
           </div>
-          
+
           {/* Mobile Menu Button */}
           <div className="md:hidden">
-            <button 
+            <button
               type="button"
               className="text-gray-600 hover:text-blue-700 focus:outline-none"
               onClick={() => {
@@ -52,7 +52,7 @@ export default function Navbar() {
           </div>
         </div>
       </div>
-      
+
       {/* Mobile Menu Dropdown */}
       <div id="mobile-menu" className="hidden md:hidden border-t border-gray-200 bg-white">
         <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
@@ -68,8 +68,8 @@ export default function Navbar() {
           <a href="/about" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-700 hover:bg-blue-50">
             About
           </a>
-          <a href="/request-demo" className="block px-3 py-2 rounded-md text-base font-medium text-white bg-blue-700 hover:bg-blue-800">
-            Request Demo
+          <a href="/login" className="block px-3 py-2 rounded-md text-base font-medium text-white bg-blue-700 hover:bg-blue-800">
+            Login
           </a>
         </div>
       </div>
