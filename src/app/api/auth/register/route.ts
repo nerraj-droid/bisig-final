@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server"
 import { hash } from "bcryptjs"
 import { getServerSession } from "next-auth"
-import { authOptions } from "../[...nextauth]/route"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { Role } from "@prisma/client"
+import { PrismaClient } from "@prisma/client"
+const { Role } = PrismaClient.extends.model.$Types
 
 export async function POST(req: Request) {
     try {

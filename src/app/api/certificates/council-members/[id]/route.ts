@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { authOptions } from "../../../auth/[...nextauth]/route"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { Role } from "@prisma/client"
+// Import Role from the PrismaClient instance
+import { PrismaClient } from "@prisma/client"
+const { Role } = PrismaClient.extends.model.$Types
+
 
 // Get a specific council member
 export async function GET(

@@ -84,11 +84,21 @@ export default function BlotterList({
                     <PriorityBadge priority={caseItem.priority} />
                   </td>
                   <td className="py-3 px-4">
-                    <Link href={`/dashboard/blotter/${caseItem.id}`}>
-                      <Button variant="ghost" size="sm" className="h-8 gap-1">
-                        View <ArrowRight size={14} />
+                    <div className="flex flex-wrap gap-2 justify-end">
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/dashboard/blotter/${caseItem.id}`}>
+                          View Details
+                        </Link>
                       </Button>
-                    </Link>
+                      
+                      {(caseItem.status === 'ESCALATED' || caseItem.status === 'CERTIFIED') && (
+                        <Button asChild size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
+                          <Link href={`/dashboard/certificates/new/cfa?caseId=${caseItem.id}`}>
+                            Generate CFA
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

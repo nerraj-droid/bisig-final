@@ -10,6 +10,15 @@ import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BlotterCaseStatus, BlotterPriority, BlotterPartyType } from "@/lib/enums";
 import { toast } from "sonner";
+import ProcessFlow from "../components/process-flow";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import UpdateStatus from "./update-status";
 
 async function getBlotterCaseDetails(id: string) {
   try {
@@ -41,6 +50,7 @@ export default function BlotterCaseDetails() {
   const [caseData, setCaseData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   
   useEffect(() => {
     async function loadData() {
@@ -295,6 +305,24 @@ export default function BlotterCaseDetails() {
     return null;
   };
   
+  // Function to handle status update modal
+  const handleOpenStatusUpdate = () => {
+    setStatusDialogOpen(true);
+  };
+  
+  const handleStatusUpdated = async () => {
+    setStatusDialogOpen(false);
+    try {
+      // Reload the case data
+      const data = await getBlotterCaseDetails(id);
+      setCaseData(data);
+      toast.success("Case status updated successfully");
+    } catch (error) {
+      console.error("Error refreshing case data:", error);
+      toast.error("Failed to refresh case data");
+    }
+  };
+  
   return (
     <PageTransition>
       <div className="p-6 max-w-7xl mx-auto">
@@ -330,6 +358,21 @@ export default function BlotterCaseDetails() {
               {generatingReport ? "Generating..." : "Generate Report"}
             </Button>
           </div>
+        </div>
+        
+        {/* Add Process Flow component below the header section */}
+        <div className="mb-6">
+          <ProcessFlow 
+            currentStatus={caseData.status}
+            filingFeePaid={caseData.filingFeePaid}
+            docketDate={caseData.docketDate}
+            summonDate={caseData.summonDate}
+            mediationStartDate={caseData.mediationStartDate}
+            conciliationStartDate={caseData.conciliationStartDate}
+            extensionDate={caseData.extensionDate}
+            certificationDate={caseData.certificationDate}
+            resolutionMethod={caseData.resolutionMethod}
+          />
         </div>
         
         {/* Case Summary */}
@@ -370,6 +413,90 @@ export default function BlotterCaseDetails() {
               <div className="sm:col-span-2 lg:col-span-4">
                 <p className="text-sm text-gray-500">Entertained By</p>
                 <p className="text-sm">{caseData.entertainedBy}</p>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* New process-specific fields */}
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold mb-2">Process Details</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Filing Fee</p>
+              <p>{caseData.filingFee ? `₱${caseData.filingFee.toFixed(2)}` : 'Not set'}</p>
+              <p className={`text-sm ${caseData.filingFeePaid ? 'text-green-600' : 'text-red-600'}`}>
+                {caseData.filingFeePaid ? 'Paid' : 'Unpaid'}
+              </p>
+            </div>
+            
+            {caseData.docketDate && (
+              <div>
+                <p className="text-sm font-medium text-gray-500">Docket Date</p>
+                <p>{new Date(caseData.docketDate).toLocaleDateString()}</p>
+              </div>
+            )}
+            
+            {caseData.summonDate && (
+              <div>
+                <p className="text-sm font-medium text-gray-500">Summon Date</p>
+                <p>{new Date(caseData.summonDate).toLocaleDateString()}</p>
+              </div>
+            )}
+            
+            {caseData.mediationStartDate && (
+              <div>
+                <p className="text-sm font-medium text-gray-500">Mediation Started</p>
+                <p>{new Date(caseData.mediationStartDate).toLocaleDateString()}</p>
+              </div>
+            )}
+            
+            {caseData.mediationEndDate && (
+              <div>
+                <p className="text-sm font-medium text-gray-500">Mediation Ended</p>
+                <p>{new Date(caseData.mediationEndDate).toLocaleDateString()}</p>
+              </div>
+            )}
+            
+            {caseData.conciliationStartDate && (
+              <div>
+                <p className="text-sm font-medium text-gray-500">Conciliation Started</p>
+                <p>{new Date(caseData.conciliationStartDate).toLocaleDateString()}</p>
+              </div>
+            )}
+            
+            {caseData.conciliationEndDate && (
+              <div>
+                <p className="text-sm font-medium text-gray-500">Conciliation Ended</p>
+                <p>{new Date(caseData.conciliationEndDate).toLocaleDateString()}</p>
+              </div>
+            )}
+            
+            {caseData.extensionDate && (
+              <div>
+                <p className="text-sm font-medium text-gray-500">Extension Date</p>
+                <p>{new Date(caseData.extensionDate).toLocaleDateString()}</p>
+              </div>
+            )}
+            
+            {caseData.certificationDate && (
+              <div>
+                <p className="text-sm font-medium text-gray-500">Certification Issued</p>
+                <p>{new Date(caseData.certificationDate).toLocaleDateString()}</p>
+              </div>
+            )}
+            
+            {caseData.resolutionMethod && (
+              <div>
+                <p className="text-sm font-medium text-gray-500">Resolution Method</p>
+                <p>{caseData.resolutionMethod}</p>
+              </div>
+            )}
+            
+            {caseData.escalatedToEnt && (
+              <div>
+                <p className="text-sm font-medium text-gray-500">Escalated To</p>
+                <p>{caseData.escalatedToEnt}</p>
               </div>
             )}
           </div>
@@ -480,7 +607,7 @@ export default function BlotterCaseDetails() {
             <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
               <div className="border-b border-gray-200 bg-gray-50 px-6 py-4 flex justify-between items-center">
                 <h3 className="text-lg font-medium">Status History</h3>
-                <Button variant="outline" size="sm" className="gap-1">
+                <Button variant="outline" size="sm" className="gap-1" onClick={handleOpenStatusUpdate}>
                   <Edit size={14} />
                   Update Status
                 </Button>
@@ -508,6 +635,23 @@ export default function BlotterCaseDetails() {
           </TabsContent>
         </Tabs>
       </div>
+      
+      {/* Add the status update dialog */}
+      <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Update Case Status</DialogTitle>
+            <DialogDescription>
+              Change the status and provide details for this update
+            </DialogDescription>
+          </DialogHeader>
+          <UpdateStatus 
+            caseId={id} 
+            currentStatus={caseData?.status || BlotterCaseStatus.FILED} 
+            onStatusUpdated={handleStatusUpdated}
+          />
+        </DialogContent>
+      </Dialog>
     </PageTransition>
   );
 } 

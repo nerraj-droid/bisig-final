@@ -297,23 +297,48 @@ export async function generatePDF(elementId: string, filename: string): Promise<
     const element = document.getElementById(elementId);
     if (!element) throw new Error("Element not found");
 
+    // Get the dimensions of the element
+    const { width, height } = element.getBoundingClientRect();
+    const aspectRatio = height / width;
+
+    // Create canvas with proper scaling for high-quality output
     const canvas = await html2canvas(element, {
-      scale: 2,
+      scale: 3, // Higher scale for better quality
       useCORS: true,
       logging: false,
+      allowTaint: true,
+      backgroundColor: "#ffffff",
+      // Ensure full rendering of the element
+      windowWidth: document.documentElement.offsetWidth,
+      windowHeight: document.documentElement.offsetHeight,
     });
 
-    const imgWidth = 210; // A4 width in mm
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
+    // Calculate dimensions for A4 paper size (210mm × 297mm)
+    // with proper margins
+    const marginMM = 5; // 5mm margins
+    const pageWidth = 210; // A4 width in mm
+    const contentWidth = pageWidth - (marginMM * 2);
+    
+    // Calculate height based on aspect ratio
+    const contentHeight = contentWidth * aspectRatio;
+    
+    // Check if content height exceeds A4 height (297mm)
+    const maxContentHeight = 297 - (marginMM * 2);
+    const finalContentHeight = Math.min(contentHeight, maxContentHeight);
+    
+    // Create PDF with proper orientation
+    const orientation = aspectRatio > 1 ? "portrait" : "landscape";
     const pdf = new jsPDF({
-      orientation: "portrait",
+      orientation,
       unit: "mm",
       format: "a4",
     });
 
-    const imgData = canvas.toDataURL("image/png");
-    pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+    // Add image with proper positioning
+    const imgData = canvas.toDataURL("image/png", 1.0);
+    pdf.addImage(imgData, "PNG", marginMM, marginMM, contentWidth, finalContentHeight);
+
+    // Save the PDF
     pdf.save(filename);
   } catch (err) {
     console.error("Error generating PDF:", err);

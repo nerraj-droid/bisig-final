@@ -98,8 +98,14 @@ export function CertificateGenerator({ type, data }: CertificateGeneratorProps) 
     position: 'relative' as 'relative',
     backgroundColor: '#fff',
     minHeight: '842px', // A4 height in pixels
-    width: '100%',
+    // Set fixed dimensions for A4 paper size (210mm x 297mm at 96 DPI)
+    width: '793px', // 210mm at 96 DPI
+    height: '1122px', // 297mm at 96 DPI
+    margin: '0 auto',
     boxSizing: 'border-box' as 'border-box',
+    fontFamily: 'Arial, sans-serif',
+    // Use mm units for more accurate printing
+    pageBreakInside: 'avoid' as 'avoid',
   };
 
   // Add watermark if enabled
@@ -119,61 +125,63 @@ export function CertificateGenerator({ type, data }: CertificateGeneratorProps) 
 
   return (
     <div className="space-y-4">
-      <div id="certificate-container" ref={certificateRef} style={containerStyle}>
-        {/* Watermark */}
-        {data.templateSettings?.showWatermark && data.templateSettings?.watermarkUrl && (
-          <div style={watermarkStyle}></div>
-        )}
-        
-        {/* Certificate content based on type */}
-        {type === "clearance" && (
-          <BarangayClearance 
-            residentName={data.residentName}
-            address={data.address}
-            purpose={data.purpose}
-            controlNumber={data.controlNumber}
-            officials={data.officials}
-            qrCode={qrCode} 
-            templateSettings={data.templateSettings}
-            civilStatus={data.civilStatus}
-          />
-        )}
-        {type === "residency" && (
-          <CertificateOfResidency 
-            residentName={data.residentName}
-            address={data.address}
-            purpose={data.purpose}
-            controlNumber={data.controlNumber}
-            officials={data.officials}
-            qrCode={qrCode}
-            templateSettings={data.templateSettings}
-            civilStatus={data.civilStatus}
-          />
-        )}
-        {type === "business" && (
-          <BusinessPermit 
-            businessName={data.businessName} 
-            ownerName={data.ownerName}
-            address={data.address}
-            controlNumber={data.controlNumber}
-            officials={data.officials}
-            qrCode={qrCode} 
-            templateSettings={data.templateSettings}
-            civilStatus={data.civilStatus}
-          />
-        )}
-        {type === "indigency" && (
-          <IndigencyCertificate 
-            residentName={data.residentName}
-            address={data.address}
-            purpose={data.purpose}
-            controlNumber={data.controlNumber}
-            officials={data.officials}
-            qrCode={qrCode}
-            templateSettings={data.templateSettings}
-            civilStatus={data.civilStatus}
-          />
-        )}
+      <div className="pdf-container" style={{ maxWidth: '100%', overflowX: 'auto' }}>
+        <div id="certificate-container" ref={certificateRef} style={containerStyle}>
+          {/* Watermark */}
+          {data.templateSettings?.showWatermark && data.templateSettings?.watermarkUrl && (
+            <div style={watermarkStyle}></div>
+          )}
+          
+          {/* Certificate content based on type */}
+          {type === "clearance" && (
+            <BarangayClearance 
+              residentName={data.residentName}
+              address={data.address}
+              purpose={data.purpose}
+              controlNumber={data.controlNumber}
+              officials={data.officials}
+              qrCode={qrCode} 
+              templateSettings={data.templateSettings}
+              civilStatus={data.civilStatus}
+            />
+          )}
+          {type === "residency" && (
+            <CertificateOfResidency 
+              residentName={data.residentName}
+              address={data.address}
+              purpose={data.purpose}
+              controlNumber={data.controlNumber}
+              officials={data.officials}
+              qrCode={qrCode}
+              templateSettings={data.templateSettings}
+              civilStatus={data.civilStatus}
+            />
+          )}
+          {type === "business" && (
+            <BusinessPermit 
+              businessName={data.businessName} 
+              ownerName={data.ownerName}
+              address={data.address}
+              controlNumber={data.controlNumber}
+              officials={data.officials}
+              qrCode={qrCode} 
+              templateSettings={data.templateSettings}
+              civilStatus={data.civilStatus}
+            />
+          )}
+          {type === "indigency" && (
+            <IndigencyCertificate 
+              residentName={data.residentName}
+              address={data.address}
+              purpose={data.purpose}
+              controlNumber={data.controlNumber}
+              officials={data.officials}
+              qrCode={qrCode}
+              templateSettings={data.templateSettings}
+              civilStatus={data.civilStatus}
+            />
+          )}
+        </div>
       </div>
 
       <div className="flex justify-end gap-4">

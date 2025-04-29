@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { authOptions } from "../../auth/[...nextauth]/route"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 
@@ -18,14 +18,14 @@ export async function GET(req: Request) {
         const format = searchParams.get("format")
         const filter = searchParams.get("filter")
 
-        let where: Prisma.HouseholdWhereInput = {}
+        let where: Record<string, any> = {}
 
         if (filter) {
             where = {
                 OR: [
-                    { houseNo: { contains: filter, mode: Prisma.QueryMode.insensitive } },
-                    { street: { contains: filter, mode: Prisma.QueryMode.insensitive } },
-                    { barangay: { contains: filter, mode: Prisma.QueryMode.insensitive } }
+                    { houseNo: { contains: filter, mode: "insensitive" } },
+                    { street: { contains: filter, mode: "insensitive" } },
+                    { barangay: { contains: filter, mode: "insensitive" } }
                 ]
             }
         }

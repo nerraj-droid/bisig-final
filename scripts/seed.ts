@@ -265,6 +265,44 @@ async function seedCertificates() {
     }
 }
 
+async function seedBlotterCases() {
+    const blotterCount = await prisma.blotterCase.count();
+    
+    if (blotterCount === 0) {
+        // Create a test blotter case
+        const blotterCase = await prisma.blotterCase.create({
+            data: {
+                id: "blot-001",
+                caseNumber: "BC-2024-001",
+                incidentDate: new Date("2024-04-05"),
+                incidentTime: "14:30",
+                incidentLocation: "Main Street",
+                incidentType: "Dispute",
+                incidentDescription: "Verbal altercation between neighbors",
+                status: "PENDING",
+                priority: "MEDIUM",
+                updatedAt: new Date(),
+            }
+        });
+        
+        // Create status update WITHOUT the updatedById field
+        await prisma.blotterStatusUpdate.create({
+            data: {
+                id: "update-0-0",
+                blotterCaseId: "blot-001",
+                status: "PENDING",
+                notes: "Case filed and registered. Initial assessment completed.",
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            }
+        });
+        
+        console.log("Sample blotter cases created successfully!");
+    } else {
+        console.log("Blotter cases already exist!");
+    }
+}
+
 async function main() {
     try {
         await seedUsers();
@@ -272,6 +310,7 @@ async function main() {
         await seedResidents();
         await seedOfficials();
         await seedCertificates();
+        await seedBlotterCases();
         console.log("Database seeding completed successfully!");
     } catch (error) {
         console.error("Error seeding database:", error);

@@ -161,6 +161,7 @@ enum CertificateType {
   INDIGENCY
   CLEARANCE
   BUSINESS_PERMIT
+  CFA
 
   @@schema("public")
 }
@@ -313,6 +314,28 @@ model FiscalYear {
   budgets       Budget[]
   transactions  Transaction[]
 
+  @@schema("public")
+}
+
+// Enum for Blotter case status
+enum BlotterCaseStatus {
+  FILED          // Initial filing
+  DOCKETED       // Received in docket
+  SUMMONED       // Respondent summoned
+  MEDIATION      // Under mediation by Punong Barangay
+  CONCILIATION   // Under conciliation by Lupon
+  EXTENDED       // 15-day extension granted
+  RESOLVED       // Case resolved successfully
+  CLOSED         // Case administratively closed
+  DISMISSED      // Case dismissed/withdrawn
+  ESCALATED      // Escalated to court
+  CERTIFIED      // Certification to File Action (CFA) issued
+  PENDING        // Legacy status
+  ONGOING        // Legacy status
+
+  @@schema("public")
+}
+
 // Define the Blotter Case model
 model BlotterCase {
   id                String               @id @default(cuid())
@@ -323,12 +346,26 @@ model BlotterCase {
   incidentLocation  String
   incidentType      String
   incidentDescription String
-  status            BlotterCaseStatus    @default(PENDING)
+  status            BlotterCaseStatus    @default(FILED)
   priority          BlotterPriority      @default(MEDIUM)
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
   createdById       String?              // User who created the record
   entertainedBy     String?              // Official who entertained the report
+  
+  // New fields for Katarungang Pambarangay process
+  filingFee         Float?               // Filing fee amount (P100 default)
+  filingFeePaid     Boolean              @default(false) // Whether fee was paid
+  docketDate        DateTime?            // When case was received in docket
+  summonDate        DateTime?            // When summons was issued
+  mediationStartDate DateTime?           // When mediation started
+  mediationEndDate  DateTime?            // When mediation ended
+  conciliationStartDate DateTime?        // When conciliation started
+  conciliationEndDate DateTime?          // When conciliation ended
+  extensionDate     DateTime?            // When extension was granted
+  certificationDate DateTime?            // When CFA was issued
+  resolutionMethod  String?              // How the case was resolved (if applicable)
+  escalatedToEnt    String?              // Where case was escalated (if applicable)
   
   // Relationships
   parties           BlotterParty[]
@@ -336,10 +373,8 @@ model BlotterCase {
   statusUpdates     BlotterStatusUpdate[]
   attachments       BlotterAttachment[]
 
-
   @@schema("public")
 }
-
 
 model Budget {
   id              String       @id @default(cuid())
@@ -353,17 +388,8 @@ model Budget {
   updatedAt       DateTime     @updatedAt
   transactions    Transaction[]
 
-// Enum for Blotter case status
-enum BlotterCaseStatus {
-  PENDING
-  ONGOING
-  RESOLVED
-  ESCALATED
-
-
   @@schema("public")
 }
-
 
 model BudgetCategory {
   id              String       @id @default(cuid())
@@ -377,6 +403,9 @@ model BudgetCategory {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
+  @@schema("public")
+}
+
 // Enum for Blotter case priority
 enum BlotterPriority {
   LOW
@@ -384,15 +413,16 @@ enum BlotterPriority {
   HIGH
   URGENT
 
-
   @@schema("public")
 }
-
 
 enum TransactionType {
   REVENUE
   EXPENSE
   TRANSFER
+
+  @@schema("public")
+}
 
 // Party involved in a Blotter case (complainant or respondent)
 model BlotterParty {
@@ -415,10 +445,8 @@ model BlotterParty {
   blotterCase     BlotterCase    @relation(fields: [blotterCaseId], references: [id], onDelete: Cascade)
   resident        Resident?      @relation(fields: [residentId], references: [id])
 
-
   @@schema("public")
 }
-
 
 enum TransactionStatus {
   DRAFT
@@ -427,16 +455,17 @@ enum TransactionStatus {
   REJECTED
   VOIDED
 
+  @@schema("public")
+}
+
 // Enum for party types
 enum BlotterPartyType {
   COMPLAINANT
   RESPONDENT
   WITNESS
 
-
   @@schema("public")
 }
-
 
 model Transaction {
   id              String       @id @default(cuid())
@@ -463,6 +492,9 @@ model Transaction {
   status          TransactionStatus
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
+  
+  @@schema("public")
+}
 
 // Hearing/Mediation records for a Blotter case
 model BlotterHearing {
@@ -480,10 +512,8 @@ model BlotterHearing {
   // Relationships
   blotterCase     BlotterCase    @relation(fields: [blotterCaseId], references: [id], onDelete: Cascade)
 
-
   @@schema("public")
 }
-
 
 model Supplier {
   id              String       @id @default(cuid())
@@ -496,6 +526,9 @@ model Supplier {
   transactions    Transaction[]
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
+  
+  @@schema("public")
+}
 
 // Enum for hearing status
 enum HearingStatus {
@@ -504,10 +537,8 @@ enum HearingStatus {
   CANCELLED
   RESCHEDULED
 
-
   @@schema("public")
 }
-
 
 model Attachment {
   id              String       @id @default(cuid())
@@ -519,23 +550,25 @@ model Attachment {
   transaction     Transaction  @relation(fields: [transactionId], references: [id])
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
+  
+  @@schema("public")
+}
 
 // Status updates for a Blotter case
 model BlotterStatusUpdate {
   id              String          @id @default(cuid())
   blotterCaseId   String
   status          BlotterCaseStatus
-  notes           String?
-  updatedById     String          // User who updated the status
+  notes           String
+  updatedById     String          // Add this field
   createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
   
   // Relationships
   blotterCase     BlotterCase    @relation(fields: [blotterCaseId], references: [id], onDelete: Cascade)
 
-
   @@schema("public")
 }
-
 
 model FinancialPermission {
   id                    String       @id @default(cuid())
@@ -549,21 +582,23 @@ model FinancialPermission {
   transactionAmountLimit Float?
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
+  
+  @@schema("public")
+}
 
 // Attachments for a Blotter case
 model BlotterAttachment {
   id              String          @id @default(cuid())
   blotterCaseId   String
-  name            String
-  type            String
-  size            String
-  path            String          // Path to the stored file
-  uploadedById    String          // User who uploaded the file
-  createdAt       DateTime        @default(now())
+  fileName        String
+  fileType        String
+  fileSize        Int
+  fileUrl         String
+  description     String?
+  uploadedAt      DateTime        @default(now())
   
   // Relationships
   blotterCase     BlotterCase    @relation(fields: [blotterCaseId], references: [id], onDelete: Cascade)
-
 
   @@schema("public")
 }

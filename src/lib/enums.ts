@@ -1,9 +1,18 @@
 // Blotter Management Enums
 export enum BlotterCaseStatus {
-  PENDING = 'PENDING',
-  ONGOING = 'ONGOING',
-  RESOLVED = 'RESOLVED',
-  ESCALATED = 'ESCALATED'
+  FILED = 'FILED',              // Initial filing of complaint
+  DOCKETED = 'DOCKETED',        // Received in docket
+  SUMMONED = 'SUMMONED',        // Respondent summoned
+  MEDIATION = 'MEDIATION',      // Under mediation by Punong Barangay
+  CONCILIATION = 'CONCILIATION',// Under conciliation by Lupon
+  EXTENDED = 'EXTENDED',        // 15-day extension granted
+  RESOLVED = 'RESOLVED',        // Case resolved successfully
+  CLOSED = 'CLOSED',            // Case administratively closed
+  DISMISSED = 'DISMISSED',      // Case dismissed/withdrawn
+  ESCALATED = 'ESCALATED',      // Escalated to court
+  CERTIFIED = 'CERTIFIED',      // Certification to File Action issued
+  PENDING = 'PENDING',          // Legacy status
+  ONGOING = 'ONGOING'           // Legacy status
 }
 
 export enum BlotterPriority {

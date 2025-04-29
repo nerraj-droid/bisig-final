@@ -1,6 +1,6 @@
 import React from "react";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { PageTransition } from "@/components/ui/page-transition";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
