@@ -11,7 +11,6 @@ const createAttachmentSchema = z.object({
     filesize: z.number().positive({ message: "Filesize must be a positive number" }),
     filetype: z.string().min(1, { message: "Filetype is required" }),
     description: z.string().optional(),
-    category: z.string().optional(),
 });
 
 export async function GET(
@@ -27,22 +26,19 @@ export async function GET(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Verify project exists
-        const project = await prisma.aIPProject.findUnique({
+        // Verify AIP exists
+        const aip = await prisma.annualInvestmentProgram.findUnique({
             where: { id },
-            include: {
-                aip: true,
-            },
         });
 
-        if (!project) {
-            return NextResponse.json({ error: "Project not found" }, { status: 404 });
+        if (!aip) {
+            return NextResponse.json({ error: "AIP not found" }, { status: 404 });
         }
 
-        // Fetch attachments for the project
-        const attachments = await prisma.aIPProjectAttachment.findMany({
+        // Fetch attachments for the AIP
+        const attachments = await prisma.aIPAttachment.findMany({
             where: {
-                projectId: id,
+                aipId: id,
             },
             include: {
                 uploadedBy: {
@@ -59,9 +55,9 @@ export async function GET(
 
         return NextResponse.json(attachments);
     } catch (error) {
-        console.error("Error fetching attachments:", error);
+        console.error("Error fetching AIP attachments:", error);
         return NextResponse.json(
-            { error: "Failed to retrieve attachments" },
+            { error: "Failed to fetch attachments" },
             { status: 500 }
         );
     }
@@ -80,60 +76,37 @@ export async function POST(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Check if user has appropriate role
-        const userRole = session.user.role;
-        if (!["TREASURER", "CAPTAIN", "SUPER_ADMIN"].includes(userRole)) {
-            return NextResponse.json(
-                { error: "Insufficient permissions" },
-                { status: 403 }
-            );
-        }
-
-        const data = await request.json();
-
-        // Validate the request data
-        const validationResult = createAttachmentSchema.safeParse(data);
-        if (!validationResult.success) {
-            return NextResponse.json(
-                { error: validationResult.error.format() },
-                { status: 400 }
-            );
-        }
-
-        // Verify project exists
-        const project = await prisma.aIPProject.findUnique({
+        // Verify AIP exists
+        const aip = await prisma.annualInvestmentProgram.findUnique({
             where: { id },
         });
 
-        if (!project) {
-            return NextResponse.json({ error: "Project not found" }, { status: 404 });
+        if (!aip) {
+            return NextResponse.json({ error: "AIP not found" }, { status: 404 });
         }
 
+        // Parse and validate the request body
+        const body = await request.json();
+        const validatedData = createAttachmentSchema.parse(body);
+
         // Create the attachment
-        const attachment = await prisma.aIPProjectAttachment.create({
+        const attachment = await prisma.aIPAttachment.create({
             data: {
-                filename: data.filename,
-                filepath: data.filepath,
-                filesize: data.filesize,
-                filetype: data.filetype,
-                description: data.description,
-                category: data.category,
-                project: {
-                    connect: {
-                        id,
-                    },
-                },
-                uploadedBy: {
-                    connect: {
-                        id: session.user.id,
-                    },
-                },
+                ...validatedData,
+                aipId: id,
+                uploadedById: session.user.id,
             },
         });
 
         return NextResponse.json(attachment, { status: 201 });
     } catch (error) {
-        console.error("Error creating attachment:", error);
+        console.error("Error creating AIP attachment:", error);
+        if (error instanceof z.ZodError) {
+            return NextResponse.json(
+                { error: "Validation error", details: error.errors },
+                { status: 400 }
+            );
+        }
         return NextResponse.json(
             { error: "Failed to create attachment" },
             { status: 500 }
@@ -141,6 +114,7 @@ export async function POST(
     }
 }
 
+// DELETE endpoint for removing an attachment
 export async function DELETE(
     request: Request,
     context: { params: { id: string } }
@@ -164,11 +138,11 @@ export async function DELETE(
             );
         }
 
-        // Verify the attachment exists and belongs to this project
-        const attachment = await prisma.aIPProjectAttachment.findFirst({
+        // Verify the attachment exists and belongs to this AIP
+        const attachment = await prisma.aIPAttachment.findFirst({
             where: {
                 id: attachmentId,
-                projectId: id,
+                aipId: id,
             },
         });
 
@@ -180,7 +154,7 @@ export async function DELETE(
         }
 
         // Delete the attachment
-        await prisma.aIPProjectAttachment.delete({
+        await prisma.aIPAttachment.delete({
             where: {
                 id: attachmentId,
             },
@@ -191,7 +165,7 @@ export async function DELETE(
             { status: 200 }
         );
     } catch (error) {
-        console.error("Error deleting project attachment:", error);
+        console.error("Error deleting AIP attachment:", error);
         return NextResponse.json(
             { error: "Failed to delete attachment" },
             { status: 500 }

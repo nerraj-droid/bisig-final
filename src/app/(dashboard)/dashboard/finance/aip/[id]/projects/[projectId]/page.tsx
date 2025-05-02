@@ -20,7 +20,9 @@ import {
     ClipboardList,
     Receipt,
     ExternalLink,
+    Circle,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -123,6 +125,23 @@ interface Expense {
         referenceNumber: string;
     } | null;
 }
+
+// Import the AttachmentsManager component
+const AttachmentsManager = dynamic(() => import("@/components/aip/AttachmentsManager"), {
+    loading: () => (
+        <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-4 p-2">
+                    <Skeleton className="h-10 w-10 rounded" />
+                    <div className="space-y-2 flex-1">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-1/2" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    ),
+});
 
 export default function ProjectDetailPage() {
     const params = useParams();
@@ -473,72 +492,209 @@ export default function ProjectDetailPage() {
                 </Card>
             </div>
 
-            {/* Project details */}
-            <Card className="mb-6">
-                <CardHeader>
-                    <CardTitle>Project Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        <div>
-                            <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
-                            <p>{project.description}</p>
-                        </div>
+            {/* Add tabs for details, milestones, expenses, and attachments */}
+            <Tabs defaultValue="details" className="mb-6">
+                <TabsList className="mb-4">
+                    <TabsTrigger value="details">Details</TabsTrigger>
+                    <TabsTrigger value="milestones">Milestones</TabsTrigger>
+                    <TabsTrigger value="expenses">Expenses</TabsTrigger>
+                    <TabsTrigger value="attachments">Attachments</TabsTrigger>
+                </TabsList>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <h3 className="text-sm font-medium text-muted-foreground mb-1">Timeline</h3>
-                                <div className="flex items-center">
-                                    <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                                    <span>
-                                        {formatDate(project.startDate)} — {formatDate(project.endDate)}
-                                    </span>
+                {/* Details tab */}
+                <TabsContent value="details">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Project Details</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                <div>
+                                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
+                                    <p>{project.description}</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Timeline</h3>
+                                        <div className="flex items-center">
+                                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                                            <span>
+                                                {formatDate(project.startDate)} — {formatDate(project.endDate)}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Sector</h3>
+                                        <div className="flex items-center">
+                                            <Landmark className="h-4 w-4 mr-2 text-muted-foreground" />
+                                            <span>{project.sector}</span>
+                                        </div>
+                                    </div>
+
+                                    {project.location && (
+                                        <div>
+                                            <h3 className="text-sm font-medium text-muted-foreground mb-1">Location</h3>
+                                            <div className="flex items-center">
+                                                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                                                <span>{project.location}</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {project.expectedBeneficiaries && (
+                                        <div>
+                                            <h3 className="text-sm font-medium text-muted-foreground mb-1">Expected Beneficiaries</h3>
+                                            <div className="flex items-center">
+                                                <Users className="h-4 w-4 mr-2 text-muted-foreground" />
+                                                <span>{project.expectedBeneficiaries}</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {project.fundSource && (
+                                        <div>
+                                            <h3 className="text-sm font-medium text-muted-foreground mb-1">Fund Source</h3>
+                                            <div className="flex items-center">
+                                                <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+                                                <span>{project.fundSource}</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
+                {/* Milestones tab */}
+                <TabsContent value="milestones">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
                             <div>
-                                <h3 className="text-sm font-medium text-muted-foreground mb-1">Sector</h3>
-                                <div className="flex items-center">
-                                    <Landmark className="h-4 w-4 mr-2 text-muted-foreground" />
-                                    <span>{project.sector}</span>
-                                </div>
+                                <CardTitle>Milestones</CardTitle>
+                                <CardDescription>Track project implementation progress</CardDescription>
                             </div>
-
-                            {project.location && (
-                                <div>
-                                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Location</h3>
-                                    <div className="flex items-center">
-                                        <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                                        <span>{project.location}</span>
-                                    </div>
+                            <Button
+                                variant="outline"
+                                onClick={() => router.push(`/dashboard/finance/aip/${aipId}/projects/${projectId}/milestones`)}
+                            >
+                                Manage Milestones
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            {project.milestones.length === 0 ? (
+                                <div className="text-center py-6 text-muted-foreground">
+                                    <p>No milestones defined yet</p>
+                                    <p className="text-sm">Add milestones to track project implementation</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {project.milestones.map((milestone) => (
+                                        <div key={milestone.id} className="flex items-start p-3 border rounded-md">
+                                            <div className="mr-3">
+                                                {milestone.status === "COMPLETED" ? (
+                                                    <CheckCircle className="h-5 w-5 text-green-500" />
+                                                ) : milestone.status === "DELAYED" ? (
+                                                    <AlertCircle className="h-5 w-5 text-amber-500" />
+                                                ) : (
+                                                    <Circle className="h-5 w-5 text-gray-300" />
+                                                )}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <h4 className="font-medium">{milestone.title}</h4>
+                                                    <Badge variant={
+                                                        milestone.status === "COMPLETED" ? "default" :
+                                                            milestone.status === "DELAYED" ? "destructive" : "outline"
+                                                    }>
+                                                        {milestone.status.charAt(0) + milestone.status.slice(1).toLowerCase()}
+                                                    </Badge>
+                                                </div>
+                                                {milestone.description && (
+                                                    <p className="text-sm text-muted-foreground mb-2">{milestone.description}</p>
+                                                )}
+                                                <div className="text-xs text-muted-foreground">
+                                                    {milestone.status === "COMPLETED"
+                                                        ? `Completed on ${formatDate(milestone.completedAt!)}`
+                                                        : `Due by ${formatDate(milestone.dueDate)}`}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
-                            {project.expectedBeneficiaries && (
-                                <div>
-                                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Expected Beneficiaries</h3>
-                                    <div className="flex items-center">
-                                        <Users className="h-4 w-4 mr-2 text-muted-foreground" />
-                                        <span>{project.expectedBeneficiaries}</span>
-                                    </div>
+                {/* Expenses tab */}
+                <TabsContent value="expenses">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Expenses</CardTitle>
+                                <CardDescription>Track project expenditures</CardDescription>
+                            </div>
+                            <Button
+                                variant="outline"
+                                onClick={() => router.push(`/dashboard/finance/aip/${aipId}/projects/${projectId}/expenses`)}
+                            >
+                                Manage Expenses
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            {project.expenses.length === 0 ? (
+                                <div className="text-center py-6 text-muted-foreground">
+                                    <p>No expenses recorded yet</p>
+                                    <p className="text-sm">Add expenses to track project budget utilization</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {project.expenses.map((expense) => (
+                                        <div key={expense.id} className="flex items-start p-3 border rounded-md">
+                                            <div className="mr-3">
+                                                <Receipt className="h-5 w-5 text-amber-500" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <h4 className="font-medium">{formatCurrency(expense.amount)}</h4>
+                                                    <span className="text-sm text-muted-foreground">{formatDate(expense.date)}</span>
+                                                </div>
+                                                <p className="text-sm mb-1">{expense.description}</p>
+                                                {expense.reference && (
+                                                    <div className="text-xs text-muted-foreground">
+                                                        Reference: {expense.reference}
+                                                    </div>
+                                                )}
+                                                {expense.transaction && (
+                                                    <div className="text-xs text-blue-600">
+                                                        <Link href={`/dashboard/finance/transactions/${expense.transaction.id}`}>
+                                                            Transaction: {expense.transaction.referenceNumber}
+                                                        </Link>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
-                            {project.fundSource && (
-                                <div>
-                                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Fund Source</h3>
-                                    <div className="flex items-center">
-                                        <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-                                        <span>{project.fundSource}</span>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+                {/* Attachments tab */}
+                <TabsContent value="attachments">
+                    <AttachmentsManager
+                        entityId={projectId}
+                        entityType="project"
+                        onAttachmentAdded={() => fetchProjectData()}
+                    />
+                </TabsContent>
+            </Tabs>
 
-            {/* Recent activity - can be expanded in future versions */}
+            {/* Recent activity card */}
             <Card>
                 <CardHeader>
                     <CardTitle>Recent Activity</CardTitle>

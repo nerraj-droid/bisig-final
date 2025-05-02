@@ -191,7 +191,8 @@ export default function ClientDashboardLayout({
     {
       href: "/dashboard/reports",
       label: "Reports",
-      icon: <BarChart3 size={20} />
+      icon: <BarChart3 size={20} />,
+
     },
     {
       href: "/dashboard/finance",
@@ -208,6 +209,11 @@ export default function ClientDashboardLayout({
           label: "Annual Investment Program",
           href: "/dashboard/finance/aip",
           icon: <Calendar size={18} />
+        },
+        {
+          label: "AIP Reports",
+          href: "/dashboard/finance/reports/aip",
+          icon: <BarChart3 size={18} />
         },
         {
           label: "Budget Management",

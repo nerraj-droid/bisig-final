@@ -59,6 +59,7 @@ import {
     X,
 } from "lucide-react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 
 // Define type for AIP and related entities
 interface AIP {
@@ -165,6 +166,23 @@ const projectStatusStyles: Record<string, { variant: "default" | "secondary" | "
     CANCELLED: { variant: "destructive", label: "Cancelled" },
     DELAYED: { variant: "destructive", label: "Delayed" },
 };
+
+// Import the AttachmentsManager component
+const AttachmentsManager = dynamic(() => import("@/components/aip/AttachmentsManager"), {
+    loading: () => (
+        <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-4 p-2">
+                    <Skeleton className="h-10 w-10 rounded" />
+                    <div className="space-y-2 flex-1">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-1/2" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    ),
+});
 
 export default function AIPDetailPage() {
     const params = useParams();
@@ -742,69 +760,11 @@ export default function AIPDetailPage() {
 
                 {/* Attachments tab */}
                 <TabsContent value="attachments">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <div>
-                                <CardTitle>Attachments</CardTitle>
-                                <CardDescription>
-                                    Document attachments for this Annual Investment Program
-                                </CardDescription>
-                            </div>
-                            {hasEditPermission && (
-                                <Button onClick={() => router.push(`/dashboard/finance/aip/${aip.id}/attachments/upload`)}>
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Upload Attachment
-                                </Button>
-                            )}
-                        </CardHeader>
-                        <CardContent>
-                            {aip.attachments.length === 0 ? (
-                                <div className="text-center py-10">
-                                    <File className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
-                                    <h3 className="text-lg font-medium">No Attachments Found</h3>
-                                    <p className="text-muted-foreground">
-                                        Upload documents related to this Annual Investment Program.
-                                    </p>
-                                    {hasEditPermission && (
-                                        <Button
-                                            className="mt-4"
-                                            onClick={() => router.push(`/dashboard/finance/aip/${aip.id}/attachments/upload`)}
-                                        >
-                                            Upload Document
-                                        </Button>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="divide-y">
-                                    {aip.attachments.map((attachment) => (
-                                        <div key={attachment.id} className="py-3 flex items-center">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center">
-                                                    <File className="h-5 w-5 mr-2 text-muted-foreground" />
-                                                    <span className="font-medium">{attachment.filename}</span>
-                                                </div>
-                                                {attachment.description && (
-                                                    <p className="text-sm text-muted-foreground ml-7">
-                                                        {attachment.description}
-                                                    </p>
-                                                )}
-                                                <div className="flex text-sm text-muted-foreground ml-7 mt-1">
-                                                    <span>
-                                                        Uploaded by {attachment.uploadedBy.name} on {formatDate(attachment.uploadedAt)}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <Button variant="ghost" size="sm" asChild>
-                                                <a href={attachment.filepath} target="_blank" rel="noopener noreferrer">
-                                                    Download
-                                                </a>
-                                            </Button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                    <AttachmentsManager
+                        entityId={aipId}
+                        entityType="aip"
+                        onAttachmentAdded={fetchAIPData}
+                    />
                 </TabsContent>
             </Tabs>
         </div>
