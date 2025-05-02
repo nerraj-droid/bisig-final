@@ -207,7 +207,7 @@ export default function NewExpensePage() {
                 amount: parseFloat(data.amount),
                 fiscalYearId: parseInt(data.fiscalYearId),
                 budgetId: parseInt(data.budgetId),
-                supplierId: data.supplierId ? parseInt(data.supplierId) : null,
+                supplierId: data.supplierId && data.supplierId !== "none" ? parseInt(data.supplierId) : null,
             };
 
             // Send data to API
@@ -531,7 +531,7 @@ export default function NewExpensePage() {
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="">No Supplier</SelectItem>
+                                                    <SelectItem value="none">No Supplier</SelectItem>
                                                     {suppliers.map((supplier) => (
                                                         <SelectItem
                                                             key={supplier.id}

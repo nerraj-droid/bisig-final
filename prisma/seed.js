@@ -33,45 +33,57 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log(`Start seeding ...`);
-  
+
   // Clear existing data
   await clearDatabase();
-  
+
   // Create users
   const users = await createUsers();
-  
+
   // Create barangay info
   const barangayInfo = await createBarangayInfo();
-  
+
   // Create council members
   const councilMembers = await createCouncilMembers();
-  
+
   // Create officials
   const officials = await createOfficials();
-  
+
   // Create certificate templates
   const certificateTemplates = await createCertificateTemplates();
-  
+
   // Create households
   const households = await createHouseholds();
-  
+
   // Create residents
   const residents = await createResidents(households);
-  
+
   // Create certificates
   await createCertificates(residents, officials);
-  
+
   // Create relief records
   await createReliefRecords(residents);
-  
+
   // Create blotter cases
   await createBlotterCases(residents, users);
-  
+
+  // Create fiscal years
+  const fiscalYears = await createFiscalYears();
+
+  // Create AIPs
+  await createAIPs(users, fiscalYears);
+
   console.log(`Seeding finished.`);
 }
 
 async function clearDatabase() {
   // Delete in the correct order to respect foreign key constraints
+  await prisma.$executeRaw`TRUNCATE TABLE "public"."AIPExpense" CASCADE;`;
+  await prisma.$executeRaw`TRUNCATE TABLE "public"."AIPMilestone" CASCADE;`;
+  await prisma.$executeRaw`TRUNCATE TABLE "public"."AIPAttachment" CASCADE;`;
+  await prisma.$executeRaw`TRUNCATE TABLE "public"."AIPProject" CASCADE;`;
+  await prisma.$executeRaw`TRUNCATE TABLE "public"."AnnualInvestmentProgram" CASCADE;`;
+  await prisma.$executeRaw`TRUNCATE TABLE "public"."FiscalYear" CASCADE;`;
   await prisma.$executeRaw`TRUNCATE TABLE "public"."BlotterAttachment" CASCADE;`;
   await prisma.$executeRaw`TRUNCATE TABLE "public"."BlotterStatusUpdate" CASCADE;`;
   await prisma.$executeRaw`TRUNCATE TABLE "public"."BlotterHearing" CASCADE;`;
@@ -89,13 +101,13 @@ async function clearDatabase() {
   await prisma.$executeRaw`TRUNCATE TABLE "public"."Session" CASCADE;`;
   await prisma.$executeRaw`TRUNCATE TABLE "public"."Account" CASCADE;`;
   await prisma.$executeRaw`TRUNCATE TABLE "public"."User" CASCADE;`;
-  
+
   console.log("Database cleared");
 }
 
 async function createUsers() {
   const passwordHash = await bcrypt.hash("Password123", 10);
-  
+
   const users = await Promise.all([
     prisma.user.create({
       data: {
@@ -142,7 +154,7 @@ async function createUsers() {
       },
     }),
   ]);
-  
+
   console.log(`Created ${users.length} users`);
   return users;
 }
@@ -163,7 +175,7 @@ async function createBarangayInfo() {
       updatedAt: new Date(),
     },
   });
-  
+
   console.log(`Created barangay info: ${barangayInfo.name}`);
   return barangayInfo;
 }
@@ -252,7 +264,7 @@ async function createCouncilMembers() {
       },
     }),
   ]);
-  
+
   console.log(`Created ${councilMembers.length} council members`);
   return councilMembers;
 }
@@ -266,7 +278,7 @@ async function createOfficials() {
       treasurer: "Pedro Reyes",
     },
   });
-  
+
   console.log(`Created officials record`);
   return officials;
 }
@@ -326,7 +338,7 @@ async function createCertificateTemplates() {
       },
     }),
   ]);
-  
+
   console.log(`Created ${templates.length} certificate templates`);
   return templates;
 }
@@ -394,7 +406,7 @@ async function createHouseholds() {
       notes: "Shared housing for non-related individuals",
     },
   ];
-  
+
   const households = await Promise.all(
     householdData.map((data) =>
       prisma.household.create({
@@ -416,7 +428,7 @@ async function createHouseholds() {
       })
     )
   );
-  
+
   console.log(`Created ${households.length} households`);
   return households;
 }
@@ -430,9 +442,9 @@ async function createResidents(households) {
   const educationalAttainments = ["Elementary", "High School", "College", "Vocational", "Post Graduate"];
   const religions = ["Roman Catholic", "Protestant", "Islam", "Buddhism", "Iglesia ni Cristo"];
   const bloodTypes = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
-  
+
   const residentsData = [];
-  
+
   // Create 20 residents
   for (let i = 0; i < 20; i++) {
     const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
@@ -443,10 +455,10 @@ async function createResidents(households) {
     const birthMonth = Math.floor(Math.random() * 12) + 1;
     const birthDay = Math.floor(Math.random() * 28) + 1;
     const birthDate = new Date(birthYear, birthMonth - 1, birthDay);
-    
+
     const household = households[Math.floor(Math.random() * households.length)];
     const civilStatusOptions = [CivilStatus.SINGLE, CivilStatus.MARRIED, CivilStatus.WIDOWED, CivilStatus.DIVORCED, CivilStatus.SEPARATED];
-    
+
     const resident = {
       id: `res-${(i + 1).toString().padStart(3, "0")}`,
       firstName,
@@ -469,14 +481,14 @@ async function createResidents(households) {
       sectors: getRandomSectors(),
       updatedAt: new Date(),
     };
-    
+
     residentsData.push(resident);
   }
-  
+
   const residents = await Promise.all(
     residentsData.map((data) => prisma.resident.create({ data }))
   );
-  
+
   console.log(`Created ${residents.length} residents`);
   return residents;
 }
@@ -485,14 +497,14 @@ function getRandomSectors() {
   const sectors = ["Senior Citizen", "Youth", "Women", "PWD", "LGBTQ+", "Indigenous People", "Farmer", "Fisher"];
   const selectedSectors = [];
   const numSectors = Math.floor(Math.random() * 3) + 1; // 1 to 3 sectors
-  
+
   for (let i = 0; i < numSectors; i++) {
     const sector = sectors[Math.floor(Math.random() * sectors.length)];
     if (!selectedSectors.includes(sector)) {
       selectedSectors.push(sector);
     }
   }
-  
+
   return selectedSectors;
 }
 
@@ -509,7 +521,7 @@ async function createCertificates(residents, officials) {
     "Legal Proceedings",
     "Business Permit Application",
   ];
-  
+
   // Create certificates for random residents
   for (let i = 0; i < 15; i++) {
     const resident = residents[Math.floor(Math.random() * residents.length)];
@@ -518,7 +530,7 @@ async function createCertificates(residents, officials) {
     const purpose = certificatePurposes[Math.floor(Math.random() * certificatePurposes.length)];
     const issuedDate = new Date();
     issuedDate.setDate(issuedDate.getDate() - Math.floor(Math.random() * 180)); // Random date within last 6 months
-    
+
     // Create certificate with Prisma Client instead of raw SQL to avoid type casting issues
     await prisma.certificate.create({
       data: {
@@ -535,26 +547,26 @@ async function createCertificates(residents, officials) {
       }
     });
   }
-  
+
   console.log(`Created 15 certificates`);
 }
 
 async function createReliefRecords(residents) {
   const reliefTypes = ["Cash Aid", "Food Pack", "Medical Supplies", "Housing Materials", "School Supplies"];
   const statuses = ["PENDING", "APPROVED", "DISTRIBUTED", "REJECTED"];
-  
+
   const reliefRecordsData = [];
-  
+
   // Create relief records for random residents
   for (let i = 0; i < 30; i++) {
     const resident = residents[Math.floor(Math.random() * residents.length)];
     const type = reliefTypes[Math.floor(Math.random() * reliefTypes.length)];
     const status = statuses[Math.floor(Math.random() * statuses.length)];
     const amount = Math.floor(Math.random() * 5000) + 500; // Random amount between 500 and 5500
-    
+
     const createdDate = new Date();
     createdDate.setDate(createdDate.getDate() - Math.floor(Math.random() * 90)); // Random date within last 3 months
-    
+
     const reliefRecord = {
       type,
       amount,
@@ -564,14 +576,14 @@ async function createReliefRecords(residents) {
       updatedAt: new Date(),
       residentId: resident.id,
     };
-    
+
     reliefRecordsData.push(reliefRecord);
   }
-  
+
   const reliefRecords = await Promise.all(
     reliefRecordsData.map((data) => prisma.reliefRecord.create({ data }))
   );
-  
+
   console.log(`Created ${reliefRecords.length} relief records`);
   return reliefRecords;
 }
@@ -589,7 +601,7 @@ async function createBlotterCases(residents, users) {
     "Family Problem",
     "Animal Complaint",
   ];
-  
+
   const incidentLocations = [
     "Maple Street corner Oak Avenue",
     "Near the barangay hall",
@@ -602,30 +614,30 @@ async function createBlotterCases(residents, users) {
     "Corner store at Acacia Street",
     "Residential compound at Walnut Drive",
   ];
-  
+
   try {
     // Create 15 blotter cases
     for (let i = 0; i < 15; i++) {
       const caseId = `BLT-${new Date().getFullYear()}-${(i + 1).toString().padStart(4, "0")}`;
       const incidentType = incidentTypes[Math.floor(Math.random() * incidentTypes.length)];
-      
+
       const statusOptions = [BlotterCaseStatus.PENDING, BlotterCaseStatus.ONGOING, BlotterCaseStatus.RESOLVED, BlotterCaseStatus.ESCALATED];
       const priorityOptions = [BlotterPriority.LOW, BlotterPriority.MEDIUM, BlotterPriority.HIGH, BlotterPriority.URGENT];
-      
+
       const status = statusOptions[Math.floor(Math.random() * statusOptions.length)];
       const priority = priorityOptions[Math.floor(Math.random() * priorityOptions.length)];
-      
+
       // Create dates
       const reportDate = new Date();
       reportDate.setDate(reportDate.getDate() - Math.floor(Math.random() * 60)); // Random date within last 2 months
-      
+
       const incidentDate = new Date(reportDate);
       incidentDate.setDate(incidentDate.getDate() - Math.floor(Math.random() * 7)); // Incident happened 0-7 days before report
-      
+
       const incidentTime = `${Math.floor(Math.random() * 24).toString().padStart(2, "0")}:${Math.floor(Math.random() * 60).toString().padStart(2, "0")}`;
-      
+
       const user = users[Math.floor(Math.random() * users.length)];
-      
+
       // Create blotter case with prisma client
       const blotterCase = await prisma.blotterCase.create({
         data: {
@@ -636,11 +648,10 @@ async function createBlotterCases(residents, users) {
           incidentTime,
           incidentLocation: incidentLocations[Math.floor(Math.random() * incidentLocations.length)],
           incidentType,
-          incidentDescription: `The incident involved ${incidentType.toLowerCase()} and occurred on ${incidentDate.toLocaleDateString()} at approximately ${incidentTime}. ${
-            Math.random() > 0.5
-              ? "The complainant reported that the incident caused significant distress and is seeking resolution."
-              : "Multiple witnesses confirmed the incident took place as described by the complainant."
-          }`,
+          incidentDescription: `The incident involved ${incidentType.toLowerCase()} and occurred on ${incidentDate.toLocaleDateString()} at approximately ${incidentTime}. ${Math.random() > 0.5
+            ? "The complainant reported that the incident caused significant distress and is seeking resolution."
+            : "Multiple witnesses confirmed the incident took place as described by the complainant."
+            }`,
           status,
           priority,
           createdAt: reportDate,
@@ -648,7 +659,7 @@ async function createBlotterCases(residents, users) {
           createdById: user.id,
         }
       });
-      
+
       // Create complainant party
       const complainant = residents[Math.floor(Math.random() * residents.length)];
       await prisma.blotterParty.create({
@@ -669,7 +680,7 @@ async function createBlotterCases(residents, users) {
           updatedAt: new Date()
         }
       });
-      
+
       // Create respondent party
       const respondent = residents[Math.floor(Math.random() * residents.length)];
       if (respondent.id !== complainant.id) {
@@ -692,7 +703,7 @@ async function createBlotterCases(residents, users) {
           }
         });
       }
-      
+
       // Add a witness in some cases
       if (Math.random() > 0.7) {
         const witness = residents[Math.floor(Math.random() * residents.length)];
@@ -717,26 +728,25 @@ async function createBlotterCases(residents, users) {
           });
         }
       }
-      
+
       // Create hearings for ongoing cases
       if (status === BlotterCaseStatus.ONGOING || status === BlotterCaseStatus.RESOLVED) {
         const numHearings = Math.floor(Math.random() * 3) + 1; // 1-3 hearings
-        
+
         for (let h = 0; h < numHearings; h++) {
           const hearingDate = new Date(reportDate);
           hearingDate.setDate(hearingDate.getDate() + (h + 1) * 7); // Weekly hearings after report
-          
-          const hearingTime = `${Math.floor(Math.random() * 8) + 9}:${Math.floor(Math.random() * 60).toString().padStart(2, "0")} ${
-            Math.random() > 0.5 ? "AM" : "PM"
-          }`;
-          
+
+          const hearingTime = `${Math.floor(Math.random() * 8) + 9}:${Math.floor(Math.random() * 60).toString().padStart(2, "0")} ${Math.random() > 0.5 ? "AM" : "PM"
+            }`;
+
           const hearingStatusOptions = [HearingStatus.COMPLETED, HearingStatus.COMPLETED, HearingStatus.COMPLETED, HearingStatus.CANCELLED, HearingStatus.RESCHEDULED];
-          
+
           const hearingStatus =
             hearingDate < new Date()
               ? hearingStatusOptions[Math.floor(Math.random() * hearingStatusOptions.length)]
               : HearingStatus.SCHEDULED;
-          
+
           await prisma.blotterHearing.create({
             data: {
               id: `hearing-${i}-${h}`,
@@ -756,14 +766,14 @@ async function createBlotterCases(residents, users) {
           });
         }
       }
-      
+
       // Create status updates
       const numUpdates = Math.floor(Math.random() * 4) + 1; // 1-4 updates
-      
+
       for (let u = 0; u < numUpdates; u++) {
         const updateDate = new Date(reportDate);
         updateDate.setDate(updateDate.getDate() + Math.floor(Math.random() * 10)); // Random update within 10 days
-        
+
         let updateStatus;
         if (u === 0) {
           updateStatus = BlotterCaseStatus.PENDING; // Initial status
@@ -772,7 +782,7 @@ async function createBlotterCases(residents, users) {
         } else {
           updateStatus = [BlotterCaseStatus.PENDING, BlotterCaseStatus.ONGOING][Math.floor(Math.random() * 2)]; // Intermediate status
         }
-        
+
         await prisma.blotterStatusUpdate.create({
           data: {
             id: `update-${i}-${u}`,
@@ -782,23 +792,219 @@ async function createBlotterCases(residents, users) {
               updateStatus === BlotterCaseStatus.PENDING
                 ? `Case filed and registered. Initial assessment completed.`
                 : updateStatus === BlotterCaseStatus.ONGOING
-                ? `Case proceeding with mediation. Parties notified of hearing schedule.`
-                : updateStatus === BlotterCaseStatus.RESOLVED
-                ? `Case successfully resolved through mediation. Parties have reached an agreement.`
-                : `Case escalated to higher authorities due to complexity or failure to reach agreement.`,
+                  ? `Case proceeding with mediation. Parties notified of hearing schedule.`
+                  : updateStatus === BlotterCaseStatus.RESOLVED
+                    ? `Case successfully resolved through mediation. Parties have reached an agreement.`
+                    : `Case escalated to higher authorities due to complexity or failure to reach agreement.`,
             updatedById: user.id,
             createdAt: updateDate
           }
         });
       }
     }
-    
+
     console.log(`Created 15 blotter cases with parties, hearings and status updates`);
     return true;
   } catch (error) {
     console.error("Error creating blotter data:", error);
     return { error };
   }
+}
+
+async function createFiscalYears() {
+  const currentYear = new Date().getFullYear();
+
+  const fiscalYears = await Promise.all([
+    prisma.fiscalYear.create({
+      data: {
+        id: "fy-001",
+        year: `${currentYear}`,
+        startDate: new Date(currentYear, 0, 1), // January 1st
+        endDate: new Date(currentYear, 11, 31), // December 31st
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    }),
+    prisma.fiscalYear.create({
+      data: {
+        id: "fy-002",
+        year: `${currentYear + 1}`,
+        startDate: new Date(currentYear + 1, 0, 1),
+        endDate: new Date(currentYear + 1, 11, 31),
+        isActive: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    })
+  ]);
+
+  console.log(`Created ${fiscalYears.length} fiscal years`);
+  return fiscalYears;
+}
+
+async function createAIPs(users, fiscalYears) {
+  const aipStatuses = ["DRAFT", "SUBMITTED", "APPROVED", "IMPLEMENTED", "COMPLETED"];
+  const projectStatuses = ["PLANNED", "ONGOING", "COMPLETED", "CANCELLED", "DELAYED"];
+  const projectSectors = [
+    "Infrastructure", "Health", "Education", "Agriculture", "Livelihood",
+    "Social Welfare", "Disaster Risk Reduction", "Environment", "Peace and Order", "Tourism"
+  ];
+  const fundingSources = [
+    "Barangay Development Fund", "SK Fund", "DILG Funding", "Municipal Allocation",
+    "Provincial Allocation", "Congressional Allocation", "NGO Grant", "Private Sector"
+  ];
+
+  const aips = [];
+  const activeUser = users.find(user => ["SUPER_ADMIN", "CAPTAIN", "TREASURER"].includes(user.role));
+  const activeFiscalYear = fiscalYears.find(fy => fy.isActive === true);
+
+  // Create 2 AIPs - one in DRAFT and one in APPROVED status
+  const aipData = [
+    {
+      id: "aip-001",
+      title: `Annual Investment Program ${activeFiscalYear.year}`,
+      description: "Primary investment program for infrastructure and social development",
+      status: "APPROVED",
+      totalAmount: 2500000, // 2.5M budget
+      fiscalYearId: activeFiscalYear.id,
+      createdById: activeUser.id,
+      approvedById: users.find(u => u.role === "CAPTAIN").id,
+      approvedDate: new Date(new Date().setDate(new Date().getDate() - 30)), // Approved 30 days ago
+      createdAt: new Date(new Date().setDate(new Date().getDate() - 60)), // Created 60 days ago
+      updatedAt: new Date(),
+    },
+    {
+      id: "aip-002",
+      title: `Supplemental Investment Program ${activeFiscalYear.year}`,
+      description: "Additional investment program focusing on disaster preparedness and health",
+      status: "DRAFT",
+      totalAmount: 1000000, // 1M budget
+      fiscalYearId: activeFiscalYear.id,
+      createdById: activeUser.id,
+      createdAt: new Date(new Date().setDate(new Date().getDate() - 15)), // Created 15 days ago
+      updatedAt: new Date(),
+    }
+  ];
+
+  // Create AIPs
+  for (const data of aipData) {
+    const aip = await prisma.annualInvestmentProgram.create({ data });
+    aips.push(aip);
+
+    // Add 3 projects for the approved AIP
+    if (aip.status === "APPROVED") {
+      // Create attachments for approved AIP
+      const attachmentTypes = ["application/pdf", "image/jpeg", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+      const attachmentNames = ["AIP_Resolution.pdf", "Budget_Summary.docx", "Approval_Letter.pdf", "Project_Photos.jpg"];
+
+      for (let a = 0; a < 3; a++) {
+        const fileType = attachmentTypes[Math.floor(Math.random() * attachmentTypes.length)];
+        const fileName = attachmentNames[a];
+
+        await prisma.aIPAttachment.create({
+          data: {
+            id: `att-00${a + 1}`,
+            filename: fileName,
+            filepath: `/uploads/aip/${aip.id}/${fileName}`,
+            filetype: fileType,
+            filesize: Math.floor(Math.random() * 1000000) + 50000, // 50KB to 1MB
+            description: `Supporting document for ${aip.title}`,
+            uploadedAt: new Date(new Date().setDate(new Date().getDate() - (30 - a * 2))),
+            aipId: aip.id,
+            uploadedById: activeUser.id,
+          }
+        });
+      }
+
+      // Create projects
+      for (let i = 0; i < 3; i++) {
+        const projectStartDate = new Date(new Date().setDate(new Date().getDate() + 15 * i));
+        const projectEndDate = new Date(projectStartDate);
+        projectEndDate.setMonth(projectEndDate.getMonth() + 3); // 3 month duration
+
+        const projectStatus = i === 0 ? "ONGOING" : i === 1 ? "PLANNED" : "COMPLETED";
+        const progress = projectStatus === "ONGOING" ? 35 : projectStatus === "COMPLETED" ? 100 : 0;
+        const sector = projectSectors[Math.floor(Math.random() * projectSectors.length)];
+
+        const project = await prisma.aIPProject.create({
+          data: {
+            id: `proj-00${i + 1}`,
+            projectCode: `${sector.substring(0, 3).toUpperCase()}-${activeFiscalYear.year}-00${i + 1}`,
+            title: `${sector} Development Project ${i + 1}`,
+            description: `This project aims to improve ${sector.toLowerCase()} services and facilities in the barangay.`,
+            sector: sector,
+            location: `${["North", "South", "East", "West"][Math.floor(Math.random() * 4)]} Area of Barangay`,
+            expectedBeneficiaries: `${Math.floor(Math.random() * 500) + 100} households`,
+            startDate: projectStartDate,
+            endDate: projectEndDate,
+            totalCost: Math.floor(Math.random() * 500000) + 100000, // 100k to 600k budget
+            status: projectStatus,
+            progress: progress,
+            fundSource: fundingSources[Math.floor(Math.random() * fundingSources.length)],
+            aipId: aip.id,
+            createdAt: new Date(new Date().setDate(new Date().getDate() - 29)), // Created 29 days ago
+            updatedAt: new Date(),
+          }
+        });
+
+        // Create 2-3 milestones for each project
+        const milestonesToCreate = Math.floor(Math.random() * 2) + 2;
+        for (let j = 0; j < milestonesToCreate; j++) {
+          const milestoneDate = new Date(projectStartDate);
+          // Calculate days between start and end date
+          const daysBetween = Math.floor((projectEndDate - projectStartDate) / (1000 * 60 * 60 * 24));
+          // Evenly space milestones
+          const daysToAdd = Math.floor(daysBetween * (j + 1) / (milestonesToCreate + 1));
+          milestoneDate.setDate(milestoneDate.getDate() + daysToAdd);
+
+          const milestoneStatus = j === 0 && projectStatus !== "PLANNED" ? "COMPLETED" :
+            j === 1 && projectStatus === "ONGOING" ? "PENDING" : "PENDING";
+
+          await prisma.aIPMilestone.create({
+            data: {
+              id: `mile-${i}-${j}`,
+              title: `Phase ${j + 1}: ${["Planning", "Procurement", "Implementation", "Monitoring", "Evaluation"][j % 5]}`,
+              description: `${["Initial setup", "Material acquisition", "Construction phase", "Quality check", "Final review"][j % 5]} for the project`,
+              dueDate: milestoneDate,
+              completedAt: milestoneStatus === "COMPLETED" ? new Date() : null,
+              status: milestoneStatus,
+              projectId: project.id,
+              createdAt: new Date(new Date().setDate(new Date().getDate() - 28)), // day after project
+              updatedAt: new Date(),
+            }
+          });
+        }
+
+        // Create 1-2 expenses for completed/ongoing projects
+        if (projectStatus !== "PLANNED") {
+          const expensesToCreate = Math.floor(Math.random() * 2) + 1;
+          for (let k = 0; k < expensesToCreate; k++) {
+            const expenseDate = new Date(projectStartDate);
+            expenseDate.setDate(expenseDate.getDate() + Math.floor(Math.random() * 30));
+
+            const expenseAmount = Math.floor(Math.random() * 50000) + 10000; // 10k to 60k expense
+
+            await prisma.aIPExpense.create({
+              data: {
+                id: `exp-${i}-${k}`,
+                amount: expenseAmount,
+                description: `Payment for ${["materials", "labor", "permits", "consulting", "equipment"][Math.floor(Math.random() * 5)]}`,
+                date: expenseDate,
+                reference: `INV-${Math.floor(Math.random() * 10000)}`,
+                projectId: project.id,
+                createdAt: new Date(expenseDate),
+                updatedAt: new Date(),
+              }
+            });
+          }
+        }
+      }
+    }
+  }
+
+  console.log(`Created ${aips.length} AIP records with projects, milestones, and expenses`);
+  return aips;
 }
 
 main()

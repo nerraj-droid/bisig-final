@@ -254,6 +254,14 @@ export default function FinanceDashboardPage() {
                                     <Button
                                         variant="outline"
                                         className="w-full justify-start"
+                                        onClick={() => router.push("/dashboard/finance/aip")}
+                                    >
+                                        <Calendar className="h-4 w-4 mr-2" />
+                                        Annual Investment Program
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full justify-start"
                                         onClick={() => router.push("/dashboard/finance/suppliers")}
                                     >
                                         <DollarSign className="h-4 w-4 mr-2" />

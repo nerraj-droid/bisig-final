@@ -7,268 +7,149 @@ The Annual Investment Program (AIP) is a critical fiscal management tool for bar
 In the Philippine context, the AIP is required under the Local Government Code of 1991 (RA 7160). It serves as:
 - A planning document that prioritizes investment programs/projects
 - A compliance requirement for barangay funding and resource allocation
-- A transparency tool for citizens to understand barangay development priorities
+- A transparency tool for citizens to understand how public funds are being used
 
-## Existing System Analysis
-The current system includes:
-- A financial management module with budget tracking
-- Fiscal year management
-- Revenue and expense recording
-- Basic reporting capabilities
+## Requirements
 
-## Implementation Plan
+### Functional Requirements
+1. AIP Creation and Management
+   - Create annual investment programs tied to fiscal years ✅
+   - Set budget allocation and priority sectors ✅
+   - Track approval status ✅
+   - Generate AIP reports for submission to municipal/city governments ✅
 
-### 1. Database Schema Enhancements
+2. Project Management
+   - Add and manage multiple projects within an AIP ✅
+   - Categorize projects by sector (infrastructure, health, education, etc.) ✅
+   - Track project status and implementation progress ✅
+   - Assign project managers/responsible persons ✅
 
-Add the following models to the Prisma schema:
+3. Financial Integration
+   - Link projects to budget categories ✅
+   - Track expense allocation and utilization ✅
+   - Integrate with existing financial management modules ✅
+   - Record and categorize project expenses ✅
+   - Link expenses to financial transactions ✅
 
-```prisma
-model AnnualInvestmentProgram {
-  id                String      @id @default(cuid())
-  fiscalYearId      String
-  fiscalYear        FiscalYear  @relation(fields: [fiscalYearId], references: [id])
-  title             String
-  description       String?
-  status            AIPStatus   @default(DRAFT)
-  totalAmount       Float
-  approvedDate      DateTime?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  createdById       String
-  createdBy         User        @relation("AIPCreator", fields: [createdById], references: [id])
-  approvedById      String?
-  approvedBy        User?       @relation("AIPApprover", fields: [approvedById], references: [id])
-  projects          AIPProject[]
-  attachments       AIPAttachment[]
+4. Progress Monitoring
+   - Track project milestones ✅
+   - Update implementation status ✅
+   - Record completion percentages ✅
+   - Document delays or issues ✅
 
-  @@schema("public")
-}
+5. Document Management
+   - Attach supporting documents (proposals, approvals, etc.)
+   - Store project photos and completion certificates
+   - Maintain audit trail of project changes
 
-enum AIPStatus {
-  DRAFT
-  SUBMITTED
-  APPROVED
-  REJECTED
-  IMPLEMENTED
-  COMPLETED
+6. Reporting
+   - Generate project status reports ✅
+   - Create financial utilization reports ✅
+   - Produce completion reports
 
-  @@schema("public")
-}
+### Non-Functional Requirements
+1. Permissions and Access Control
+   - Role-based access (Captain, Treasurer, Secretary, Council Member) ✅
+   - Approval workflows ✅
+   - Audit logging of changes ✅
 
-model AIPProject {
-  id                    String    @id @default(cuid())
-  aipId                 String
-  aip                   AnnualInvestmentProgram @relation(fields: [aipId], references: [id], onDelete: Cascade)
-  projectCode           String
-  title                 String
-  description           String
-  sector                String    // e.g., Infrastructure, Health, Education, etc.
-  location              String?
-  expectedBeneficiaries String?
-  startDate             DateTime
-  endDate               DateTime
-  totalCost             Float
-  budgetCategoryId      String?
-  budgetCategory        BudgetCategory? @relation(fields: [budgetCategoryId], references: [id])
-  status                ProjectStatus @default(PLANNED)
-  progress              Float      @default(0)
-  fundSource            String?    // e.g., BDF, SK Fund, External, etc.
-  milestones            AIPMilestone[]
-  expenses              AIPExpense[]
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+2. User Interface
+   - Intuitive project dashboards ✅
+   - Progress visualization ✅
+   - Mobile-responsive design ✅
 
-  @@schema("public")
-}
+3. Performance
+   - Handle multiple AIPs across different fiscal years ✅
+   - Support concurrent users ✅
+   - Acceptable response times ✅
 
-enum ProjectStatus {
-  PLANNED
-  ONGOING
-  COMPLETED
-  CANCELLED
-  DELAYED
+## Technical Implementation
 
-  @@schema("public")
-}
+### Database Schema Enhancements
+- Implement Prisma schema changes for database models ✅
+- Create relations between AIP, projects, and financial transactions ✅
+- Set up validation rules for AIP data ✅
 
-model AIPMilestone {
-  id          String      @id @default(cuid())
-  projectId   String
-  project     AIPProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  title       String
-  description String?
-  dueDate     DateTime
-  completedAt DateTime?
-  status      MilestoneStatus @default(PENDING)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+### API Development
+- Create RESTful endpoints for AIP CRUD operations ✅
+- Implement project management APIs ✅
+- Develop endpoints for expense tracking ✅
+- Set up milestone tracking APIs ✅
 
-  @@schema("public")
-}
+### Front-end Components
+- Build AIP dashboard and listing page ✅
+- Develop project creation and management forms ✅
+- Implement progress tracking UI ✅
+- Create expense management interface ✅
+- Design detailed project view page with activity tracking ✅
+- Design reporting views
 
-enum MilestoneStatus {
-  PENDING
-  COMPLETED
-  DELAYED
-  CANCELLED
+### Integration Points
+- Connect with financial management system ✅
+- Integrate with document storage
+- Link to user management for permissions ✅
 
-  @@schema("public")
-}
+## Implementation Phases
 
-model AIPExpense {
-  id          String      @id @default(cuid())
-  projectId   String
-  project     AIPProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  amount      Float
-  description String
-  date        DateTime
-  reference   String?     // Invoice/receipt number
-  transactionId String?
-  transaction Transaction? @relation(fields: [transactionId], references: [id])
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+### Phase 1: Core AIP Functionality (Weeks 1-3) ✅
+- Database schema implementation ✅
+- Basic API endpoints ✅
+- AIP creation and listing UI ✅
+- Project management screens ✅
 
-  @@schema("public")
-}
+### Phase 2: Financial Integration (Weeks 4-6) ✅
+- Expense tracking implementation ✅
+- Budget utilization monitoring ✅
+- Transaction linking ✅
+- Financial reporting basics ✅
 
-model AIPAttachment {
-  id          String      @id @default(cuid())
-  aipId       String
-  aip         AnnualInvestmentProgram @relation(fields: [aipId], references: [id], onDelete: Cascade)
-  filename    String
-  filepath    String
-  filesize    Int
-  filetype    String
-  description String?
-  uploadedAt  DateTime    @default(now())
-  uploadedById String
-  uploadedBy  User        @relation(fields: [uploadedById], references: [id])
+### Phase 3: Progress and Milestone Tracking (Weeks 5-7) ✅
+- Milestone management UI ✅
+- Progress updates ✅
+- Status change workflows ✅
+- Notification system ✅
 
-  @@schema("public")
-}
-```
+### Phase 4: Document Management (Weeks 7-9)
+- Document upload and storage
+- Photo gallery for projects
+- File categorization
+- Version control for documents
 
-Also update the existing models:
-- Add relations to User model for AIP creation/approval
-- Add relations to Transaction model for tracking AIP expenses
-- Add relation to BudgetCategory for categorizing AIP projects
-
-### 2. API Endpoints
-
-Create the following API endpoints:
-
-#### AIP Management
-- `GET /api/finance/aip` - List all AIPs
-- `GET /api/finance/aip/:id` - Get AIP details
-- `POST /api/finance/aip` - Create new AIP
-- `PUT /api/finance/aip/:id` - Update AIP
-- `DELETE /api/finance/aip/:id` - Delete AIP
-- `PUT /api/finance/aip/:id/status` - Update AIP status
-- `POST /api/finance/aip/:id/approve` - Approve AIP (with role permission)
-
-#### AIP Projects
-- `GET /api/finance/aip/:id/projects` - List AIP projects
-- `GET /api/finance/aip/projects/:id` - Get project details
-- `POST /api/finance/aip/:id/projects` - Add project to AIP
-- `PUT /api/finance/aip/projects/:id` - Update project
-- `DELETE /api/finance/aip/projects/:id` - Delete project
-- `PUT /api/finance/aip/projects/:id/status` - Update project status
-
-#### Milestones & Expenses
-- `GET /api/finance/aip/projects/:id/milestones` - List project milestones
-- `POST /api/finance/aip/projects/:id/milestones` - Add milestone
-- `PUT /api/finance/aip/projects/:id/milestones/:milestoneId` - Update milestone
-- `GET /api/finance/aip/projects/:id/expenses` - List project expenses
-- `POST /api/finance/aip/projects/:id/expenses` - Add expense
-
-### 3. User Interface Components
-
-#### AIP Dashboard
-- Create a new section in the Finance module for AIP management
-- Dashboard with summary of current AIP status, progress, and budget utilization
-- Filtering options by fiscal year and project status
-
-#### AIP Creation & Management
-- Form for creating new AIP with fiscal year selection
-- AIP details view with projects listing
-- Status tracking and approval workflow
-- Document attachment capabilities
-
-#### Project Management
-- Project creation form with budget category selection
-- Project timeline visualization
-- Progress tracking with milestones
-- Expense recording linked to financial transactions
-- Project status updates
-
-#### Reports & Analytics
-- AIP budget vs. actual expenditure reports
-- Project completion rate analytics
-- Sectoral investment distribution charts
-- Timeline visualization for project implementation
-
-### 4. Integration with Existing Modules
-
-#### Fiscal Year Integration
-- Link AIP to fiscal year planning process
-- Ensure AIP data is associated with the correct fiscal year
-
-#### Budget Module Integration
-- Connect AIP projects to budget categories
-- Track budget allocation and utilization for AIP projects
-
-#### Financial Transactions
-- Link expenses recorded for AIP projects to the main transaction ledger
-- Ensure financial reports reflect AIP expenditures
-
-#### User Permissions
-- Extend existing role-based permissions to include AIP management
-- Restrict approval capabilities to authorized roles (CAPTAIN, TREASURER)
-
-### 5. Implementation Phases
-
-#### Phase 1: Database Schema & API Setup
-- Implement database schema changes
-- Create API endpoints for core AIP management
-- Basic role permission setup
-
-#### Phase 2: Core UI Implementation
-- Develop AIP creation and management interfaces
-- Implement project management screens
-- Create basic reporting
-
-#### Phase 3: Integration & Advanced Features
-- Integrate with budget and fiscal year modules
-- Implement approval workflows
-- Add document management capabilities
-- Develop advanced reporting and analytics
-
-#### Phase 4: Testing & Deployment
-- User acceptance testing
-- Data migration for existing fiscal years
-- Training documentation
-- Production deployment
-
-## Compliance & Best Practices
-
-- Ensure alignment with Department of the Interior and Local Government (DILG) guidelines
-- Follow Commission on Audit (COA) requirements for financial planning
-- Implement proper audit trails for all AIP-related activities
-- Support transparency requirements with public-facing reports
-
-## Technical Requirements
-
-- Use existing React/Next.js frontend framework
-- Implement Prisma schema changes for database models
-- Ensure responsive design for mobile access
-- Add necessary validation for financial data
-- Implement proper error handling and data validation
+### Phase 5: Advanced Reporting (Weeks 8-10)
+- Analytics dashboard
+- Exportable reports
+- Custom report generation
+- Data visualization enhancements
 
 ## Timeline Estimate
+- Start date: [To be determined]
+- Phase 1: 3 weeks ✅
+- Phase 2: 3 weeks ✅
+- Phase 3: 3 weeks ✅
+- Phase 4: 3 weeks
+- Phase 5: 3 weeks
+- Total implementation time: Approximately 10 weeks 
 
-- Phase 1: 2 weeks
-- Phase 2: 3 weeks
-- Phase 3: 3 weeks
-- Phase 4: 2 weeks
+## Resources Required
+- 1 Backend Developer
+- 1 Frontend Developer
+- Project Manager (part-time)
+- UI/UX Designer (part-time)
+- Quality Assurance Tester
 
-Total implementation time: Approximately 10 weeks 
+## Risks and Mitigation
+- **Risk**: Integration complexity with existing financial systems
+  **Mitigation**: Begin with simple linking, then enhance complexity
+
+- **Risk**: User adoption challenges
+  **Mitigation**: Develop comprehensive training materials and conduct workshops
+
+- **Risk**: Regulatory compliance issues
+  **Mitigation**: Regular consultation with DILG guidelines to ensure alignment
+
+## Success Criteria
+- Successful creation and management of AIPs ✅
+- Proper project tracking from proposal to completion ✅
+- Accurate financial integration and expense monitoring ✅
+- Improved transparency in barangay investment programs ✅
+- Compliance with DILG reporting requirements 

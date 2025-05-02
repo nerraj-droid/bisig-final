@@ -29,7 +29,9 @@ import {
   Menu,
   User,
   Settings,
-  FileEdit
+  FileEdit,
+  Calendar,
+  PiggyBank
 } from "lucide-react";
 import { LoadingBar } from "@/components/ui/loading-bar";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -191,11 +193,34 @@ export default function ClientDashboardLayout({
       label: "Reports",
       icon: <BarChart3 size={20} />
     },
-    // {
-    //   href: "/dashboard/finance",
-    //   label: "Finance",
-    //   icon: <Wallet size={20} />
-    // },
+    {
+      href: "/dashboard/finance",
+      label: "Finance",
+      icon: <Wallet size={20} />,
+      hasSubmenu: true,
+      subItems: [
+        {
+          label: "Dashboard",
+          href: "/dashboard/finance",
+          icon: <LayoutDashboard size={18} />
+        },
+        {
+          label: "Annual Investment Program",
+          href: "/dashboard/finance/aip",
+          icon: <Calendar size={18} />
+        },
+        {
+          label: "Budget Management",
+          href: "/dashboard/finance/budgets",
+          icon: <PiggyBank size={18} />
+        },
+        {
+          label: "Transactions",
+          href: "/dashboard/finance/transactions",
+          icon: <FileText size={18} />
+        }
+      ]
+    },
     {
       href: "/dashboard/users",
       label: "Users",

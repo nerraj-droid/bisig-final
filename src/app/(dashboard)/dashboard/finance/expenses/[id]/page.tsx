@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
@@ -116,40 +116,38 @@ export default function ExpenseDetailsPage() {
     const [showRejectionDialog, setShowRejectionDialog] = useState(false);
     const [showVoidDialog, setShowVoidDialog] = useState(false);
 
-    // Fetch transaction details
-    const fetchTransaction = async () => {
+    // Extract id to avoid params.id in dependency arrays
+    const transactionId = params.id as string;
+
+    // Define fetchTransaction with useCallback
+    const fetchTransaction = useCallback(async () => {
         setIsLoading(true);
-        setError(null);
-
         try {
-            const response = await fetch(`/api/finance/transactions/${params.id}`);
-
+            const response = await fetch(`/api/finance/transactions/${transactionId}`);
             if (!response.ok) {
-                throw new Error("Failed to fetch transaction details");
+                throw new Error("Failed to load transaction");
             }
-
             const data = await response.json();
             setTransaction(data);
         } catch (err) {
             setError(err instanceof Error ? err.message : "An error occurred");
-            console.error("Error fetching transaction:", err);
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [transactionId]);
 
     useEffect(() => {
-        if (session && params.id) {
+        if (session) {
             fetchTransaction();
         }
-    }, [session, params.id]);
+    }, [session, fetchTransaction]);
 
     // Handle transaction approval
     const handleApprove = async () => {
         setActionLoading(true);
 
         try {
-            const response = await fetch(`/api/finance/transactions/${params.id}/status`, {
+            const response = await fetch(`/api/finance/transactions/${transactionId}/status`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -186,7 +184,7 @@ export default function ExpenseDetailsPage() {
         setActionLoading(true);
 
         try {
-            const response = await fetch(`/api/finance/transactions/${params.id}/status`, {
+            const response = await fetch(`/api/finance/transactions/${transactionId}/status`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -223,7 +221,7 @@ export default function ExpenseDetailsPage() {
         setActionLoading(true);
 
         try {
-            const response = await fetch(`/api/finance/transactions/${params.id}/status`, {
+            const response = await fetch(`/api/finance/transactions/${transactionId}/status`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",

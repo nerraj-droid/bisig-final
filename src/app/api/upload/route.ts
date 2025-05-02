@@ -87,6 +87,36 @@ export async function POST(request: NextRequest) {
       uploadDir = 'uploads/profile-photos';
     } else if (fileType === "proof-of-identity") {
       uploadDir = 'uploads/proof-of-identity';
+    } else if (fileType === "aip-attachment") {
+      // Extract the AIP ID from the form data
+      const aipId = formData.get("entityId") as string;
+      if (!aipId) {
+        return new Response(
+          JSON.stringify({
+            error: "Missing AIP ID for attachment upload",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+      uploadDir = `uploads/aip/${aipId}`;
+    } else if (fileType === "aip-project") {
+      // Extract the Project ID from the form data
+      const projectId = formData.get("entityId") as string;
+      if (!projectId) {
+        return new Response(
+          JSON.stringify({
+            error: "Missing Project ID for attachment upload",
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+      uploadDir = `uploads/aip/projects/${projectId}`;
     } else {
       uploadDir = 'uploads';
     }

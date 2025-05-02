@@ -152,6 +152,10 @@ model User {
   createdTransactions   Transaction[] @relation("TransactionCreator")
   approvedTransactions  Transaction[] @relation("TransactionApprover")
   financialPermissions  FinancialPermission[]
+  createdAIPs           AnnualInvestmentProgram[] @relation("AIPCreator")
+  approvedAIPs          AnnualInvestmentProgram[] @relation("AIPApprover")
+  uploadedAIPAttachments AIPAttachment[]
+  uploadedProjectAttachments AIPProjectAttachment[]
 
   @@schema("public")
 }
@@ -313,6 +317,7 @@ model FiscalYear {
   updatedAt     DateTime    @updatedAt
   budgets       Budget[]
   transactions  Transaction[]
+  aips          AnnualInvestmentProgram[]
 
   @@schema("public")
 }
@@ -400,6 +405,7 @@ model BudgetCategory {
   parent          BudgetCategory? @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children        BudgetCategory[] @relation("CategoryHierarchy")
   budgets         Budget[]
+  aipProjects     AIPProject[]
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
@@ -492,6 +498,7 @@ model Transaction {
   status          TransactionStatus
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
+  aipExpenses     AIPExpense[]
   
   @@schema("public")
 }
@@ -599,6 +606,149 @@ model BlotterAttachment {
   
   // Relationships
   blotterCase     BlotterCase    @relation(fields: [blotterCaseId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
+}
+
+// Annual Investment Program models
+model AnnualInvestmentProgram {
+  id                String      @id @default(cuid())
+  fiscalYearId      String
+  fiscalYear        FiscalYear  @relation(fields: [fiscalYearId], references: [id])
+  title             String
+  description       String?
+  status            AIPStatus   @default(DRAFT)
+  totalAmount       Float
+  approvedDate      DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  createdById       String
+  createdBy         User        @relation("AIPCreator", fields: [createdById], references: [id])
+  approvedById      String?
+  approvedBy        User?       @relation("AIPApprover", fields: [approvedById], references: [id])
+  projects          AIPProject[]
+  attachments       AIPAttachment[]
+
+  @@schema("public")
+}
+
+enum AIPStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  IMPLEMENTED
+  COMPLETED
+
+  @@schema("public")
+}
+
+model AIPProject {
+  id                    String    @id @default(cuid())
+  aipId                 String
+  aip                   AnnualInvestmentProgram @relation(fields: [aipId], references: [id], onDelete: Cascade)
+  projectCode           String
+  title                 String
+  description           String
+  sector                String    // e.g., Infrastructure, Health, Education, etc.
+  location              String?
+  expectedBeneficiaries String?
+  startDate             DateTime
+  endDate               DateTime
+  totalCost             Float
+  budgetCategoryId      String?
+  budgetCategory        BudgetCategory? @relation(fields: [budgetCategoryId], references: [id])
+  status                ProjectStatus @default(PLANNED)
+  progress              Float      @default(0)
+  fundSource            String?    // e.g., BDF, SK Fund, External, etc.
+  milestones            AIPMilestone[]
+  expenses              AIPExpense[]
+  attachments           AIPProjectAttachment[]
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@schema("public")
+}
+
+enum ProjectStatus {
+  PLANNED
+  ONGOING
+  COMPLETED
+  CANCELLED
+  DELAYED
+
+  @@schema("public")
+}
+
+model AIPMilestone {
+  id          String      @id @default(cuid())
+  projectId   String
+  project     AIPProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  dueDate     DateTime
+  completedAt DateTime?
+  status      MilestoneStatus @default(PENDING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@schema("public")
+}
+
+enum MilestoneStatus {
+  PENDING
+  COMPLETED
+  DELAYED
+  CANCELLED
+
+  @@schema("public")
+}
+
+model AIPExpense {
+  id          String      @id @default(cuid())
+  projectId   String
+  project     AIPProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  amount      Float
+  description String
+  date        DateTime
+  reference   String?     // Invoice/receipt number
+  transactionId String?
+  transaction Transaction? @relation(fields: [transactionId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@schema("public")
+}
+
+model AIPAttachment {
+  id          String      @id @default(cuid())
+  aipId       String
+  aip         AnnualInvestmentProgram @relation(fields: [aipId], references: [id], onDelete: Cascade)
+  filename    String
+  filepath    String
+  filesize    Int
+  filetype    String
+  description String?
+  uploadedAt  DateTime    @default(now())
+  uploadedById String
+  uploadedBy  User        @relation(fields: [uploadedById], references: [id])
+
+  @@schema("public")
+}
+
+model AIPProjectAttachment {
+  id          String      @id @default(cuid())
+  projectId   String
+  project     AIPProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  filename    String
+  filepath    String
+  filesize    Int
+  filetype    String
+  description String?
+  category    String?     // e.g., proposal, contract, photo, report
+  uploadedAt  DateTime    @default(now())
+  uploadedById String
+  uploadedBy  User        @relation(fields: [uploadedById], references: [id])
 
   @@schema("public")
 }
