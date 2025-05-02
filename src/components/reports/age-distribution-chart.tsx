@@ -25,12 +25,28 @@ ChartJS.register(
 interface AgeDistributionProps {
     ageGroups: {
         range: string
+        min?: number
+        max?: number
         count: number
     }[]
+    compact?: boolean
 }
 
-export const AgeDistributionChart = forwardRef<HTMLDivElement, AgeDistributionProps>(function AgeDistributionChart({ ageGroups }, ref) {
+export const AgeDistributionChart = forwardRef<HTMLDivElement, AgeDistributionProps>(function AgeDistributionChart(
+    { ageGroups, compact = false },
+    ref
+) {
     const chartRef = useRef<any>(null)
+
+    const hasData = ageGroups && ageGroups.length > 0 && ageGroups.some(g => g.count > 0);
+
+    const handleChartDownload = () => {
+        if (chartRef.current && chartRef.current.canvas) {
+            downloadChartAsImage(chartRef.current, "age-distribution");
+        } else {
+            console.error("Age distribution chart reference is not available");
+        }
+    }
 
     const options = {
         responsive: true,
@@ -40,18 +56,18 @@ export const AgeDistributionChart = forwardRef<HTMLDivElement, AgeDistributionPr
                 display: false,
             },
             title: {
-                display: true,
+                display: !compact,
                 text: "Age Distribution",
                 font: {
-                    size: 14
+                    size: compact ? 12 : 14
                 }
             },
             tooltip: {
                 titleFont: {
-                    size: 12
+                    size: compact ? 10 : 12
                 },
                 bodyFont: {
-                    size: 11
+                    size: compact ? 9 : 11
                 }
             }
         },
@@ -59,29 +75,29 @@ export const AgeDistributionChart = forwardRef<HTMLDivElement, AgeDistributionPr
             y: {
                 beginAtZero: true,
                 title: {
-                    display: true,
+                    display: !compact,
                     text: "Number of Residents",
                     font: {
-                        size: 11
+                        size: compact ? 9 : 11
                     }
                 },
                 ticks: {
                     font: {
-                        size: 10
+                        size: compact ? 8 : 10
                     }
                 }
             },
             x: {
                 title: {
-                    display: true,
+                    display: !compact,
                     text: "Age Groups",
                     font: {
-                        size: 11
+                        size: compact ? 9 : 11
                     }
                 },
                 ticks: {
                     font: {
-                        size: 10
+                        size: compact ? 8 : 10
                     }
                 }
             },
@@ -89,10 +105,10 @@ export const AgeDistributionChart = forwardRef<HTMLDivElement, AgeDistributionPr
     }
 
     const data = {
-        labels: ageGroups.map(g => g.range),
+        labels: hasData ? ageGroups.map(g => g.range) : [],
         datasets: [
             {
-                data: ageGroups.map(g => g.count),
+                data: hasData ? ageGroups.map(g => g.count) : [],
                 backgroundColor: "rgba(99, 102, 241, 0.5)", // indigo
                 borderColor: "rgba(99, 102, 241, 1)",
                 borderWidth: 1,
@@ -101,19 +117,31 @@ export const AgeDistributionChart = forwardRef<HTMLDivElement, AgeDistributionPr
     }
 
     return (
-        <div ref={ref}>
-            <div className="mb-4 flex justify-between items-center">
-                <h3 className="text-base sm:text-lg font-medium">Age Distribution</h3>
+        <div ref={ref} className="w-full">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium">Age Distribution</h3>
                 <button
-                    onClick={() => downloadChartAsImage(chartRef, "age-distribution")}
-                    className="rounded-md bg-blue-600 px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-white hover:bg-blue-500"
+                    onClick={handleChartDownload}
+                    className="text-xs text-blue-600 hover:text-blue-500"
+                    disabled={!hasData}
                 >
-                    Export Chart
+                    Download Chart
                 </button>
             </div>
-            <div className="h-[250px] sm:h-[300px] md:h-[350px]">
-                <Bar ref={chartRef} options={options} data={data} />
-            </div>
+
+            {hasData ? (
+                <div className={`w-full ${compact ? 'h-52' : 'h-80'}`}>
+                    <Bar
+                        ref={chartRef}
+                        data={data}
+                        options={options}
+                    />
+                </div>
+            ) : (
+                <div className="text-center py-8 text-gray-500">
+                    No age distribution data available to display
+                </div>
+            )}
         </div>
     )
 }) 

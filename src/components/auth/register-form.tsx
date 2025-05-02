@@ -32,8 +32,17 @@ export function RegisterForm() {
             })
 
             if (!res.ok) {
-                const error = await res.json()
-                throw new Error(error.message)
+                // Try to get error as JSON, but handle case where response is HTML
+                const contentType = res.headers.get("content-type")
+                if (contentType && contentType.includes("application/json")) {
+                    const error = await res.json()
+                    throw new Error(error.message || "An error occurred")
+                } else {
+                    // Handle non-JSON response
+                    const errorText = await res.text()
+                    console.error("Server error (non-JSON):", errorText)
+                    throw new Error("Server error. Please try again later.")
+                }
             }
 
             router.push("/dashboard/users")

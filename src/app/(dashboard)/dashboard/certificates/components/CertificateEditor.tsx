@@ -1,465 +1,280 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Slider } from "@/components/ui/slider";
-import { Save, RefreshCw, FileText, Layout, Type, Image as ImageIcon, Signature } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Save, X, FileText, Layout, Image, Code } from "lucide-react";
 
-interface CertificateEditorProps {
-  initialData: any;
-  onSave: (data: any) => void;
-  onPreview: () => void;
-  certificateType: string;
+interface TemplateData {
+  id: string;
+  type: string;
+  name: string;
+  content: string;
+  isDefault: boolean;
+  lastModified: string;
+  headerHtml?: string;
+  footerHtml?: string;
+  cssStyles?: string;
+  showQRCode?: boolean;
+  showBorder?: boolean;
+  showLogo?: boolean;
 }
 
-export function CertificateEditor({ initialData, onSave, onPreview, certificateType }: CertificateEditorProps) {
-  const [data, setData] = useState(initialData);
-  const [activeTab, setActiveTab] = useState("content");
+interface CertificateEditorProps {
+  template: TemplateData;
+  onSave: (updatedTemplate: TemplateData) => void;
+  onCancel: () => void;
+  onChange?: (field: string, value: any) => void;
+}
 
-  const handleChange = (field: string, value: any) => {
-    setData((prev: any) => ({
-      ...prev,
-      [field]: value,
+export interface CertificateEditorRef {
+  getCurrentValues: () => TemplateData;
+}
+
+export const CertificateEditor = forwardRef<CertificateEditorRef, CertificateEditorProps>(
+  ({ template, onSave, onCancel, onChange }, ref) => {
+    const [editedTemplate, setEditedTemplate] = useState<TemplateData>({
+      ...template,
+      lastModified: new Date().toISOString()
+    });
+
+    // Expose the current values to the parent component
+    useImperativeHandle(ref, () => ({
+      getCurrentValues: () => editedTemplate
     }));
-  };
 
-  const handleNestedChange = (parent: string, field: string, value: any) => {
-    setData((prev: any) => ({
-      ...prev,
-      [parent]: {
-        ...prev[parent],
-        [field]: value,
-      },
-    }));
-  };
+    const handleChange = (field: keyof TemplateData, value: any) => {
+      const updatedTemplate = {
+        ...editedTemplate,
+        [field]: value
+      };
 
-  const handleSave = () => {
-    onSave(data);
-  };
+      setEditedTemplate(updatedTemplate);
 
-  const getCertificateTitle = () => {
-    switch (certificateType) {
-      case "clearance":
-        return "Barangay Clearance";
-      case "residency":
-        return "Certificate of Residency";
-      case "indigency":
-        return "Certificate of Indigency";
-      case "business":
-        return "Business Permit";
-      default:
-        return "Certificate";
-    }
-  };
+      // Call parent onChange if provided
+      if (onChange) {
+        onChange(field, value);
+      }
+    };
 
-  return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-        <h3 className="text-lg font-medium">Edit {getCertificateTitle()} Template</h3>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onPreview}>
-            <FileText className="mr-2 h-4 w-4" />
-            Preview
-          </Button>
-          <Button size="sm" onClick={handleSave}>
-            <Save className="mr-2 h-4 w-4" />
-            Save Changes
-          </Button>
-        </div>
-      </div>
+    const handleSave = () => {
+      onSave(editedTemplate);
+    };
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="border-b border-gray-200">
-          <TabsList className="bg-transparent h-auto p-0">
-            <TabsTrigger
-              value="content"
-              className={`px-4 py-3 rounded-none border-b-2 ${activeTab === "content" ? "border-[#006B5E] text-[#006B5E]" : "border-transparent"
-                }`}
-            >
-              <Type className="mr-2 h-4 w-4" />
-              Content
+    return (
+      <div className="space-y-6">
+        <Tabs defaultValue="content" className="w-full">
+          <TabsList className="grid grid-cols-4 mb-4">
+            <TabsTrigger value="content" className="flex items-center gap-2">
+              <FileText size={16} />
+              <span>Content</span>
             </TabsTrigger>
-            <TabsTrigger
-              value="layout"
-              className={`px-4 py-3 rounded-none border-b-2 ${activeTab === "layout" ? "border-[#006B5E] text-[#006B5E]" : "border-transparent"
-                }`}
-            >
-              <Layout className="mr-2 h-4 w-4" />
-              Layout
+            <TabsTrigger value="layout" className="flex items-center gap-2">
+              <Layout size={16} />
+              <span>Layout</span>
             </TabsTrigger>
-            <TabsTrigger
-              value="images"
-              className={`px-4 py-3 rounded-none border-b-2 ${activeTab === "images" ? "border-[#006B5E] text-[#006B5E]" : "border-transparent"
-                }`}
-            >
-              <ImageIcon className="mr-2 h-4 w-4" />
-              Images
+            <TabsTrigger value="header-footer" className="flex items-center gap-2">
+              <Image size={16} />
+              <span>Header & Footer</span>
             </TabsTrigger>
-            <TabsTrigger
-              value="signatures"
-              className={`px-4 py-3 rounded-none border-b-2 ${activeTab === "signatures" ? "border-[#006B5E] text-[#006B5E]" : "border-transparent"
-                }`}
-            >
-              <Signature className="mr-2 h-4 w-4" />
-              Signatures
+            <TabsTrigger value="styles" className="flex items-center gap-2">
+              <Code size={16} />
+              <span>Advanced</span>
             </TabsTrigger>
           </TabsList>
-        </div>
 
-        <div className="p-4">
+          {/* Content Tab */}
           <TabsContent value="content" className="mt-0">
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Certificate Title</Label>
+            <Card>
+              <CardHeader>
+                <CardTitle>Template Content</CardTitle>
+                <CardDescription>
+                  Edit the basic information and content of your certificate template
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="template-name">Template Name</Label>
                   <Input
-                    id="title"
-                    value={data.title || ""}
-                    onChange={(e) => handleChange("title", e.target.value)}
-                    placeholder="Certificate Title"
+                    id="template-name"
+                    value={editedTemplate.name}
+                    onChange={(e) => handleChange("name", e.target.value)}
+                    placeholder="Enter a name for this template"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="purpose">Purpose of Certificate <span className="text-red-500">*</span></Label>
-                  <Select
-                    value={data.purpose || ""}
-                    onValueChange={(value) => handleChange("purpose", value)}
-                  >
-                    <SelectTrigger id="purpose">
-                      <SelectValue placeholder="Select purpose" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="EMPLOYMENT">Employment</SelectItem>
-                      <SelectItem value="SCHOOL_REQUIREMENT">School Requirement</SelectItem>
-                      <SelectItem value="BANK_REQUIREMENT">Bank Requirement</SelectItem>
-                      <SelectItem value="GOVERNMENT_ID">Government ID Application</SelectItem>
-                      <SelectItem value="LOAN_APPLICATION">Loan Application</SelectItem>
-                      <SelectItem value="MEDICAL_ASSISTANCE">Medical Assistance</SelectItem>
-                      <SelectItem value="POLICE_CLEARANCE">Police Clearance</SelectItem>
-                      <SelectItem value="NBI_CLEARANCE">NBI Clearance</SelectItem>
-                      <SelectItem value="PASSPORT_APPLICATION">Passport Application</SelectItem>
-                      <SelectItem value="BUSINESS_PERMIT">Business Permit</SelectItem>
-                      <SelectItem value="SCHOLARSHIP">Scholarship</SelectItem>
-                      <SelectItem value="OTHERS">Others</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {data.purpose === "OTHERS" && (
-                    <Input
-                      id="customPurpose"
-                      value={data.customPurpose || ""}
-                      onChange={(e) => handleChange("customPurpose", e.target.value)}
-                      placeholder="Specify other purpose"
-                      className="mt-2"
-                    />
-                  )}
+                <div className="grid gap-2">
+                  <Label htmlFor="template-content">Certificate Content</Label>
+                  <Textarea
+                    id="template-content"
+                    value={editedTemplate.content}
+                    onChange={(e) => handleChange("content", e.target.value)}
+                    placeholder="Enter the main content of the certificate"
+                    className="min-h-[200px]"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Use the following placeholders in your content:
+                  </p>
+                  <ul className="text-sm text-muted-foreground list-disc pl-5">
+                    <li>{'{residentName}'} - The resident's full name</li>
+                    <li>{'{address}'} - The resident's address</li>
+                    <li>{'{purpose}'} - The purpose of the certificate</li>
+                    <li>{'{civilStatus}'} - Civil status (single, married, etc.)</li>
+                    <li>{'{businessName}'} - For business certificates</li>
+                    <li>{'{ownerName}'} - For business certificates</li>
+                  </ul>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="content">Certificate Content</Label>
-                <Textarea
-                  id="content"
-                  value={data.content || ""}
-                  onChange={(e) => handleChange("content", e.target.value)}
-                  placeholder="Main content of the certificate"
-                  rows={6}
-                />
-                <p className="text-xs text-gray-500">
-                  You can use placeholders like {"{residentName}"}, {"{address}"}, etc. which will be replaced with actual data.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="footer">Certificate Footer</Label>
-                <Textarea
-                  id="footer"
-                  value={data.footer || ""}
-                  onChange={(e) => handleChange("footer", e.target.value)}
-                  placeholder="Footer text"
-                  rows={2}
-                />
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
+          {/* Layout Options Tab */}
           <TabsContent value="layout" className="mt-0">
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="paperSize">Paper Size</Label>
-                  <Select
-                    value={data.paperSize || "letter"}
-                    onValueChange={(value) => handleChange("paperSize", value)}
-                  >
-                    <SelectTrigger id="paperSize">
-                      <SelectValue placeholder="Select paper size" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="letter">Letter (8.5" x 11")</SelectItem>
-                      <SelectItem value="a4">A4 (210mm x 297mm)</SelectItem>
-                      <SelectItem value="legal">Legal (8.5" x 14")</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Layout Options</CardTitle>
+                <CardDescription>
+                  Customize the appearance and layout settings
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="show-border">Show Border</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Add a border around the certificate
+                      </p>
+                    </div>
+                    <Switch
+                      id="show-border"
+                      checked={editedTemplate.showBorder}
+                      onCheckedChange={(checked) => handleChange("showBorder", checked)}
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="orientation">Orientation</Label>
-                  <Select
-                    value={data.orientation || "portrait"}
-                    onValueChange={(value) => handleChange("orientation", value)}
-                  >
-                    <SelectTrigger id="orientation">
-                      <SelectValue placeholder="Select orientation" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="portrait">Portrait</SelectItem>
-                      <SelectItem value="landscape">Landscape</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                  <Separator />
 
-              <div className="space-y-2">
-                <Label>Margins (mm)</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="marginTop" className="text-xs">Top</Label>
-                    <Input
-                      id="marginTop"
-                      type="number"
-                      value={data.margins?.top || 20}
-                      onChange={(e) => handleNestedChange("margins", "top", Number(e.target.value))}
-                      min={0}
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="show-logo">Show Barangay Logo</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Display the barangay logo in the header
+                      </p>
+                    </div>
+                    <Switch
+                      id="show-logo"
+                      checked={editedTemplate.showLogo}
+                      onCheckedChange={(checked) => handleChange("showLogo", checked)}
                     />
                   </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="marginRight" className="text-xs">Right</Label>
-                    <Input
-                      id="marginRight"
-                      type="number"
-                      value={data.margins?.right || 20}
-                      onChange={(e) => handleNestedChange("margins", "right", Number(e.target.value))}
-                      min={0}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="marginBottom" className="text-xs">Bottom</Label>
-                    <Input
-                      id="marginBottom"
-                      type="number"
-                      value={data.margins?.bottom || 20}
-                      onChange={(e) => handleNestedChange("margins", "bottom", Number(e.target.value))}
-                      min={0}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="marginLeft" className="text-xs">Left</Label>
-                    <Input
-                      id="marginLeft"
-                      type="number"
-                      value={data.margins?.left || 20}
-                      onChange={(e) => handleNestedChange("margins", "left", Number(e.target.value))}
-                      min={0}
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="show-qrcode">Show QR Code</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Display QR code for certificate verification
+                      </p>
+                    </div>
+                    <Switch
+                      id="show-qrcode"
+                      checked={editedTemplate.showQRCode}
+                      onCheckedChange={(checked) => handleChange("showQRCode", checked)}
                     />
                   </div>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="showBorder">Show Border</Label>
-                  <Switch
-                    id="showBorder"
-                    checked={data.showBorder || false}
-                    onCheckedChange={(checked) => handleChange("showBorder", checked)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Border Width (px)</Label>
-                <Slider
-                  disabled={!data.showBorder}
-                  value={[data.borderWidth || 1]}
-                  min={1}
-                  max={10}
-                  step={1}
-                  onValueChange={(value) => handleChange("borderWidth", value[0])}
-                />
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Thin (1px)</span>
-                  <span>Thick (10px)</span>
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
-          <TabsContent value="images" className="mt-0">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="showLogo">Show Barangay Logo</Label>
-                  <Switch
-                    id="showLogo"
-                    checked={data.showLogo || true}
-                    onCheckedChange={(checked) => handleChange("showLogo", checked)}
+          {/* Header & Footer Tab */}
+          <TabsContent value="header-footer" className="mt-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>Header and Footer</CardTitle>
+                <CardDescription>
+                  Customize the header and footer content of your certificate
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="header-html">Header HTML</Label>
+                  <Textarea
+                    id="header-html"
+                    value={editedTemplate.headerHtml || ""}
+                    onChange={(e) => handleChange("headerHtml", e.target.value)}
+                    placeholder="<div class='text-center'>Custom header HTML</div>"
+                    className="min-h-[100px] font-mono text-sm"
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="logoUrl">Logo URL</Label>
-                <Input
-                  id="logoUrl"
-                  value={data.logoUrl || ""}
-                  onChange={(e) => handleChange("logoUrl", e.target.value)}
-                  placeholder="URL to logo image"
-                  disabled={!data.showLogo}
-                />
-                <p className="text-xs text-gray-500">
-                  Enter the URL of your barangay logo. Recommended size: 200x200px.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="showWatermark">Show Watermark</Label>
-                  <Switch
-                    id="showWatermark"
-                    checked={data.showWatermark || false}
-                    onCheckedChange={(checked) => handleChange("showWatermark", checked)}
+                <div className="grid gap-2">
+                  <Label htmlFor="footer-html">Footer HTML</Label>
+                  <Textarea
+                    id="footer-html"
+                    value={editedTemplate.footerHtml || ""}
+                    onChange={(e) => handleChange("footerHtml", e.target.value)}
+                    placeholder="<div class='text-center'>Custom footer HTML</div>"
+                    className="min-h-[100px] font-mono text-sm"
                   />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="watermarkUrl">Watermark URL</Label>
-                <Input
-                  id="watermarkUrl"
-                  value={data.watermarkUrl || ""}
-                  onChange={(e) => handleChange("watermarkUrl", e.target.value)}
-                  placeholder="URL to watermark image"
-                  disabled={!data.showWatermark}
-                />
-                <p className="text-xs text-gray-500">
-                  Enter the URL of your watermark image. This will appear faded in the background.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Watermark Opacity</Label>
-                <Slider
-                  disabled={!data.showWatermark}
-                  value={[data.watermarkOpacity || 0.1]}
-                  min={0.05}
-                  max={0.3}
-                  step={0.05}
-                  onValueChange={(value) => handleChange("watermarkOpacity", value[0])}
-                />
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Light (5%)</span>
-                  <span>Dark (30%)</span>
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
-          <TabsContent value="signatures" className="mt-0">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="showSignatures">Show Signatures</Label>
-                  <Switch
-                    id="showSignatures"
-                    checked={data.showSignatures || true}
-                    onCheckedChange={(checked) => handleChange("showSignatures", checked)}
+          {/* Advanced Styles Tab */}
+          <TabsContent value="styles" className="mt-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>Advanced Styling</CardTitle>
+                <CardDescription>
+                  Add custom CSS styles to your certificate template
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-2">
+                  <Label htmlFor="css-styles">Custom CSS</Label>
+                  <Textarea
+                    id="css-styles"
+                    value={editedTemplate.cssStyles || ""}
+                    onChange={(e) => handleChange("cssStyles", e.target.value)}
+                    placeholder=".certificate-header { font-size: 24px; }"
+                    className="min-h-[200px] font-mono text-sm"
                   />
+                  <p className="text-sm text-muted-foreground">
+                    Add custom CSS styles to further customize your certificate appearance
+                  </p>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="punongBarangay">Punong Barangay</Label>
-                  <Input
-                    id="punongBarangay"
-                    value={data.officials?.punongBarangay || ""}
-                    onChange={(e) => handleNestedChange("officials", "punongBarangay", e.target.value)}
-                    placeholder="Name of Punong Barangay"
-                    disabled={!data.showSignatures}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="punongBarangaySignature">Signature URL</Label>
-                  <Input
-                    id="punongBarangaySignature"
-                    value={data.signatures?.punongBarangay || ""}
-                    onChange={(e) => handleNestedChange("signatures", "punongBarangay", e.target.value)}
-                    placeholder="URL to signature image"
-                    disabled={!data.showSignatures}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="secretary">Barangay Secretary</Label>
-                  <Input
-                    id="secretary"
-                    value={data.officials?.secretary || ""}
-                    onChange={(e) => handleNestedChange("officials", "secretary", e.target.value)}
-                    placeholder="Name of Secretary"
-                    disabled={!data.showSignatures}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="secretarySignature">Signature URL</Label>
-                  <Input
-                    id="secretarySignature"
-                    value={data.signatures?.secretary || ""}
-                    onChange={(e) => handleNestedChange("signatures", "secretary", e.target.value)}
-                    placeholder="URL to signature image"
-                    disabled={!data.showSignatures}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="showQRCode">Show QR Code</Label>
-                  <Switch
-                    id="showQRCode"
-                    checked={data.showQRCode || true}
-                    onCheckedChange={(checked) => handleChange("showQRCode", checked)}
-                  />
-                </div>
-                <p className="text-xs text-gray-500">
-                  QR code will be generated automatically for certificate verification.
-                </p>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </TabsContent>
+        </Tabs>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={onCancel} className="gap-1">
+            <X size={16} /> Cancel
+          </Button>
+          <Button onClick={handleSave} className="gap-1 bg-[#006B5E] hover:bg-[#005046]">
+            <Save size={16} /> Save Template
+          </Button>
         </div>
-      </Tabs>
-
-      <div className="p-4 border-t border-gray-200 flex justify-between">
-        <Button variant="outline" size="sm" onClick={() => setData(initialData)}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Reset to Default
-        </Button>
-        <Button size="sm" onClick={handleSave}>
-          <Save className="mr-2 h-4 w-4" />
-          Save Changes
-        </Button>
       </div>
-    </div>
-  );
-} 
+    );
+  }
+); 

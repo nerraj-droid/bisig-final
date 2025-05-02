@@ -7,7 +7,7 @@ import {
     Legend,
 } from "chart.js"
 import { Pie } from "react-chartjs-2"
-import { useRef, forwardRef } from "react"
+import { useRef, forwardRef, useState, useEffect } from "react"
 import { downloadChartAsImage } from "@/lib/chart-utils"
 
 ChartJS.register(ArcElement, Tooltip, Legend)
@@ -21,24 +21,84 @@ interface DemographicsChartProps {
         civilStatus: string
         count: number
     }[]
+    compact?: boolean
 }
 
-export const DemographicsChart = forwardRef<HTMLDivElement, DemographicsChartProps>(function DemographicsChart({ genderDistribution, civilStatusDistribution }, ref) {
-    const genderChartRef = useRef<any>(null)
-    const civilStatusChartRef = useRef<any>(null)
+export const DemographicsChart = forwardRef<HTMLDivElement, DemographicsChartProps>(function DemographicsChart(
+    { genderDistribution, civilStatusDistribution, compact = false },
+    ref
+) {
+    const chartRefGender = useRef<any>(null)
+    const chartRefCivilStatus = useRef<any>(null)
+    const [legendPosition, setLegendPosition] = useState<"right" | "bottom">("right")
+
+    // Handle responsive legend position
+    useEffect(() => {
+        const handleResize = () => {
+            // In compact mode, use bottom for legends when space is constrained
+            const breakpoint = compact ? 1024 : 768
+            setLegendPosition(window.innerWidth < breakpoint ? "bottom" : "right")
+        }
+
+        // Initial check
+        handleResize()
+
+        // Set up event listener
+        window.addEventListener('resize', handleResize)
+
+        // Clean up
+        return () => window.removeEventListener('resize', handleResize)
+    }, [compact])
+
+    const formatGenderLabel = (gender: string) => {
+        if (gender === "MALE") return "Male"
+        if (gender === "FEMALE") return "Female"
+        return gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase()
+    }
+
+    const formatCivilStatusLabel = (status: string) => {
+        if (status === "SINGLE") return "Single"
+        if (status === "MARRIED") return "Married"
+        if (status === "WIDOWED") return "Widowed"
+        if (status === "DIVORCED") return "Divorced"
+        if (status === "SEPARATED") return "Separated"
+        return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
+    }
+
+    const handleGenderChartDownload = () => {
+        if (chartRefGender.current && chartRefGender.current.canvas) {
+            downloadChartAsImage(chartRefGender.current, "gender-distribution");
+        } else {
+            console.error("Gender chart reference is not available");
+        }
+    }
+
+    const handleCivilStatusChartDownload = () => {
+        if (chartRefCivilStatus.current && chartRefCivilStatus.current.canvas) {
+            downloadChartAsImage(chartRefCivilStatus.current, "civil-status-distribution");
+        } else {
+            console.error("Civil status chart reference is not available");
+        }
+    }
+
+    const showGenderChart = genderDistribution && genderDistribution.length > 0
+    const showCivilStatusChart = civilStatusDistribution && civilStatusDistribution.length > 0
 
     const genderData = {
-        labels: genderDistribution.map(d => d.gender),
+        labels: showGenderChart ? genderDistribution.map(g => formatGenderLabel(g.gender)) : [],
         datasets: [
             {
-                data: genderDistribution.map(d => d.count),
+                label: "Gender Distribution",
+                data: showGenderChart ? genderDistribution.map(g => g.count) : [],
                 backgroundColor: [
-                    "rgba(59, 130, 246, 0.5)", // blue
-                    "rgba(236, 72, 153, 0.5)", // pink
+                    "rgba(54, 162, 235, 0.6)", // blue for male
+                    "rgba(255, 99, 132, 0.6)", // pink for female
+                    "rgba(153, 102, 255, 0.6)", // purple for other
                 ],
                 borderColor: [
-                    "rgba(59, 130, 246, 1)",
-                    "rgba(236, 72, 153, 1)",
+                    "rgba(54, 162, 235, 1)",
+                    "rgba(255, 99, 132, 1)",
+                    "rgba(153, 102, 255, 1)",
                 ],
                 borderWidth: 1,
             },
@@ -46,107 +106,122 @@ export const DemographicsChart = forwardRef<HTMLDivElement, DemographicsChartPro
     }
 
     const civilStatusData = {
-        labels: civilStatusDistribution.map(d => d.civilStatus),
+        labels: showCivilStatusChart ? civilStatusDistribution.map(cs => formatCivilStatusLabel(cs.civilStatus)) : [],
         datasets: [
             {
-                data: civilStatusDistribution.map(d => d.count),
+                label: "Civil Status Distribution",
+                data: showCivilStatusChart ? civilStatusDistribution.map(cs => cs.count) : [],
                 backgroundColor: [
-                    "rgba(16, 185, 129, 0.5)", // green
-                    "rgba(245, 158, 11, 0.5)", // yellow
-                    "rgba(99, 102, 241, 0.5)", // indigo
-                    "rgba(239, 68, 68, 0.5)",  // red
+                    "rgba(255, 206, 86, 0.6)", // yellow for single
+                    "rgba(75, 192, 192, 0.6)", // green for married
+                    "rgba(255, 159, 64, 0.6)", // orange for widowed
+                    "rgba(255, 99, 132, 0.6)", // pink for divorced
+                    "rgba(153, 102, 255, 0.6)", // purple for separated
                 ],
                 borderColor: [
-                    "rgba(16, 185, 129, 1)",
-                    "rgba(245, 158, 11, 1)",
-                    "rgba(99, 102, 241, 1)",
-                    "rgba(239, 68, 68, 1)",
+                    "rgba(255, 206, 86, 1)",
+                    "rgba(75, 192, 192, 1)",
+                    "rgba(255, 159, 64, 1)",
+                    "rgba(255, 99, 132, 1)",
+                    "rgba(153, 102, 255, 1)",
                 ],
                 borderWidth: 1,
             },
         ],
     }
 
-    const options = {
+    const pieOptions = {
         responsive: true,
         maintainAspectRatio: false,
-        animation: {
-            duration: 1000,
-            animateRotate: true,
-            animateScale: true,
+        layout: {
+            padding: {
+                left: 0,
+                right: 0,
+                top: 10,
+                bottom: 10
+            }
         },
         plugins: {
             legend: {
-                position: 'right' as const,
-                align: 'center' as const,
+                position: legendPosition,
                 labels: {
+                    boxWidth: 15,
                     padding: 15,
-                    usePointStyle: true,
                     font: {
-                        size: 10,
-                    },
-                    boxWidth: 8,
-                },
-                display: window.innerWidth > 500, // Hide legend on very small screens
+                        size: 11
+                    }
+                }
             },
             tooltip: {
                 titleFont: {
-                    size: 12,
+                    size: 12
                 },
                 bodyFont: {
-                    size: 11,
+                    size: 11
                 },
-            },
-        },
-        cutout: '45%',
-        radius: '85%',
-    }
-
-    // Specific options for mobile
-    const mobileOptions = {
-        ...options,
-        plugins: {
-            ...options.plugins,
-            legend: {
-                ...options.plugins.legend,
-                position: 'bottom' as const,
+                callbacks: {
+                    label: function (context: any) {
+                        const label = context.label || ''
+                        const value = context.raw || 0
+                        const dataset = context.dataset
+                        const total = dataset.data.reduce((acc: number, data: number) => acc + data, 0)
+                        const percentage = Math.round((value / total) * 100)
+                        return `${label}: ${value} (${percentage}%)`
+                    }
+                }
             }
         }
     }
 
-    // Use the appropriate options based on screen width
-    const chartOptions = window.innerWidth < 768 ? mobileOptions : options;
-
     return (
-        <div ref={ref} className="grid gap-8 grid-cols-1 md:grid-cols-2">
-            <div>
-                <div className="mb-4 flex justify-between items-center">
-                    <h3 className="text-base sm:text-lg font-medium">Gender Distribution</h3>
-                    <button
-                        onClick={() => downloadChartAsImage(genderChartRef, "gender-distribution")}
-                        className="rounded-md bg-blue-600 px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-white hover:bg-blue-500"
-                    >
-                        Export Chart
-                    </button>
+        <div ref={ref} className="space-y-6 w-full">
+            {showGenderChart && (
+                <div className="w-full">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-medium">Gender Distribution</h3>
+                        <button
+                            onClick={handleGenderChartDownload}
+                            className="text-xs text-blue-600 hover:text-blue-500"
+                        >
+                            Download Chart
+                        </button>
+                    </div>
+                    <div className={`w-full ${compact ? 'h-60' : 'h-80'}`}>
+                        <Pie
+                            ref={chartRefGender}
+                            data={genderData}
+                            options={pieOptions}
+                        />
+                    </div>
                 </div>
-                <div className="h-[200px] sm:h-[220px] md:h-[220px]">
-                    <Pie ref={genderChartRef} data={genderData} options={chartOptions} />
+            )}
+
+            {showCivilStatusChart && (
+                <div className="w-full">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-medium">Civil Status Distribution</h3>
+                        <button
+                            onClick={handleCivilStatusChartDownload}
+                            className="text-xs text-blue-600 hover:text-blue-500"
+                        >
+                            Download Chart
+                        </button>
+                    </div>
+                    <div className={`w-full ${compact ? 'h-60' : 'h-80'}`}>
+                        <Pie
+                            ref={chartRefCivilStatus}
+                            data={civilStatusData}
+                            options={pieOptions}
+                        />
+                    </div>
                 </div>
-            </div>
-            <div>
-                <div className="mb-4 flex justify-between items-center">
-                    <h3 className="text-base sm:text-lg font-medium">Civil Status Distribution</h3>
-                    <button
-                        onClick={() => downloadChartAsImage(civilStatusChartRef, "civil-status-distribution")}
-                        className="rounded-md bg-blue-600 px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-white hover:bg-blue-500"
-                    >
-                        Export Chart
-                    </button>
+            )}
+
+            {!showGenderChart && !showCivilStatusChart && (
+                <div className="text-center py-8 text-gray-500">
+                    No demographic data available to display
                 </div>
-                <div className="h-[200px] sm:h-[220px] md:h-[220px]">
-                    <Pie ref={civilStatusChartRef} data={civilStatusData} options={chartOptions} />
-                </div>
-            </div>
+            )}
         </div>
     )
 }) 

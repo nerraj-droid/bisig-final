@@ -28,94 +28,134 @@ interface StatisticsChartProps {
         households: number
         residents: number
     }[]
+    compact?: boolean
 }
 
-export const StatisticsChart = forwardRef<HTMLDivElement, StatisticsChartProps>(
-    function StatisticsChart({ householdsByBarangay }, ref) {
-        const chartRef = useRef<any>(null)
+export const StatisticsChart = forwardRef<HTMLDivElement, StatisticsChartProps>(function StatisticsChart(
+    { householdsByBarangay, compact = false },
+    ref
+) {
+    const chartRef = useRef<any>(null)
 
-        const options = {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: "top" as const,
-                    labels: {
-                        boxWidth: 12,
-                        padding: 10,
-                        font: {
-                            size: 11
-                        }
-                    }
-                },
-                title: {
-                    display: true,
-                    text: "Households and Residents by Barangay",
+    const hasData = householdsByBarangay && householdsByBarangay.length > 0;
+
+    const handleChartDownload = () => {
+        if (chartRef.current && chartRef.current.canvas) {
+            downloadChartAsImage(chartRef.current, "barangay-statistics");
+        } else {
+            console.error("Barangay chart reference is not available");
+        }
+    }
+
+    const options = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top' as const,
+                labels: {
                     font: {
-                        size: 14
-                    }
-                },
-                tooltip: {
-                    titleFont: {
-                        size: 12
+                        size: compact ? 9 : 11
                     },
-                    bodyFont: {
+                    boxWidth: compact ? 12 : 15,
+                    padding: compact ? 10 : 15
+                }
+            },
+            title: {
+                display: !compact,
+                text: 'Households and Residents by Barangay',
+                font: {
+                    size: 14
+                }
+            },
+            tooltip: {
+                titleFont: {
+                    size: compact ? 10 : 12
+                },
+                bodyFont: {
+                    size: compact ? 9 : 11
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: !compact,
+                    text: 'Count',
+                    font: {
                         size: 11
                     }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        font: {
-                            size: 10
-                        }
-                    }
                 },
-                x: {
-                    ticks: {
-                        font: {
-                            size: 10
-                        },
-                        maxRotation: 45,
-                        minRotation: 30
+                ticks: {
+                    font: {
+                        size: compact ? 8 : 10
                     }
                 }
             },
-        }
-
-        const data = {
-            labels: householdsByBarangay.map(b => b.barangay),
-            datasets: [
-                {
-                    label: "Households",
-                    data: householdsByBarangay.map(b => b.households),
-                    backgroundColor: "rgba(59, 130, 246, 0.5)",
+            x: {
+                title: {
+                    display: !compact,
+                    text: 'Barangay',
+                    font: {
+                        size: 11
+                    }
                 },
-                {
-                    label: "Residents",
-                    data: householdsByBarangay.map(b => b.residents),
-                    backgroundColor: "rgba(16, 185, 129, 0.5)",
-                },
-            ],
-        }
-
-        return (
-            <div ref={ref}>
-                <div className="mb-4 flex justify-between items-center">
-                    <h3 className="text-base sm:text-lg font-medium">Households by Barangay</h3>
-                    <button
-                        onClick={() => downloadChartAsImage(chartRef, "households-by-barangay")}
-                        className="rounded-md bg-blue-600 px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium text-white hover:bg-blue-500"
-                    >
-                        Export Chart
-                    </button>
-                </div>
-                <div className="h-[300px] sm:h-[350px] md:h-[400px]">
-                    <Bar ref={chartRef} options={options} data={data} />
-                </div>
-            </div>
-        )
+                ticks: {
+                    font: {
+                        size: compact ? 8 : 10
+                    }
+                }
+            },
+        },
     }
-) 
+
+    const data = {
+        labels: hasData ? householdsByBarangay.map(b => b.barangay) : [],
+        datasets: [
+            {
+                label: 'Households',
+                data: hasData ? householdsByBarangay.map(b => b.households) : [],
+                backgroundColor: 'rgba(53, 162, 235, 0.5)',
+                borderColor: 'rgba(53, 162, 235, 1)',
+                borderWidth: 1,
+            },
+            {
+                label: 'Residents',
+                data: hasData ? householdsByBarangay.map(b => b.residents) : [],
+                backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1,
+            },
+        ],
+    }
+
+    return (
+        <div ref={ref} className="w-full">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium">Barangay Statistics</h3>
+                <button
+                    onClick={handleChartDownload}
+                    className="text-xs text-blue-600 hover:text-blue-500"
+                    disabled={!hasData}
+                >
+                    Download Chart
+                </button>
+            </div>
+
+            {hasData ? (
+                <div className={`w-full ${compact ? 'h-64' : 'h-80'}`}>
+                    <Bar
+                        ref={chartRef}
+                        options={options}
+                        data={data}
+                    />
+                </div>
+            ) : (
+                <div className="text-center py-8 text-gray-500">
+                    No barangay data available to display
+                </div>
+            )}
+        </div>
+    )
+}) 

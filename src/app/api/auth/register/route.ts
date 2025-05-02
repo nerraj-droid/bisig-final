@@ -3,8 +3,8 @@ import { hash } from "bcryptjs"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { PrismaClient } from "@prisma/client"
-const { Role } = PrismaClient.extends.model.$Types
+import { Role, Status } from "@prisma/client"
+import { randomUUID } from "crypto"
 
 export async function POST(req: Request) {
     try {
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
             )
         }
 
-        const { name, email, password, role } = await req.json()
+        const { name, email, password, role, status = Status.ACTIVE } = await req.json()
 
         if (!name || !email || !password || !role) {
             return NextResponse.json(
@@ -58,12 +58,16 @@ export async function POST(req: Request) {
 
         const hashedPassword = await hash(password, 10)
 
+        // Include all required fields based on the schema
         const user = await prisma.user.create({
             data: {
+                id: randomUUID(),
                 name,
                 email,
                 password: hashedPassword,
                 role,
+                status,
+                updatedAt: new Date()
             }
         })
 

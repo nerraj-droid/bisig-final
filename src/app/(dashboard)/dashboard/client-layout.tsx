@@ -27,7 +27,9 @@ import {
   UserCog,
   X,
   Menu,
-  User
+  User,
+  Settings,
+  FileEdit
 } from "lucide-react";
 import { LoadingBar } from "@/components/ui/loading-bar";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -40,6 +42,11 @@ interface SidebarItemProps {
   hasSubmenu?: boolean;
   expanded?: boolean;
   onClick?: () => void;
+  subItems?: Array<{
+    label: string;
+    href: string;
+    icon: React.ReactNode;
+  }>;
 }
 
 const SidebarItem = ({
@@ -49,26 +56,54 @@ const SidebarItem = ({
   active,
   hasSubmenu,
   expanded,
-  onClick
+  onClick,
+  subItems
 }: SidebarItemProps) => {
+  const pathname = usePathname();
+
+  // Check if this item or any of its subitems are active
+  const isActive = active ||
+    (subItems && subItems.some(item => pathname === item.href));
+
   return (
-    <Link
-      href={href}
-      className={`flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${active
-        ? "bg-white/10 text-white"
-        : "text-white/80 hover:bg-white/5 hover:text-white"
-        }`}
-      onClick={onClick}
-    >
-      <div className="text-white">{icon}</div>
-      <span className="flex-1">{label}</span>
-      {hasSubmenu && (
-        <ChevronDown
-          size={16}
-          className={`transition-transform ${expanded ? "rotate-180" : ""}`}
-        />
+    <div>
+      <Link
+        href={hasSubmenu ? '#' : href}
+        className={`flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${isActive
+          ? "bg-white/10 text-white"
+          : "text-white/80 hover:bg-white/5 hover:text-white"
+          }`}
+        onClick={onClick}
+      >
+        <div className="text-white">{icon}</div>
+        <span className="flex-1">{label}</span>
+        {hasSubmenu && (
+          <ChevronDown
+            size={16}
+            className={`transition-transform ${expanded ? "rotate-180" : ""}`}
+          />
+        )}
+      </Link>
+
+      {/* Submenu items */}
+      {hasSubmenu && expanded && subItems && (
+        <div className="ml-8 my-1 space-y-1">
+          {subItems.map(item => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${pathname === item.href
+                ? "bg-white/10 text-white"
+                : "text-white/80 hover:bg-white/5 hover:text-white"
+                }`}
+            >
+              <div className="text-white">{item.icon}</div>
+              <span className="text-sm">{item.label}</span>
+            </Link>
+          ))}
+        </div>
       )}
-    </Link>
+    </div>
   );
 };
 
@@ -156,15 +191,28 @@ export default function ClientDashboardLayout({
       label: "Reports",
       icon: <BarChart3 size={20} />
     },
-    {
-      href: "/dashboard/finance",
-      label: "Finance",
-      icon: <Wallet size={20} />
-    },
+    // {
+    //   href: "/dashboard/finance",
+    //   label: "Finance",
+    //   icon: <Wallet size={20} />
+    // },
     {
       href: "/dashboard/users",
       label: "Users",
       icon: <UserCog size={20} />
+    },
+    {
+      href: "#",
+      label: "Settings",
+      icon: <Settings size={20} />,
+      hasSubmenu: true,
+      subItems: [
+        {
+          label: "Certificate Templates",
+          href: "/dashboard/certificates/settings/templates",
+          icon: <FileEdit size={18} />
+        }
+      ]
     },
   ];
 
@@ -242,7 +290,10 @@ export default function ClientDashboardLayout({
                   label={item.label}
                   href={item.href}
                   active={pathname === item.href}
-                  hasSubmenu={false}
+                  hasSubmenu={item.hasSubmenu}
+                  expanded={expandedMenus[item.label]}
+                  onClick={item.hasSubmenu ? () => toggleMenu(item.label) : undefined}
+                  subItems={item.subItems}
                 />
               ))}
             </div>
