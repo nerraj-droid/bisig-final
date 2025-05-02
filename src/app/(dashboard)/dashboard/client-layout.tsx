@@ -31,7 +31,8 @@ import {
   Settings,
   FileEdit,
   Calendar,
-  PiggyBank
+  PiggyBank,
+  BrainCircuit
 } from "lucide-react";
 import { LoadingBar } from "@/components/ui/loading-bar";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -209,6 +210,11 @@ export default function ClientDashboardLayout({
           label: "Annual Investment Program",
           href: "/dashboard/finance/aip",
           icon: <Calendar size={18} />
+        },
+        {
+          label: "AI Insights",
+          href: "/dashboard/finance/aip/insights",
+          icon: <BrainCircuit size={18} />
         },
         {
           label: "AIP Reports",

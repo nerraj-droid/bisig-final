@@ -127,6 +127,99 @@ In the Philippine context, the AIP is required under the Local Government Code o
 - Custom report generation ✅
 - Data visualization enhancements ✅
 
+### Phase 6: AI-Powered AIP Enhancement (Weeks 11-15)
+- AI advisor module for decision support
+- Smart recommendations and insights
+- Predictive analytics integration
+- Model training with historical data
+
+## AI Implementation Plan
+
+### AI Features
+
+1. **Intelligent Budget Allocation**
+   - AI-driven budget distribution recommendations based on historical data
+   - Impact prediction for different funding scenarios
+   - Optimization algorithms for resource allocation
+   - Early warning system for potential budget issues
+
+2. **Project Prioritization Engine**
+   - Automated scoring and ranking of proposed projects
+   - Multi-factor analysis (community impact, feasibility, cost-benefit)
+   - Priority recommendations based on community needs
+   - Identification of high-impact/low-cost opportunities
+
+3. **Predictive Risk Assessment**
+   - Risk profiling for projects based on historical data
+   - Early identification of potential implementation challenges
+   - Suggested mitigation strategies from successful past projects
+   - Probability-based outcome predictions
+
+4. **Smart Financial Forecasting**
+   - Cash flow projections throughout the fiscal year
+   - Budget utilization pattern recognition
+   - Anomaly detection in expenditure trends
+   - Financial scenario modeling
+
+5. **Performance Analytics**
+   - Benchmarking against similar barangays
+   - Success factor identification in completed projects
+   - Impact assessment predictions
+   - ROI calculations and comparisons
+
+6. **Document Intelligence**
+   - Automated information extraction from project documents
+   - Smart categorization and tagging of documentation
+   - Summary generation for proposals and reports
+   - Compliance verification with requirements
+
+### Technical Implementation for AI
+
+#### Data Architecture
+- Create data lake for historical AIP projects and outcomes
+- Implement ETL pipelines for data preparation
+- Design feature store for model inputs
+- Set up metrics tracking for model performance
+
+#### AI Models Development
+- Train budget allocation recommendation models
+- Develop project prioritization algorithms
+- Build risk assessment predictive models
+- Implement natural language processing for document analysis
+- Create time-series forecasting for financial projections
+
+#### Integration Framework
+- Develop API endpoints for AI model inference
+- Create recommendation delivery system
+- Implement feedback loops for model improvement
+- Design explainability components for recommendations
+
+#### User Interface
+- Build AI advisor dashboard
+- Design recommendation presentation components
+- Implement scenario comparison interfaces
+- Create settings for AI configuration preferences
+
+### AI Implementation Phases
+
+#### Phase 6.1: Foundation (Week 11-12) ✅
+- Data collection and preparation framework ✅
+- AI infrastructure setup ✅
+- Integration points with existing AIP modules ✅
+- User interface design for AI recommendations ✅
+
+#### Phase 6.2: Core AI Models (Week 13-14)
+- Budget allocation model implementation
+- Project prioritization engine development
+- Basic financial forecasting capabilities
+- Initial risk assessment models
+
+#### Phase 6.3: Advanced Features (Week 14-15)
+- Document intelligence integration
+- Performance analytics and benchmarking
+- Enhanced visualization of AI insights
+- Feedback mechanisms for model improvement
+
 ## Timeline Estimate
 - Start date: [To be determined]
 - Phase 1: 3 weeks ✅
@@ -134,11 +227,13 @@ In the Philippine context, the AIP is required under the Local Government Code o
 - Phase 3: 3 weeks ✅
 - Phase 4: 3 weeks ✅
 - Phase 5: 3 weeks ✅
-- Total implementation time: Approximately 10 weeks ✅
+- Phase 6: 5 weeks
+- Total implementation time: Approximately 15 weeks
 
 ## Resources Required
 - 1 Backend Developer
 - 1 Frontend Developer
+- 1 Data Scientist / ML Engineer (for AI implementation)
 - Project Manager (part-time)
 - UI/UX Designer (part-time)
 - Quality Assurance Tester
@@ -153,6 +248,12 @@ In the Philippine context, the AIP is required under the Local Government Code o
 - **Risk**: Regulatory compliance issues
   **Mitigation**: Regular consultation with DILG guidelines to ensure alignment
 
+- **Risk**: Insufficient historical data for AI models
+  **Mitigation**: Start with rule-based recommendations while collecting data, gradually transition to ML-based approaches
+
+- **Risk**: Model accuracy and trust issues
+  **Mitigation**: Implement explainable AI components and confidence scores for all recommendations
+
 ## Success Criteria
 - Successful creation and management of AIPs ✅
 - Proper project tracking from proposal to completion ✅
@@ -160,4 +261,30 @@ In the Philippine context, the AIP is required under the Local Government Code o
 - Improved transparency in barangay investment programs ✅
 - Compliance with DILG reporting requirements ✅
 - Advanced data visualization and analytics for better decision-making ✅
-- Comprehensive reporting system with multiple export formats ✅ 
+- Comprehensive reporting system with multiple export formats ✅
+- AI-powered recommendations that measurably improve budget allocation efficiency
+- Reduced project implementation risks through predictive analytics
+- Higher project success rates with AI-optimized prioritization
+- Improved financial forecasting accuracy
+
+## Current Implementation Status
+
+The following AI features have been successfully implemented:
+
+1. **AI Advisor API**: Created a backend API that analyzes AIP data and generates rule-based recommendations for:
+   - Budget allocation and utilization
+   - Project management and milestone tracking
+   - Risk assessment and resource allocation
+
+2. **AI Recommendation Component**: Built a reusable UI component that displays AI-powered recommendations in an intuitive card interface.
+
+3. **AIP Detail Integration**: Added the AI Advisor to the AIP detail page, giving users immediate access to AI insights for the current AIP.
+
+4. **Dedicated AI Insights Page**: Created a comprehensive AI Insights page with:
+   - Recommendation dashboard with categorized insights
+   - Placeholder sections for upcoming analytics and predictive features
+   - AIP selection for comparing different investment programs
+
+5. **Navigation Access**: Added sidebar navigation for easy access to AI features.
+
+Future phases will focus on implementing advanced analytics capabilities (Phase 6.2) and predictive insights (Phase 6.3) as outlined in the plan. 
