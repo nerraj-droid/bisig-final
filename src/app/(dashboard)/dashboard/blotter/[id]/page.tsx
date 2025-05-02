@@ -17,6 +17,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import UpdateStatus from "./update-status";
 
@@ -29,12 +30,12 @@ async function getBlotterCaseDetails(id: string) {
       },
       cache: 'no-store',
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error || 'Failed to fetch case details');
     }
-    
+
     const data = await response.json();
     return data;
   } catch (error) {
@@ -51,7 +52,9 @@ export default function BlotterCaseDetails() {
   const [loading, setLoading] = useState(true);
   const [generatingReport, setGeneratingReport] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
-  
+  const [updatingPayment, setUpdatingPayment] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -69,10 +72,10 @@ export default function BlotterCaseDetails() {
         setLoading(false);
       }
     }
-    
+
     loadData();
   }, [id]);
-  
+
   if (loading) {
     return (
       <PageTransition>
@@ -86,7 +89,7 @@ export default function BlotterCaseDetails() {
       </PageTransition>
     );
   }
-  
+
   if (!caseData) {
     return (
       <PageTransition>
@@ -106,7 +109,7 @@ export default function BlotterCaseDetails() {
       </PageTransition>
     );
   }
-  
+
   function getStatusBadgeClasses(status: BlotterCaseStatus) {
     switch (status) {
       case BlotterCaseStatus.PENDING:
@@ -121,7 +124,7 @@ export default function BlotterCaseDetails() {
         return "bg-gray-100 text-gray-800";
     }
   }
-  
+
   function getPriorityBadgeClasses(priority: BlotterPriority) {
     switch (priority) {
       case BlotterPriority.LOW:
@@ -136,19 +139,19 @@ export default function BlotterCaseDetails() {
         return "bg-gray-100 text-gray-800";
     }
   }
-  
+
   // Function to handle report generation
   const generateReport = async () => {
     try {
       setGeneratingReport(true);
       toast.info("Generating report...");
-      
+
       const response = await fetch(`/api/blotter/${id}/report`, { method: 'POST' });
-      
+
       if (!response.ok) {
         throw new Error('Failed to generate report');
       }
-      
+
       // Handle the PDF download
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -159,7 +162,7 @@ export default function BlotterCaseDetails() {
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
-      
+
       toast.success("Report generated successfully");
     } catch (error) {
       console.error('Error generating report:', error);
@@ -168,12 +171,12 @@ export default function BlotterCaseDetails() {
       setGeneratingReport(false);
     }
   };
-  
+
   // Function to navigate to edit page
   const handleEditCase = () => {
     router.push(`/dashboard/blotter/edit/${id}`);
   };
-  
+
   // Function to render the hearings data
   const renderHearings = () => {
     if (!caseData.hearings || caseData.hearings.length === 0) {
@@ -181,7 +184,7 @@ export default function BlotterCaseDetails() {
         <div className="text-center py-4 text-gray-500">No hearings scheduled yet.</div>
       );
     }
-    
+
     return (
       <div className="space-y-4">
         {caseData.hearings.map((hearing: any) => (
@@ -215,7 +218,7 @@ export default function BlotterCaseDetails() {
       </div>
     );
   };
-  
+
   // Function to render status updates
   const renderStatusUpdates = () => {
     if (!caseData.statusUpdates || caseData.statusUpdates.length === 0) {
@@ -223,7 +226,7 @@ export default function BlotterCaseDetails() {
         <div className="text-center py-4 text-gray-500">No status updates yet.</div>
       );
     }
-    
+
     return (
       <div className="space-y-4">
         {caseData.statusUpdates.map((update: any) => (
@@ -243,73 +246,44 @@ export default function BlotterCaseDetails() {
       </div>
     );
   };
-  
-  // Function to render attachments
-  const renderAttachments = () => {
-    if (!caseData.attachments || caseData.attachments.length === 0) {
-      return (
-        <div className="text-center py-4 text-gray-500">No attachments uploaded yet.</div>
-      );
-    }
-    
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {caseData.attachments.map((attachment: any) => (
-          <div key={attachment.id} className="border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-100 p-2 rounded">
-                <File size={24} className="text-blue-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{attachment.fileName}</p>
-                <p className="text-xs text-gray-500">
-                  {format(new Date(attachment.uploadDate), 'MMM dd, yyyy')}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-  
+
   // Format party name properly
   const formatPartyName = (party: any) => {
     if (!party) return 'Unknown';
-    
+
     if (party.firstName && party.lastName) {
       return `${party.firstName} ${party.middleName ? party.middleName + ' ' : ''}${party.lastName}`;
     }
-    
+
     return party.name || 'Unknown';
   };
 
   // Get complainant and respondent from parties array if needed
   const getComplainant = () => {
     if (caseData.complainant) return caseData.complainant;
-    
+
     if (caseData.parties) {
       return caseData.parties.find((p: any) => p.partyType === BlotterPartyType.COMPLAINANT);
     }
-    
+
     return null;
   };
-  
+
   const getRespondent = () => {
     if (caseData.respondent) return caseData.respondent;
-    
+
     if (caseData.parties) {
       return caseData.parties.find((p: any) => p.partyType === BlotterPartyType.RESPONDENT);
     }
-    
+
     return null;
   };
-  
+
   // Function to handle status update modal
   const handleOpenStatusUpdate = () => {
     setStatusDialogOpen(true);
   };
-  
+
   const handleStatusUpdated = async () => {
     setStatusDialogOpen(false);
     try {
@@ -322,7 +296,43 @@ export default function BlotterCaseDetails() {
       toast.error("Failed to refresh case data");
     }
   };
-  
+
+  // Function to open payment dialog
+  const openPaymentDialog = () => {
+    setPaymentDialogOpen(true);
+  };
+
+  // Function to handle payment update
+  const handleUpdateFilingFee = async () => {
+    try {
+      setPaymentDialogOpen(false);
+      setUpdatingPayment(true);
+      toast.info("Updating filing fee status...");
+
+      const response = await fetch(`/api/blotter/${id}/filing-fee`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ filingFeePaid: true }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update filing fee status');
+      }
+
+      // Reload the case data
+      const data = await getBlotterCaseDetails(id);
+      setCaseData(data);
+      toast.success("Filing fee marked as paid");
+    } catch (error) {
+      console.error('Error updating filing fee status:', error);
+      toast.error("Failed to update filing fee status");
+    } finally {
+      setUpdatingPayment(false);
+    }
+  };
+
   return (
     <PageTransition>
       <div className="p-6 max-w-7xl mx-auto">
@@ -343,14 +353,25 @@ export default function BlotterCaseDetails() {
             </span>
           </div>
           <div className="flex-1"></div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {!caseData.filingFeePaid ? (
+              <Button
+                variant="outline"
+                className="gap-1 border-green-500 text-green-600 hover:bg-green-50"
+                onClick={openPaymentDialog}
+                disabled={updatingPayment}
+              >
+                <Shield size={16} />
+                {updatingPayment ? "Processing..." : "Mark Fee as Paid"}
+              </Button>
+            ) : null}
             <Button variant="outline" className="gap-1" onClick={handleEditCase}>
               <Edit size={16} />
               Edit Case
             </Button>
-            <Button 
-              variant="outline" 
-              className="gap-1" 
+            <Button
+              variant="outline"
+              className="gap-1"
               onClick={generateReport}
               disabled={generatingReport}
             >
@@ -359,10 +380,10 @@ export default function BlotterCaseDetails() {
             </Button>
           </div>
         </div>
-        
-        {/* Add Process Flow component below the header section */}
+
+        {/* Process flow visualization */}
         <div className="mb-6">
-          <ProcessFlow 
+          <ProcessFlow
             currentStatus={caseData.status}
             filingFeePaid={caseData.filingFeePaid}
             docketDate={caseData.docketDate}
@@ -374,7 +395,7 @@ export default function BlotterCaseDetails() {
             resolutionMethod={caseData.resolutionMethod}
           />
         </div>
-        
+
         {/* Case Summary */}
         <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden mb-6">
           <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
@@ -417,8 +438,8 @@ export default function BlotterCaseDetails() {
             )}
           </div>
         </div>
-        
-        {/* New process-specific fields */}
+
+        {/* Process Details section */}
         <div className="mt-6">
           <h3 className="text-lg font-semibold mb-2">Process Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -429,70 +450,70 @@ export default function BlotterCaseDetails() {
                 {caseData.filingFeePaid ? 'Paid' : 'Unpaid'}
               </p>
             </div>
-            
+
             {caseData.docketDate && (
               <div>
                 <p className="text-sm font-medium text-gray-500">Docket Date</p>
                 <p>{new Date(caseData.docketDate).toLocaleDateString()}</p>
               </div>
             )}
-            
+
             {caseData.summonDate && (
               <div>
                 <p className="text-sm font-medium text-gray-500">Summon Date</p>
                 <p>{new Date(caseData.summonDate).toLocaleDateString()}</p>
               </div>
             )}
-            
+
             {caseData.mediationStartDate && (
               <div>
                 <p className="text-sm font-medium text-gray-500">Mediation Started</p>
                 <p>{new Date(caseData.mediationStartDate).toLocaleDateString()}</p>
               </div>
             )}
-            
+
             {caseData.mediationEndDate && (
               <div>
                 <p className="text-sm font-medium text-gray-500">Mediation Ended</p>
                 <p>{new Date(caseData.mediationEndDate).toLocaleDateString()}</p>
               </div>
             )}
-            
+
             {caseData.conciliationStartDate && (
               <div>
                 <p className="text-sm font-medium text-gray-500">Conciliation Started</p>
                 <p>{new Date(caseData.conciliationStartDate).toLocaleDateString()}</p>
               </div>
             )}
-            
+
             {caseData.conciliationEndDate && (
               <div>
                 <p className="text-sm font-medium text-gray-500">Conciliation Ended</p>
                 <p>{new Date(caseData.conciliationEndDate).toLocaleDateString()}</p>
               </div>
             )}
-            
+
             {caseData.extensionDate && (
               <div>
                 <p className="text-sm font-medium text-gray-500">Extension Date</p>
                 <p>{new Date(caseData.extensionDate).toLocaleDateString()}</p>
               </div>
             )}
-            
+
             {caseData.certificationDate && (
               <div>
                 <p className="text-sm font-medium text-gray-500">Certification Issued</p>
                 <p>{new Date(caseData.certificationDate).toLocaleDateString()}</p>
               </div>
             )}
-            
+
             {caseData.resolutionMethod && (
               <div>
                 <p className="text-sm font-medium text-gray-500">Resolution Method</p>
                 <p>{caseData.resolutionMethod}</p>
               </div>
             )}
-            
+
             {caseData.escalatedToEnt && (
               <div>
                 <p className="text-sm font-medium text-gray-500">Escalated To</p>
@@ -501,10 +522,10 @@ export default function BlotterCaseDetails() {
             )}
           </div>
         </div>
-        
+
         {/* Tabs for different sections */}
         <Tabs defaultValue="parties">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="parties" className="flex items-center gap-2">
               <User size={16} />
               <span>Parties</span>
@@ -517,12 +538,8 @@ export default function BlotterCaseDetails() {
               <Shield size={16} />
               <span>Status Updates</span>
             </TabsTrigger>
-            <TabsTrigger value="attachments" className="flex items-center gap-2">
-              <File size={16} />
-              <span>Attachments</span>
-            </TabsTrigger>
           </TabsList>
-          
+
           {/* Parties Tab */}
           <TabsContent value="parties">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -554,7 +571,7 @@ export default function BlotterCaseDetails() {
                   )}
                 </div>
               </div>
-              
+
               {/* Respondent */}
               <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
                 <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
@@ -585,7 +602,7 @@ export default function BlotterCaseDetails() {
               </div>
             </div>
           </TabsContent>
-          
+
           {/* Hearings Tab */}
           <TabsContent value="hearings">
             <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
@@ -601,7 +618,7 @@ export default function BlotterCaseDetails() {
               </div>
             </div>
           </TabsContent>
-          
+
           {/* Status Updates Tab */}
           <TabsContent value="status">
             <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
@@ -617,26 +634,45 @@ export default function BlotterCaseDetails() {
               </div>
             </div>
           </TabsContent>
-          
-          {/* Attachments Tab */}
-          <TabsContent value="attachments">
-            <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-              <div className="border-b border-gray-200 bg-gray-50 px-6 py-4 flex justify-between items-center">
-                <h3 className="text-lg font-medium">Case Attachments</h3>
-                <Button variant="outline" size="sm" className="gap-1">
-                  <File size={14} />
-                  Upload File
-                </Button>
-              </div>
-              <div className="p-6">
-                {renderAttachments()}
-              </div>
-            </div>
-          </TabsContent>
         </Tabs>
       </div>
-      
-      {/* Add the status update dialog */}
+
+      {/* Add the payment confirmation dialog */}
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Payment</DialogTitle>
+            <DialogDescription>
+              {caseData.status === BlotterCaseStatus.FILED || caseData.status === "FILED" ? (
+                "Are you sure you want to mark the filing fee as paid? This will move the case to the DOCKETED status."
+              ) : (
+                "Are you sure you want to mark the filing fee as paid? The case status will remain as " + caseData.status + "."
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-start flex flex-col sm:flex-row gap-2">
+            <Button
+              type="button"
+              variant="default"
+              onClick={handleUpdateFilingFee}
+              disabled={updatingPayment}
+              className="gap-2"
+            >
+              <Shield size={16} />
+              {updatingPayment ? "Processing..." : "Yes, Mark as Paid"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPaymentDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Status update dialog */}
       <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -645,9 +681,9 @@ export default function BlotterCaseDetails() {
               Change the status and provide details for this update
             </DialogDescription>
           </DialogHeader>
-          <UpdateStatus 
-            caseId={id} 
-            currentStatus={caseData?.status || BlotterCaseStatus.FILED} 
+          <UpdateStatus
+            caseId={id}
+            currentStatus={caseData?.status || BlotterCaseStatus.FILED}
             onStatusUpdated={handleStatusUpdated}
           />
         </DialogContent>

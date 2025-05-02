@@ -25,7 +25,7 @@ const nextConfig = {
   },
   // Enable Next.js 15 middleware features
   experimental: {
-    serverComponentsExternalPackages: ['next-auth'],
+    serverExternalPackages: ['next-auth'],
     trustHostHeader: true,
   },
   // Force cookie security with secure settings
