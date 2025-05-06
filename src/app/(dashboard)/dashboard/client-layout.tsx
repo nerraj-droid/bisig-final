@@ -32,7 +32,8 @@ import {
   FileEdit,
   Calendar,
   PiggyBank,
-  BrainCircuit
+  BrainCircuit,
+  Lightbulb
 } from "lucide-react";
 import { LoadingBar } from "@/components/ui/loading-bar";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -234,6 +235,39 @@ export default function ClientDashboardLayout({
       ]
     },
     {
+      href: "#",
+      label: "AI Tools",
+      icon: <BrainCircuit size={20} />,
+      hasSubmenu: true,
+      subItems: [
+        {
+          label: "AI Dashboard",
+          href: "/dashboard/ai",
+          icon: <LayoutDashboard size={18} />
+        },
+        {
+          label: "Document Intelligence",
+          href: "/dashboard/ai/document-intelligence",
+          icon: <FileText size={18} />
+        },
+        {
+          label: "Feedback Dashboard",
+          href: "/dashboard/ai/feedback",
+          icon: <MessageSquare size={18} />
+        },
+        {
+          label: "Performance Analytics",
+          href: "/dashboard/ai/performance-analytics",
+          icon: <BarChart3 size={18} />
+        },
+        {
+          label: "AI Insights",
+          href: "/dashboard/ai/insights",
+          icon: <Lightbulb size={18} />
+        }
+      ]
+    },
+    {
       href: "/dashboard/users",
       label: "Users",
       icon: <UserCog size={20} />
@@ -322,7 +356,7 @@ export default function ClientDashboardLayout({
             <div className="space-y-1">
               {navigationItems.map((item) => (
                 <SidebarItem
-                  key={item.href}
+                  key={`${item.href}-${item.label}`}
                   icon={item.icon}
                   label={item.label}
                   href={item.href}

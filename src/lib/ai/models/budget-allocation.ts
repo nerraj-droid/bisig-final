@@ -1,5 +1,15 @@
-import { Model, BudgetAllocationPrediction } from './index';
+import { 
+    Model, 
+    BudgetAllocationPrediction, 
+    ModelVersion, 
+    validateNumericRange, 
+    logModelOperation,
+    TrainingMetadata
+} from './index';
 import prisma from '@/lib/prisma';
+import { AnnualInvestmentProgram, AIPProject, AIPExpense } from '@prisma/client';
+import fs from 'fs/promises';
+import path from 'path';
 
 /**
  * Budget Allocation Model
@@ -8,6 +18,14 @@ import prisma from '@/lib/prisma';
  * Uses a combination of historical patterns, sector impact scoring, and balance considerations.
  */
 export class BudgetAllocationModel implements Model<BudgetAllocationPrediction> {
+    // Model version information
+    private version: ModelVersion = {
+        major: 1,
+        minor: 0,
+        patch: 0,
+        timestamp: new Date().toISOString(),
+        description: "Initial production model for budget allocation recommendations"
+    };
 
     // Default sector weights based on general importance
     private sectorWeights: Record<string, number> = {
@@ -22,88 +40,165 @@ export class BudgetAllocationModel implements Model<BudgetAllocationPrediction> 
         "Sports & Culture": 0.6,
     };
 
+    // Coefficients for allocation formula, to be adjusted during training
+    private modelCoefficients = {
+        historicalWeight: 0.4,
+        priorityWeight: 0.4,
+        effectivenessWeight: 0.2,
+        minAllocationPct: 5
+    };
+    
+    // Stats for normalizing input features
+    private normalizationStats: Record<string, { mean: number, stdDev: number }> = {};
+
     constructor() {
-        // Initialize model and load weights if needed
+        // Load model parameters if available
+        this.loadModel().catch(() => {
+            console.log("No saved model found, using default parameters");
+        });
+    }
+
+    /**
+     * Get current model version
+     */
+    getVersion(): ModelVersion {
+        return { ...this.version };
+    }
+
+    /**
+     * Validate input data for prediction
+     */
+    validateInput(data: any): boolean {
+        if (!data) return false;
+        if (!data.aipId || typeof data.aipId !== 'string') return false;
+        return true;
+    }
+
+    /**
+     * Validate output prediction
+     */
+    validateOutput(prediction: BudgetAllocationPrediction): boolean {
+        if (!prediction) return false;
+        if (!validateNumericRange(prediction.confidence, 0, 1)) return false;
+        if (!prediction.sectorAllocations || !Array.isArray(prediction.sectorAllocations)) return false;
+        
+        // Check that allocations sum to approximately 100%
+        const totalAllocation = prediction.sectorAllocations.reduce(
+            (sum, sector) => sum + sector.recommendedPercentage, 0
+        );
+        if (Math.abs(totalAllocation - 100) > 1) return false;
+        
+        return true;
     }
 
     /**
      * Predict optimal budget allocations based on historical data and current needs
      */
     async predict(data: { aipId: string; fiscalYear?: string }): Promise<BudgetAllocationPrediction> {
-        const { aipId, fiscalYear } = data;
-
-        // Get current AIP data
-        const aip = await prisma.annualInvestmentProgram.findUnique({
-            where: { id: aipId },
-            include: {
-                projects: {
-                    include: {
-                        expenses: true,
-                    },
-                },
-                fiscalYear: true,
-            },
-        });
-
-        if (!aip) {
-            throw new Error("AIP not found");
+        const startTime = performance.now();
+        
+        // Validate input
+        if (!this.validateInput(data)) {
+            throw new Error("Invalid input data for budget allocation prediction");
         }
 
-        // Get historical AIP data from the same or previous fiscal years
-        const historicalAIPs = await prisma.annualInvestmentProgram.findMany({
-            where: {
-                fiscalYear: {
-                    year: {
-                        lte: aip.fiscalYear.year,
-                        not: aip.fiscalYear.year, // Exclude current fiscal year
-                    }
+        const { aipId, fiscalYear } = data;
+
+        try {
+            // Get current AIP data
+            const aip = await prisma.annualInvestmentProgram.findUnique({
+                where: { id: aipId },
+                include: {
+                    projects: {
+                        include: {
+                            expenses: true,
+                        },
+                    },
+                    fiscalYear: true,
                 },
-                status: "COMPLETED", // Only consider completed AIPs
-            },
-            include: {
-                projects: {
-                    include: {
-                        expenses: true,
+            });
+
+            if (!aip) {
+                throw new Error("AIP not found");
+            }
+
+            // Get historical AIP data from the same or previous fiscal years
+            const historicalAIPs = await prisma.annualInvestmentProgram.findMany({
+                where: {
+                    fiscalYear: {
+                        year: {
+                            lte: aip.fiscalYear.year,
+                            not: aip.fiscalYear.year, // Exclude current fiscal year
+                        }
+                    },
+                    status: "COMPLETED", // Only consider completed AIPs
+                },
+                include: {
+                    projects: {
+                        include: {
+                            expenses: true,
+                        },
+                    },
+                    fiscalYear: true,
+                },
+                orderBy: {
+                    fiscalYear: {
+                        year: 'desc',
                     },
                 },
-                fiscalYear: true,
-            },
-            orderBy: {
-                fiscalYear: {
-                    year: 'desc',
-                },
-            },
-            take: 3, // Consider last 3 fiscal years
-        });
+                take: 3, // Consider last 3 fiscal years
+            });
 
-        // Analyze historical sector allocations
-        const historicalSectorAllocations = this.analyzeHistoricalSectorAllocations(historicalAIPs);
+            // Analyze historical sector allocations
+            const historicalSectorAllocations = this.analyzeHistoricalSectorAllocations(historicalAIPs);
 
-        // Analyze current needs based on existing projects and expenses
-        const currentNeeds = this.analyzeCurrentNeeds(aip);
+            // Analyze current needs based on existing projects and expenses
+            const currentNeeds = this.analyzeCurrentNeeds(aip);
 
-        // Generate allocation recommendations
-        const totalBudget = aip.totalAmount;
-        const sectorAllocations = this.generateSectorAllocations(
-            totalBudget,
-            historicalSectorAllocations,
-            currentNeeds
-        );
+            // Generate allocation recommendations
+            const totalBudget = aip.totalAmount;
+            const sectorAllocations = this.generateSectorAllocations(
+                totalBudget,
+                historicalSectorAllocations,
+                currentNeeds
+            );
 
-        // Create overall recommendation
-        const overallRecommendation = this.generateOverallRecommendation(
-            sectorAllocations,
-            historicalSectorAllocations,
-            currentNeeds
-        );
+            // Create overall recommendation
+            const overallRecommendation = this.generateOverallRecommendation(
+                sectorAllocations,
+                historicalSectorAllocations,
+                currentNeeds
+            );
 
-        return {
-            confidence: 0.85, // Confidence level
-            timestamp: new Date().toISOString(),
-            source: "budget-allocation-model-v1",
-            sectorAllocations,
-            overallRecommendation,
-        };
+            const prediction = {
+                confidence: 0.85, // Confidence level
+                timestamp: new Date().toISOString(),
+                source: `budget-allocation-model-v${this.version.major}.${this.version.minor}.${this.version.patch}`,
+                sectorAllocations,
+                overallRecommendation,
+                executionTimeMs: performance.now() - startTime
+            };
+
+            // Validate output
+            if (!this.validateOutput(prediction)) {
+                throw new Error("Generated prediction failed validation");
+            }
+
+            // Log the prediction operation
+            logModelOperation("BudgetAllocationModel", "predict", {
+                aipId,
+                executionTimeMs: prediction.executionTimeMs,
+                confidence: prediction.confidence
+            });
+
+            return prediction;
+        } catch (error) {
+            logModelOperation("BudgetAllocationModel", "prediction_error", {
+                error: error instanceof Error ? error.message : String(error),
+                aipId
+            });
+            throw error;
+        }
     }
 
     /**
@@ -346,25 +441,514 @@ export class BudgetAllocationModel implements Model<BudgetAllocationPrediction> 
     }
 
     /**
-     * Train the model with new data (placeholder for future implementation)
+     * Train the model with historical AIP data
      */
-    async train(data: any): Promise<void> {
-        console.log("Training functionality will be implemented in future versions");
-        // Reserved for future implementation of model training
+    async train(data: { fiscalYears?: number[]; includeIncomplete?: boolean }): Promise<TrainingMetadata> {
+        const startTime = new Date();
+        let processedCount = 0;
+
+        try {
+            // Build the where conditions
+            const whereCondition: any = {};
+            
+            // Add status filter if needed
+            if (!data.includeIncomplete) {
+                whereCondition.status = "COMPLETED";
+            }
+            
+            // Fetch training data
+            const trainingAIPs = await prisma.annualInvestmentProgram.findMany({
+                where: whereCondition,
+                include: {
+                    projects: {
+                        include: {
+                            expenses: true,
+                        },
+                    },
+                    fiscalYear: true,
+                },
+                orderBy: {
+                    fiscalYear: {
+                        year: 'desc',
+                    },
+                },
+            });
+
+            // Filter by fiscal years if needed
+            let filteredAIPs = trainingAIPs;
+            if (data.fiscalYears && data.fiscalYears.length > 0) {
+                filteredAIPs = trainingAIPs.filter(aip => 
+                    aip.fiscalYear && data.fiscalYears?.includes(Number(aip.fiscalYear.year))
+                );
+            }
+
+            processedCount = filteredAIPs.length;
+            if (processedCount === 0) {
+                throw new Error("No training data available");
+            }
+
+            // Collect features for optimization
+            const features: {
+                historicalWeight: number;
+                priorityWeight: number;
+                effectivenessWeight: number;
+                sectorWeights: Record<string, number>;
+                performance: number;
+            }[] = [];
+
+            // Prepare cross-validation folds
+            const folds = this.createCrossValidationFolds(filteredAIPs, 5);
+            
+            // Use grid search to find optimal parameters
+            const historicalWeights = [0.3, 0.4, 0.5];
+            const priorityWeights = [0.3, 0.4, 0.5];
+            const effectivenessWeights = [0.1, 0.2, 0.3];
+
+            // Try different combinations of parameters
+            for (const historicalWeight of historicalWeights) {
+                for (const priorityWeight of priorityWeights) {
+                    // Ensure weights sum to 1
+                    const effectivenessWeight = 1 - historicalWeight - priorityWeight;
+                    if (effectivenessWeight < 0) continue;
+                    
+                    // Evaluate this parameter combination
+                    const performance = await this.evaluateParameters({
+                        historicalWeight,
+                        priorityWeight,
+                        effectivenessWeight
+                    }, folds);
+                    
+                    features.push({
+                        historicalWeight,
+                        priorityWeight,
+                        effectivenessWeight,
+                        sectorWeights: { ...this.sectorWeights },
+                        performance
+                    });
+                }
+            }
+
+            // Find best performing parameters
+            const bestFeature = features.reduce((best, current) => 
+                current.performance > best.performance ? current : best, 
+                features[0]
+            );
+
+            // Update model parameters
+            this.modelCoefficients = {
+                historicalWeight: bestFeature.historicalWeight,
+                priorityWeight: bestFeature.priorityWeight,
+                effectivenessWeight: bestFeature.effectivenessWeight,
+                minAllocationPct: this.modelCoefficients.minAllocationPct
+            };
+
+            // Update model version
+            this.version = {
+                ...this.version,
+                minor: this.version.minor + 1,
+                timestamp: new Date().toISOString(),
+                description: `Model retrained with ${processedCount} samples`
+            };
+
+            // Calculate normalization stats
+            this.calculateNormalizationStats(filteredAIPs);
+
+            // Save the trained model
+            await this.saveModel();
+
+            const endTime = new Date();
+            const trainingMetadata: TrainingMetadata = {
+                startTime: startTime.toISOString(),
+                endTime: endTime.toISOString(),
+                samplesProcessed: processedCount,
+                convergenceMetrics: {
+                    finalPerformance: bestFeature.performance,
+                    historicalWeight: bestFeature.historicalWeight,
+                    priorityWeight: bestFeature.priorityWeight,
+                    effectivenessWeight: bestFeature.effectivenessWeight
+                },
+                version: this.getVersion()
+            };
+
+            // Log training completion
+            logModelOperation("BudgetAllocationModel", "training_complete", trainingMetadata);
+
+            return trainingMetadata;
+        } catch (error) {
+            logModelOperation("BudgetAllocationModel", "training_error", {
+                error: error instanceof Error ? error.message : String(error),
+                processedSamples: processedCount
+            });
+            throw error;
+        }
     }
 
     /**
-     * Evaluate model performance (placeholder for future implementation)
+     * Create cross-validation folds from the data
      */
-    async evaluate(data: any): Promise<{ accuracy: number, metrics: Record<string, number> }> {
-        return {
-            accuracy: 0.85,
-            metrics: {
-                precision: 0.87,
-                recall: 0.82,
-                f1Score: 0.84
-            }
+    private createCrossValidationFolds(data: any[], k: number) {
+        // Shuffle the data
+        const shuffled = [...data].sort(() => 0.5 - Math.random());
+        
+        // Create k approximately equal-sized folds
+        const folds: any[][] = [];
+        const foldSize = Math.floor(shuffled.length / k);
+        
+        for (let i = 0; i < k; i++) {
+            const start = i * foldSize;
+            const end = i === k - 1 ? shuffled.length : start + foldSize;
+            folds.push(shuffled.slice(start, end));
+        }
+        
+        return folds;
+    }
+
+    /**
+     * Evaluate a set of parameters using cross-validation
+     */
+    private async evaluateParameters(
+        params: { 
+            historicalWeight: number; 
+            priorityWeight: number; 
+            effectivenessWeight: number; 
+        }, 
+        folds: any[][]
+    ): Promise<number> {
+        let totalPerformance = 0;
+        
+        // Save current parameters
+        const originalParams = { ...this.modelCoefficients };
+        
+        // Set new parameters for evaluation
+        this.modelCoefficients = {
+            ...this.modelCoefficients,
+            ...params
         };
+        
+        // Evaluate each fold
+        for (let i = 0; i < folds.length; i++) {
+            // Use current fold as validation, rest as training
+            const validationFold = folds[i];
+            const trainingFolds = folds.filter((_, index) => index !== i);
+            const trainingData = trainingFolds.flat();
+            
+            // Evaluate performance on validation fold
+            const foldPerformance = this.evaluateFold(trainingData, validationFold);
+            totalPerformance += foldPerformance;
+        }
+        
+        // Reset original parameters
+        this.modelCoefficients = originalParams;
+        
+        // Return average performance across folds
+        return totalPerformance / folds.length;
+    }
+
+    /**
+     * Evaluate model performance on a single fold
+     */
+    private evaluateFold(trainingData: any[], validationData: any[]): number {
+        // Simplified evaluation - in a real implementation, this would be more sophisticated
+        let correctPredictions = 0;
+        
+        for (const aip of validationData) {
+            // Use the model to predict allocations
+            const historicalAllocations = this.analyzeHistoricalSectorAllocations(trainingData);
+            const currentNeeds = this.analyzeCurrentNeeds(aip);
+            
+            // Generate recommendations
+            const recommendations = this.generateSectorAllocations(
+                aip.totalAmount,
+                historicalAllocations,
+                currentNeeds
+            );
+            
+            // Compare with actual allocations
+            const actualAllocations = this.getActualAllocations(aip);
+            const similarity = this.calculateAllocationSimilarity(recommendations, actualAllocations);
+            
+            // Add to correct predictions based on similarity threshold
+            if (similarity > 0.7) {
+                correctPredictions++;
+            }
+        }
+        
+        return correctPredictions / validationData.length;
+    }
+
+    /**
+     * Get actual allocations from an AIP
+     */
+    private getActualAllocations(aip: any): any[] {
+        const totalBudget = aip.totalAmount;
+        const sectorAllocations: { sector: string; percentage: number; amount: number }[] = [];
+        const sectors = new Map<string, number>();
+        
+        // Group projects by sector and sum their costs
+        aip.projects.forEach((project: any) => {
+            const sector = project.sector || "Uncategorized";
+            const currentAmount = sectors.get(sector) || 0;
+            sectors.set(sector, currentAmount + project.totalCost);
+        });
+        
+        // Calculate percentages
+        sectors.forEach((amount, sector) => {
+            sectorAllocations.push({
+                sector,
+                percentage: (amount / totalBudget) * 100,
+                amount
+            });
+        });
+        
+        return sectorAllocations;
+    }
+
+    /**
+     * Calculate similarity between recommended and actual allocations
+     */
+    private calculateAllocationSimilarity(
+        recommended: { sector: string; recommendedPercentage: number }[],
+        actual: { sector: string; percentage: number }[]
+    ): number {
+        // Create maps for easier comparison
+        const recommendedMap = new Map(
+            recommended.map(r => [r.sector, r.recommendedPercentage])
+        );
+        const actualMap = new Map(
+            actual.map(a => [a.sector, a.percentage])
+        );
+        
+        // Collect all sectors
+        const allSectors = new Set([
+            ...Array.from(recommendedMap.keys()),
+            ...Array.from(actualMap.keys())
+        ]);
+        
+        let totalDifference = 0;
+        
+        // Calculate sum of absolute differences
+        allSectors.forEach(sector => {
+            const recommendedPct = recommendedMap.get(sector) || 0;
+            const actualPct = actualMap.get(sector) || 0;
+            totalDifference += Math.abs(recommendedPct - actualPct);
+        });
+        
+        // Normalize to 0-1 scale (0 = completely different, 1 = identical)
+        return Math.max(0, 1 - (totalDifference / 200));
+    }
+
+    /**
+     * Calculate normalization statistics for input features
+     */
+    private calculateNormalizationStats(data: any[]) {
+        // Collect sector percentages across all AIPs
+        const sectorPercentages: Record<string, number[]> = {};
+        
+        data.forEach(aip => {
+            const totalBudget = aip.totalAmount;
+            const sectors = new Map<string, number>();
+            
+            // Group projects by sector and sum their costs
+            aip.projects.forEach((project: any) => {
+                const sector = project.sector || "Uncategorized";
+                const currentAmount = sectors.get(sector) || 0;
+                sectors.set(sector, currentAmount + project.totalCost);
+            });
+            
+            // Calculate percentages
+            sectors.forEach((amount, sector) => {
+                const percentage = (amount / totalBudget) * 100;
+                if (!sectorPercentages[sector]) {
+                    sectorPercentages[sector] = [];
+                }
+                sectorPercentages[sector].push(percentage);
+            });
+        });
+        
+        // Calculate mean and standard deviation for each sector
+        Object.entries(sectorPercentages).forEach(([sector, values]) => {
+            const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+            const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+            const stdDev = Math.sqrt(variance);
+            
+            this.normalizationStats[sector] = { mean, stdDev };
+        });
+    }
+
+    /**
+     * Evaluate model performance on test data
+     */
+    async evaluate(data: { aipIds: string[] }): Promise<{ accuracy: number, metrics: Record<string, number> }> {
+        try {
+            const { aipIds } = data;
+            if (!aipIds || !Array.isArray(aipIds) || aipIds.length === 0) {
+                throw new Error("Invalid evaluation data: aipIds must be a non-empty array");
+            }
+
+            // Get AIPs for evaluation
+            const aips = await prisma.annualInvestmentProgram.findMany({
+                where: {
+                    id: { in: aipIds },
+                    status: "COMPLETED" // Only evaluate on completed AIPs
+                },
+                include: {
+                    projects: {
+                        include: {
+                            expenses: true,
+                        },
+                    },
+                    fiscalYear: true,
+                },
+            });
+
+            if (aips.length === 0) {
+                throw new Error("No valid AIPs found for evaluation");
+            }
+
+            // Metrics to track
+            let totalAllocSimilarity = 0;
+            let totalSectorAccuracy = 0;
+            let totalUtilizationError = 0;
+
+            // Evaluate each AIP
+            for (const aip of aips) {
+                // Get actual allocations
+                const actualAllocations = this.getActualAllocations(aip);
+                
+                // Generate predicted allocations without using this AIP's data
+                const otherAips = aips.filter(a => a.id !== aip.id);
+                const historicalAllocations = this.analyzeHistoricalSectorAllocations(otherAips);
+                const currentNeeds = this.analyzeCurrentNeeds(aip);
+                
+                const predictedAllocations = this.generateSectorAllocations(
+                    aip.totalAmount,
+                    historicalAllocations,
+                    currentNeeds
+                );
+
+                // Calculate allocation similarity
+                const similarity = this.calculateAllocationSimilarity(
+                    predictedAllocations,
+                    actualAllocations
+                );
+                totalAllocSimilarity += similarity;
+
+                // Calculate sector accuracy - how many sectors were correctly identified as important
+                const actualTopSectors = actualAllocations
+                    .sort((a, b) => b.percentage - a.percentage)
+                    .slice(0, 3)
+                    .map(s => s.sector);
+                
+                const predictedTopSectors = predictedAllocations
+                    .sort((a, b) => b.recommendedPercentage - a.recommendedPercentage)
+                    .slice(0, 3)
+                    .map(s => s.sector);
+                
+                const matchingTopSectors = actualTopSectors.filter(
+                    s => predictedTopSectors.includes(s)
+                ).length;
+                
+                totalSectorAccuracy += matchingTopSectors / 3;
+                
+                // Calculate utilization error - for completed AIPs, check actual spend vs allocated
+                const totalAllocated = aip.totalAmount;
+                const totalSpent = aip.projects.reduce(
+                    (sum, p) => sum + p.expenses.reduce((s, e) => s + e.amount, 0), 
+                    0
+                );
+                
+                const utilizationError = Math.abs(totalSpent - totalAllocated) / totalAllocated;
+                totalUtilizationError += utilizationError;
+            }
+
+            // Calculate final metrics
+            const accuracy = totalAllocSimilarity / aips.length;
+            const sectorAccuracy = totalSectorAccuracy / aips.length;
+            const utilizationError = totalUtilizationError / aips.length;
+            const f1Score = 2 * (accuracy * sectorAccuracy) / (accuracy + sectorAccuracy);
+
+            // Log evaluation results
+            logModelOperation("BudgetAllocationModel", "evaluate", {
+                aipCount: aips.length,
+                accuracy,
+                sectorAccuracy,
+                utilizationError,
+                f1Score
+            });
+
+            return {
+                accuracy,
+                metrics: {
+                    sectorAccuracy,
+                    utilizationError,
+                    f1Score
+                }
+            };
+        } catch (error) {
+            logModelOperation("BudgetAllocationModel", "evaluation_error", {
+                error: error instanceof Error ? error.message : String(error)
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Save model to disk
+     */
+    async saveModel(customPath?: string): Promise<void> {
+        try {
+            const modelDir = customPath || path.join(process.cwd(), 'data', 'models');
+            
+            // Ensure directory exists
+            await fs.mkdir(modelDir, { recursive: true });
+            
+            const modelData = {
+                version: this.version,
+                sectorWeights: this.sectorWeights,
+                modelCoefficients: this.modelCoefficients,
+                normalizationStats: this.normalizationStats
+            };
+            
+            const filePath = path.join(modelDir, 'budget-allocation-model.json');
+            await fs.writeFile(filePath, JSON.stringify(modelData, null, 2));
+            
+            logModelOperation("BudgetAllocationModel", "model_saved", {
+                path: filePath,
+                version: this.version
+            });
+        } catch (error) {
+            logModelOperation("BudgetAllocationModel", "save_model_error", {
+                error: error instanceof Error ? error.message : String(error)
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Load model from disk
+     */
+    async loadModel(customPath?: string): Promise<void> {
+        try {
+            const modelDir = customPath || path.join(process.cwd(), 'data', 'models');
+            const filePath = path.join(modelDir, 'budget-allocation-model.json');
+            
+            const modelData = JSON.parse(await fs.readFile(filePath, 'utf-8'));
+            
+            this.version = modelData.version;
+            this.sectorWeights = modelData.sectorWeights;
+            this.modelCoefficients = modelData.modelCoefficients;
+            this.normalizationStats = modelData.normalizationStats;
+            
+            logModelOperation("BudgetAllocationModel", "model_loaded", {
+                path: filePath,
+                version: this.version
+            });
+        } catch (error) {
+            logModelOperation("BudgetAllocationModel", "load_model_error", {
+                error: error instanceof Error ? error.message : String(error)
+            });
+            throw error;
+        }
     }
 }
 

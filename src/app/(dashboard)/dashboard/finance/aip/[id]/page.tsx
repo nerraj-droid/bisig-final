@@ -57,6 +57,11 @@ import {
     Trash2,
     UserCheck,
     X,
+    BrainCircuit,
+    Pencil,
+    Send,
+    Banknote,
+    CheckCircle,
 } from "lucide-react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -453,6 +458,18 @@ export default function AIPDetailPage() {
                 </Button>
 
                 <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1"
+                        asChild
+                    >
+                        <Link href={`/dashboard/finance/aip/${aipId}/insights`}>
+                            <BrainCircuit className="h-4 w-4 mr-2" />
+                            AI Insights
+                        </Link>
+                    </Button>
+                    
                     {hasEditPermission && aip.status === "DRAFT" && (
                         <Button
                             variant="outline"
