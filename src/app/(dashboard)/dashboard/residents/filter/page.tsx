@@ -60,14 +60,14 @@ export default function ResidentFilterPage() {
     const [maxAge, setMaxAge] = useState<string>(searchParams.get('maxAge') || '')
 
     // Additional filter options
-    const [employmentStatus, setEmploymentStatus] = useState<string>(searchParams.get('employmentStatus') || '')
-    const [educationalAttainment, setEducationalAttainment] = useState<string>(searchParams.get('educationalAttainment') || '')
+    const [employmentStatus, setEmploymentStatus] = useState<string>(searchParams.get('employmentStatus') || 'ALL')
+    const [educationalAttainment, setEducationalAttainment] = useState<string>(searchParams.get('educationalAttainment') || 'ALL')
     const [sectors, setSectors] = useState<string[]>(() => {
         const sectorParam = searchParams.get('sectors');
         return sectorParam ? sectorParam.split(',') : [];
     })
     const [religion, setReligion] = useState<string>(searchParams.get('religion') || '')
-    const [bloodType, setBloodType] = useState<string>(searchParams.get('bloodType') || '')
+    const [bloodType, setBloodType] = useState<string>(searchParams.get('bloodType') || 'ALL')
 
     // For saved presets
     const [presetName, setPresetName] = useState<string>('')
@@ -83,10 +83,10 @@ export default function ResidentFilterPage() {
     }, [])
 
     // Options for dropdowns
-    const employmentOptions = ["", "EMPLOYED", "SELF_EMPLOYED", "UNEMPLOYED", "STUDENT", "RETIRED"]
-    const educationOptions = ["", "NO_EDUCATION", "ELEMENTARY", "HIGH_SCHOOL", "VOCATIONAL", "COLLEGE", "POST_GRADUATE"]
-    const sectorOptions = ["PWD", "SENIOR_CITIZEN", "SOLO_PARENT", "LGBTQ", "YOUTH", "WOMEN", "INDIGENOUS"]
-    const bloodTypeOptions = ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
+    const employmentOptions = ["ALL", "EMPLOYED", "SELF_EMPLOYED", "UNEMPLOYED", "STUDENT", "RETIRED"]
+    const educationOptions = ["ALL", "NO_EDUCATION", "ELEMENTARY", "HIGH_SCHOOL", "VOCATIONAL", "COLLEGE", "POST_GRADUATE"]
+    const sectorOptions = ["PWD", "SENIOR_CITIZEN", "SOLO_PARENT", "LGBTQ+", "YOUTH", "WOMEN", "INDIGENOUS"]
+    const bloodTypeOptions = ["ALL", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 
     // Handle form submission
     const handleSubmit = (e: React.FormEvent) => {
@@ -98,15 +98,20 @@ export default function ResidentFilterPage() {
         if (gender) params.append('gender', gender)
         if (civilStatus) params.append('civilStatus', civilStatus)
         if (isVoter) params.append('voter', 'true')
-        if (minAge) params.append('minAge', minAge)
-        if (maxAge) params.append('maxAge', maxAge)
+        
+        // Make sure age parameters are added properly
+        if (minAge && minAge.trim() !== '') params.append('minAge', minAge)
+        if (maxAge && maxAge.trim() !== '') params.append('maxAge', maxAge)
 
-        // Add new filter parameters
-        if (employmentStatus) params.append('employmentStatus', employmentStatus)
-        if (educationalAttainment) params.append('educationalAttainment', educationalAttainment)
+        // Add new filter parameters with "ALL" checking
+        if (employmentStatus && employmentStatus !== 'ALL') params.append('employmentStatus', employmentStatus)
+        if (educationalAttainment && educationalAttainment !== 'ALL') params.append('educationalAttainment', educationalAttainment)
         if (sectors.length > 0) params.append('sectors', sectors.join(','))
         if (religion) params.append('religion', religion)
-        if (bloodType) params.append('bloodType', bloodType)
+        if (bloodType && bloodType !== 'ALL') params.append('bloodType', bloodType)
+
+        // Log parameters for debugging
+        console.log('Filter params:', Object.fromEntries(params.entries()))
 
         // Navigate to residents page with filters
         router.push(`/dashboard/residents?${params.toString()}`)
@@ -152,11 +157,11 @@ export default function ResidentFilterPage() {
         setIsVoter(filters.isVoter || false)
         setMinAge(filters.minAge || '')
         setMaxAge(filters.maxAge || '')
-        setEmploymentStatus(filters.employmentStatus || '')
-        setEducationalAttainment(filters.educationalAttainment || '')
+        setEmploymentStatus(filters.employmentStatus || 'ALL')
+        setEducationalAttainment(filters.educationalAttainment || 'ALL')
         setSectors(filters.sectors || [])
         setReligion(filters.religion || '')
-        setBloodType(filters.bloodType || '')
+        setBloodType(filters.bloodType || 'ALL')
     }
 
     // Delete a saved preset
@@ -173,11 +178,11 @@ export default function ResidentFilterPage() {
         setIsVoter(false)
         setMinAge('')
         setMaxAge('')
-        setEmploymentStatus('')
-        setEducationalAttainment('')
+        setEmploymentStatus('ALL')
+        setEducationalAttainment('ALL')
         setSectors([])
         setReligion('')
-        setBloodType('')
+        setBloodType('ALL')
     }
 
     // Toggle a sector in the sectors array
@@ -196,11 +201,11 @@ export default function ResidentFilterPage() {
         if (civilStatus) count++
         if (isVoter) count++
         if (minAge || maxAge) count++
-        if (employmentStatus) count++
-        if (educationalAttainment) count++
+        if (employmentStatus && employmentStatus !== 'ALL') count++
+        if (educationalAttainment && educationalAttainment !== 'ALL') count++
         if (sectors.length) count++
         if (religion) count++
-        if (bloodType) count++
+        if (bloodType && bloodType !== 'ALL') count++
         return count
     }
 
@@ -340,18 +345,18 @@ export default function ResidentFilterPage() {
                                             </button>
                                         </Badge>
                                     )}
-                                    {employmentStatus && (
+                                    {employmentStatus && employmentStatus !== 'ALL' && (
                                         <Badge variant="outline" className="flex items-center gap-1">
                                             Employment: {employmentStatus.replace('_', ' ').toLowerCase()}
-                                            <button onClick={() => setEmploymentStatus('')} className="ml-1 text-gray-400 hover:text-red-500">
+                                            <button onClick={() => setEmploymentStatus('ALL')} className="ml-1 text-gray-400 hover:text-red-500">
                                                 <X size={14} />
                                             </button>
                                         </Badge>
                                     )}
-                                    {educationalAttainment && (
+                                    {educationalAttainment && educationalAttainment !== 'ALL' && (
                                         <Badge variant="outline" className="flex items-center gap-1">
                                             Education: {educationalAttainment.replace('_', ' ').toLowerCase()}
-                                            <button onClick={() => setEducationalAttainment('')} className="ml-1 text-gray-400 hover:text-red-500">
+                                            <button onClick={() => setEducationalAttainment('ALL')} className="ml-1 text-gray-400 hover:text-red-500">
                                                 <X size={14} />
                                             </button>
                                         </Badge>
@@ -372,10 +377,10 @@ export default function ResidentFilterPage() {
                                             </button>
                                         </Badge>
                                     )}
-                                    {bloodType && (
+                                    {bloodType && bloodType !== 'ALL' && (
                                         <Badge variant="outline" className="flex items-center gap-1">
                                             Blood Type: {bloodType}
-                                            <button onClick={() => setBloodType('')} className="ml-1 text-gray-400 hover:text-red-500">
+                                            <button onClick={() => setBloodType('ALL')} className="ml-1 text-gray-400 hover:text-red-500">
                                                 <X size={14} />
                                             </button>
                                         </Badge>
@@ -501,7 +506,7 @@ export default function ResidentFilterPage() {
                                                             <SelectValue placeholder="Select status" />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="">All</SelectItem>
+                                                            <SelectItem value="ALL">All</SelectItem>
                                                             {employmentOptions.slice(1).map(option => (
                                                                 <SelectItem key={option} value={option}>
                                                                     {option.replace('_', ' ')}
@@ -519,7 +524,7 @@ export default function ResidentFilterPage() {
                                                             <SelectValue placeholder="Select education level" />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="">All</SelectItem>
+                                                            <SelectItem value="ALL">All</SelectItem>
                                                             {educationOptions.slice(1).map(option => (
                                                                 <SelectItem key={option} value={option}>
                                                                     {option.replace('_', ' ')}
@@ -548,7 +553,7 @@ export default function ResidentFilterPage() {
                                                             <SelectValue placeholder="Select blood type" />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="">All</SelectItem>
+                                                            <SelectItem value="ALL">All</SelectItem>
                                                             {bloodTypeOptions.slice(1).map(option => (
                                                                 <SelectItem key={option} value={option}>{option}</SelectItem>
                                                             ))}
