@@ -206,7 +206,6 @@ export default function NewBlotterPage() {
       setValue('respondentEmail', resident.email || '');
       setValue('respondentIsResident', true);
     }
-    
     toast.success(`${searchPartyType === 'complainant' ? 'Complainant' : 'Respondent'} details populated from resident database`);
   };
   
