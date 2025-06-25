@@ -48,18 +48,50 @@ type FilterPreset = {
     filters: Record<string, any>;
 };
 
+// Define available identity types
+const IDENTITY_TYPES = [
+    "Philippine Passport",
+    "Driver's License",
+    "Unified Multi-Purpose ID",
+    "SSS",
+    "GSIS",
+    "PhilSys ID",
+    "PRC ID",
+    "Voter's ID",
+    "Postal ID",
+    "OWWA ID",
+    "OFW ID",
+    "Seaman's Book",
+    "Barangay Clearance",
+    "Police Clearance",
+    "NBI Clearance",
+    "PhilHealth ID",
+    "Pag-IBIG Card",
+    "Senior Citizen ID",
+    "PWD ID",
+    "IP ID",
+    "Firearms License",
+    "Government Company ID",
+    "Student ID"
+];
+
 export default function ResidentFilterPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
 
-    // Initialize with current URL params if any
+    // State for basic filters
     const [gender, setGender] = useState<string>(searchParams.get('gender') || '')
     const [civilStatus, setCivilStatus] = useState<string>(searchParams.get('civilStatus') || '')
     const [isVoter, setIsVoter] = useState<boolean>(searchParams.get('voter') === 'true')
     const [minAge, setMinAge] = useState<string>(searchParams.get('minAge') || '')
     const [maxAge, setMaxAge] = useState<string>(searchParams.get('maxAge') || '')
+    
+    // State for precise age filtering
+    const [ageYears, setAgeYears] = useState<string>(searchParams.get('ageYears') || '')
+    const [ageMonths, setAgeMonths] = useState<string>(searchParams.get('ageMonths') || '')
+    const [ageDays, setAgeDays] = useState<string>(searchParams.get('ageDays') || '')
 
-    // Additional filter options
+    // State for advanced filters
     const [employmentStatus, setEmploymentStatus] = useState<string>(searchParams.get('employmentStatus') || 'ALL')
     const [educationalAttainment, setEducationalAttainment] = useState<string>(searchParams.get('educationalAttainment') || 'ALL')
     const [sectors, setSectors] = useState<string[]>(() => {
@@ -68,6 +100,21 @@ export default function ResidentFilterPage() {
     })
     const [religion, setReligion] = useState<string>(searchParams.get('religion') || '')
     const [bloodType, setBloodType] = useState<string>(searchParams.get('bloodType') || 'ALL')
+
+    // Location filters
+    const [barangay, setBarangay] = useState<string>(searchParams.get('barangay') || '')
+    const [street, setStreet] = useState<string>(searchParams.get('street') || '')
+    const [houseNo, setHouseNo] = useState<string>(searchParams.get('houseNo') || '')
+    const [city, setCity] = useState<string>(searchParams.get('city') || '')
+    const [province, setProvince] = useState<string>(searchParams.get('province') || '')
+    const [purokSitio, setPurokSitio] = useState<string>(searchParams.get('purokSitio') || '')
+
+    // Additional filters
+    const [nationality, setNationality] = useState<string>(searchParams.get('nationality') || '')
+    const [ethnicGroup, setEthnicGroup] = useState<string>(searchParams.get('ethnicGroup') || '')
+    const [hasId, setHasId] = useState<boolean>(searchParams.get('hasId') === 'true')
+    const [identityType, setIdentityType] = useState<string>(searchParams.get('identityType') || 'ALL')
+    const [isHeadOfHousehold, setIsHeadOfHousehold] = useState<boolean>(searchParams.get('isHeadOfHousehold') === 'true')
 
     // For saved presets
     const [presetName, setPresetName] = useState<string>('')
@@ -102,6 +149,11 @@ export default function ResidentFilterPage() {
         // Make sure age parameters are added properly
         if (minAge && minAge.trim() !== '') params.append('minAge', minAge)
         if (maxAge && maxAge.trim() !== '') params.append('maxAge', maxAge)
+        
+        // Add precise age parameters
+        if (ageYears && ageYears.trim() !== '') params.append('ageYears', ageYears)
+        if (ageMonths && ageMonths.trim() !== '') params.append('ageMonths', ageMonths)
+        if (ageDays && ageDays.trim() !== '') params.append('ageDays', ageDays)
 
         // Add new filter parameters with "ALL" checking
         if (employmentStatus && employmentStatus !== 'ALL') params.append('employmentStatus', employmentStatus)
@@ -109,6 +161,21 @@ export default function ResidentFilterPage() {
         if (sectors.length > 0) params.append('sectors', sectors.join(','))
         if (religion) params.append('religion', religion)
         if (bloodType && bloodType !== 'ALL') params.append('bloodType', bloodType)
+
+        // Add location filters
+        if (barangay) params.append('barangay', barangay)
+        if (street) params.append('street', street)
+        if (houseNo) params.append('houseNo', houseNo)
+        if (city) params.append('city', city)
+        if (province) params.append('province', province)
+        if (purokSitio) params.append('purokSitio', purokSitio)
+
+        // Add additional filters
+        if (nationality) params.append('nationality', nationality)
+        if (ethnicGroup) params.append('ethnicGroup', ethnicGroup)
+        if (hasId) params.append('hasId', 'true')
+        if (identityType && identityType !== 'ALL') params.append('identityType', identityType)
+        if (isHeadOfHousehold) params.append('isHeadOfHousehold', 'true')
 
         // Log parameters for debugging
         console.log('Filter params:', Object.fromEntries(params.entries()))
@@ -129,6 +196,9 @@ export default function ResidentFilterPage() {
                 isVoter,
                 minAge,
                 maxAge,
+                ageYears,
+                ageMonths,
+                ageDays,
                 employmentStatus,
                 educationalAttainment,
                 sectors,
@@ -157,11 +227,29 @@ export default function ResidentFilterPage() {
         setIsVoter(filters.isVoter || false)
         setMinAge(filters.minAge || '')
         setMaxAge(filters.maxAge || '')
+        setAgeYears(filters.ageYears || '')
+        setAgeMonths(filters.ageMonths || '')
+        setAgeDays(filters.ageDays || '')
         setEmploymentStatus(filters.employmentStatus || 'ALL')
         setEducationalAttainment(filters.educationalAttainment || 'ALL')
         setSectors(filters.sectors || [])
         setReligion(filters.religion || '')
         setBloodType(filters.bloodType || 'ALL')
+        
+        // Load location filters
+        setBarangay(filters.barangay || '')
+        setStreet(filters.street || '')
+        setHouseNo(filters.houseNo || '')
+        setCity(filters.city || '')
+        setProvince(filters.province || '')
+        setPurokSitio(filters.purokSitio || '')
+        
+        // Load additional filters
+        setNationality(filters.nationality || '')
+        setEthnicGroup(filters.ethnicGroup || '')
+        setHasId(filters.hasId || false)
+        setIdentityType(filters.identityType || 'ALL')
+        setIsHeadOfHousehold(filters.isHeadOfHousehold || false)
     }
 
     // Delete a saved preset
@@ -178,11 +266,29 @@ export default function ResidentFilterPage() {
         setIsVoter(false)
         setMinAge('')
         setMaxAge('')
+        setAgeYears('')
+        setAgeMonths('')
+        setAgeDays('')
         setEmploymentStatus('ALL')
         setEducationalAttainment('ALL')
         setSectors([])
         setReligion('')
         setBloodType('ALL')
+        
+        // Reset location filters
+        setBarangay('')
+        setStreet('')
+        setHouseNo('')
+        setCity('')
+        setProvince('')
+        setPurokSitio('')
+        
+        // Reset additional filters
+        setNationality('')
+        setEthnicGroup('')
+        setHasId(false)
+        setIdentityType('ALL')
+        setIsHeadOfHousehold(false)
     }
 
     // Toggle a sector in the sectors array
@@ -201,11 +307,28 @@ export default function ResidentFilterPage() {
         if (civilStatus) count++
         if (isVoter) count++
         if (minAge || maxAge) count++
+        if (ageYears || ageMonths || ageDays) count++
         if (employmentStatus && employmentStatus !== 'ALL') count++
         if (educationalAttainment && educationalAttainment !== 'ALL') count++
         if (sectors.length) count++
         if (religion) count++
         if (bloodType && bloodType !== 'ALL') count++
+        
+        // Count location filters
+        if (barangay) count++
+        if (street) count++
+        if (houseNo) count++
+        if (city) count++
+        if (province) count++
+        if (purokSitio) count++
+        
+        // Count additional filters
+        if (nationality) count++
+        if (ethnicGroup) count++
+        if (hasId) count++
+        if (identityType && identityType !== 'ALL') count++
+        if (isHeadOfHousehold) count++
+        
         return count
     }
 
@@ -345,6 +468,14 @@ export default function ResidentFilterPage() {
                                             </button>
                                         </Badge>
                                     )}
+                                    {(ageYears || ageMonths || ageDays) && (
+                                        <Badge variant="outline" className="flex items-center gap-1">
+                                            Precise Age: {ageYears || '0'} years, {ageMonths || '0'} months, {ageDays || '0'} days
+                                            <button onClick={() => { setAgeYears(''); setAgeMonths(''); setAgeDays(''); }} className="ml-1 text-gray-400 hover:text-red-500">
+                                                <X size={14} />
+                                            </button>
+                                        </Badge>
+                                    )}
                                     {employmentStatus && employmentStatus !== 'ALL' && (
                                         <Badge variant="outline" className="flex items-center gap-1">
                                             Employment: {employmentStatus.replace('_', ' ').toLowerCase()}
@@ -381,6 +512,98 @@ export default function ResidentFilterPage() {
                                         <Badge variant="outline" className="flex items-center gap-1">
                                             Blood Type: {bloodType}
                                             <button onClick={() => setBloodType('ALL')} className="ml-1 text-gray-400 hover:text-red-500">
+                                                <X size={14} />
+                                            </button>
+                                        </Badge>
+                                    )}
+                                    
+                                    {/* Location Filters */}
+                                    {barangay && (
+                                        <Badge variant="outline" className="flex items-center gap-1">
+                                            Barangay: {barangay}
+                                            <button onClick={() => setBarangay('')} className="ml-1 text-gray-400 hover:text-red-500">
+                                                <X size={14} />
+                                            </button>
+                                        </Badge>
+                                    )}
+                                    {street && (
+                                        <Badge variant="outline" className="flex items-center gap-1">
+                                            Street: {street}
+                                            <button onClick={() => setStreet('')} className="ml-1 text-gray-400 hover:text-red-500">
+                                                <X size={14} />
+                                            </button>
+                                        </Badge>
+                                    )}
+                                    {houseNo && (
+                                        <Badge variant="outline" className="flex items-center gap-1">
+                                            House No: {houseNo}
+                                            <button onClick={() => setHouseNo('')} className="ml-1 text-gray-400 hover:text-red-500">
+                                                <X size={14} />
+                                            </button>
+                                        </Badge>
+                                    )}
+                                    {city && (
+                                        <Badge variant="outline" className="flex items-center gap-1">
+                                            City: {city}
+                                            <button onClick={() => setCity('')} className="ml-1 text-gray-400 hover:text-red-500">
+                                                <X size={14} />
+                                            </button>
+                                        </Badge>
+                                    )}
+                                    {province && (
+                                        <Badge variant="outline" className="flex items-center gap-1">
+                                            Province: {province}
+                                            <button onClick={() => setProvince('')} className="ml-1 text-gray-400 hover:text-red-500">
+                                                <X size={14} />
+                                            </button>
+                                        </Badge>
+                                    )}
+                                    {purokSitio && (
+                                        <Badge variant="outline" className="flex items-center gap-1">
+                                            Purok/Sitio: {purokSitio}
+                                            <button onClick={() => setPurokSitio('')} className="ml-1 text-gray-400 hover:text-red-500">
+                                                <X size={14} />
+                                            </button>
+                                        </Badge>
+                                    )}
+                                    
+                                    {/* Additional Filters */}
+                                    {nationality && (
+                                        <Badge variant="outline" className="flex items-center gap-1">
+                                            Nationality: {nationality}
+                                            <button onClick={() => setNationality('')} className="ml-1 text-gray-400 hover:text-red-500">
+                                                <X size={14} />
+                                            </button>
+                                        </Badge>
+                                    )}
+                                    {ethnicGroup && (
+                                        <Badge variant="outline" className="flex items-center gap-1">
+                                            Ethnic Group: {ethnicGroup}
+                                            <button onClick={() => setEthnicGroup('')} className="ml-1 text-gray-400 hover:text-red-500">
+                                                <X size={14} />
+                                            </button>
+                                        </Badge>
+                                    )}
+                                    {hasId && (
+                                        <Badge variant="outline" className="flex items-center gap-1">
+                                            Has ID
+                                            <button onClick={() => setHasId(false)} className="ml-1 text-gray-400 hover:text-red-500">
+                                                <X size={14} />
+                                            </button>
+                                        </Badge>
+                                    )}
+                                    {identityType && identityType !== 'ALL' && (
+                                        <Badge variant="outline" className="flex items-center gap-1">
+                                            ID Type: {identityType}
+                                            <button onClick={() => setIdentityType('ALL')} className="ml-1 text-gray-400 hover:text-red-500">
+                                                <X size={14} />
+                                            </button>
+                                        </Badge>
+                                    )}
+                                    {isHeadOfHousehold && (
+                                        <Badge variant="outline" className="flex items-center gap-1">
+                                            Head of Household
+                                            <button onClick={() => setIsHeadOfHousehold(false)} className="ml-1 text-gray-400 hover:text-red-500">
                                                 <X size={14} />
                                             </button>
                                         </Badge>
@@ -493,6 +716,80 @@ export default function ResidentFilterPage() {
                                         </AccordionContent>
                                     </AccordionItem>
 
+                                    {/* Location Filters */}
+                                    <AccordionItem value="location">
+                                        <AccordionTrigger className="text-[#006B5E] font-medium">Location Filters</AccordionTrigger>
+                                        <AccordionContent>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="province-filter">Province</Label>
+                                                    <Input
+                                                        id="province-filter"
+                                                        type="text"
+                                                        placeholder="Enter province"
+                                                        value={province}
+                                                        onChange={(e) => setProvince(e.target.value)}
+                                                    />
+                                                </div>
+                                                
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="city-filter">City/Municipality</Label>
+                                                    <Input
+                                                        id="city-filter"
+                                                        type="text"
+                                                        placeholder="Enter city/municipality"
+                                                        value={city}
+                                                        onChange={(e) => setCity(e.target.value)}
+                                                    />
+                                                </div>
+                                                
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="barangay-filter">Barangay</Label>
+                                                    <Input
+                                                        id="barangay-filter"
+                                                        type="text"
+                                                        placeholder="Enter barangay"
+                                                        value={barangay}
+                                                        onChange={(e) => setBarangay(e.target.value)}
+                                                    />
+                                                </div>
+                                                
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="purok-sitio-filter">Purok/Sitio</Label>
+                                                    <Input
+                                                        id="purok-sitio-filter"
+                                                        type="text"
+                                                        placeholder="Enter purok or sitio"
+                                                        value={purokSitio}
+                                                        onChange={(e) => setPurokSitio(e.target.value)}
+                                                    />
+                                                </div>
+                                                
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="street-filter">Street</Label>
+                                                    <Input
+                                                        id="street-filter"
+                                                        type="text"
+                                                        placeholder="Enter street"
+                                                        value={street}
+                                                        onChange={(e) => setStreet(e.target.value)}
+                                                    />
+                                                </div>
+                                                
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="house-no-filter">House No.</Label>
+                                                    <Input
+                                                        id="house-no-filter"
+                                                        type="text"
+                                                        placeholder="Enter house number"
+                                                        value={houseNo}
+                                                        onChange={(e) => setHouseNo(e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </AccordionContent>
+                                    </AccordionItem>
+
                                     {/* Additional Filters */}
                                     <AccordionItem value="additional">
                                         <AccordionTrigger className="text-[#006B5E] font-medium">Additional Filters</AccordionTrigger>
@@ -561,6 +858,70 @@ export default function ResidentFilterPage() {
                                                     </Select>
                                                 </div>
 
+                                                {/* Nationality */}
+                                                <div className="space-y-4">
+                                                    <h3 className="text-md font-medium text-gray-700">Nationality</h3>
+                                                    <Input
+                                                        type="text"
+                                                        placeholder="Enter nationality"
+                                                        value={nationality}
+                                                        onChange={(e) => setNationality(e.target.value)}
+                                                    />
+                                                </div>
+
+                                                {/* Ethnic Group */}
+                                                <div className="space-y-4">
+                                                    <h3 className="text-md font-medium text-gray-700">Ethnic Group</h3>
+                                                    <Input
+                                                        type="text"
+                                                        placeholder="Enter ethnic group"
+                                                        value={ethnicGroup}
+                                                        onChange={(e) => setEthnicGroup(e.target.value)}
+                                                    />
+                                                </div>
+
+                                                {/* Identity Type */}
+                                                <div className="space-y-4">
+                                                    <h3 className="text-md font-medium text-gray-700">Identity Type</h3>
+                                                    <Select value={identityType} onValueChange={setIdentityType}>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select ID type" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="ALL">All</SelectItem>
+                                                            {IDENTITY_TYPES.map(type => (
+                                                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+
+                                                {/* Has ID */}
+                                                <div className="space-y-4">
+                                                    <h3 className="text-md font-medium text-gray-700">Identity Document</h3>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id="hasId"
+                                                            checked={hasId}
+                                                            onCheckedChange={(checked) => setHasId(checked as boolean)}
+                                                        />
+                                                        <Label htmlFor="hasId">Has ID Document</Label>
+                                                    </div>
+                                                </div>
+
+                                                {/* Head of Household */}
+                                                <div className="space-y-4">
+                                                    <h3 className="text-md font-medium text-gray-700">Household Role</h3>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id="isHeadOfHousehold"
+                                                            checked={isHeadOfHousehold}
+                                                            onCheckedChange={(checked) => setIsHeadOfHousehold(checked as boolean)}
+                                                        />
+                                                        <Label htmlFor="isHeadOfHousehold">Head of Household Only</Label>
+                                                    </div>
+                                                </div>
+
                                                 {/* Sectors */}
                                                 <div className="space-y-4 md:col-span-2">
                                                     <h3 className="text-md font-medium text-gray-700">Sectors</h3>
@@ -577,6 +938,55 @@ export default function ResidentFilterPage() {
                                                                 </Label>
                                                             </div>
                                                         ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Precise Age Filter */}
+                                                <div className="space-y-4">
+                                                    <h3 className="text-md font-medium text-gray-700">Precise Age</h3>
+                                                    <div className="grid grid-cols-3 gap-2">
+                                                        <div>
+                                                            <Label htmlFor="age-years">Years</Label>
+                                                            <Input
+                                                                id="age-years"
+                                                                type="number"
+                                                                min="0"
+                                                                max="150"
+                                                                placeholder="0"
+                                                                value={ageYears}
+                                                                onChange={(e) => setAgeYears(e.target.value)}
+                                                                className="mt-1"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label htmlFor="age-months">Months</Label>
+                                                            <Input
+                                                                id="age-months"
+                                                                type="number"
+                                                                min="0"
+                                                                max="11"
+                                                                placeholder="0"
+                                                                value={ageMonths}
+                                                                onChange={(e) => setAgeMonths(e.target.value)}
+                                                                className="mt-1"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label htmlFor="age-days">Days</Label>
+                                                            <Input
+                                                                id="age-days"
+                                                                type="number"
+                                                                min="0"
+                                                                max="30"
+                                                                placeholder="0"
+                                                                value={ageDays}
+                                                                onChange={(e) => setAgeDays(e.target.value)}
+                                                                className="mt-1"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        Specify exact age (e.g., 8 years, 3 months, 10 days)
                                                     </div>
                                                 </div>
                                             </div>

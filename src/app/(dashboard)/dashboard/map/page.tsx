@@ -35,27 +35,14 @@ export default function MapPage() {
     const [showReportPreview, setShowReportPreview] = useState(false);
     const [reportType, setReportType] = useState<'summary' | 'detailed'>('summary');
     const [showReliefDialog, setShowReliefDialog] = useState(false);
-    const [reliefAreaCoordinates, setReliefAreaCoordinates] = useState<{
-        north: number | null;
-        south: number | null;
-        east: number | null;
-        west: number | null;
-    }>({
-        north: null,
-        south: null,
-        east: null,
-        west: null
-    });
-    const [affectedHouseholds, setAffectedHouseholds] = useState<any[]>([]);
     const [reliefMode, setReliefMode] = useState(false);
+    
+    // Polygon drawing state
     const [isDrawing, setIsDrawing] = useState(false);
-    const [startPoint, setStartPoint] = useState<[number, number] | null>(null);
-    const [previewBox, setPreviewBox] = useState<{
-        north: number;
-        south: number;
-        east: number;
-        west: number;
-    } | null>(null);
+    const [polygonPoints, setPolygonPoints] = useState<[number, number][]>([]);
+    const [tempPoint, setTempPoint] = useState<[number, number] | null>(null);
+    const [affectedHouseholds, setAffectedHouseholds] = useState<any[]>([]);
+    
     const mapRef = useRef<any>(null);
 
     // Ensure component only renders on client side
@@ -340,14 +327,13 @@ export default function MapPage() {
         if (reliefMode) {
             // Exiting relief mode, reset all drawing state and clear the map
             setIsDrawing(false);
-            setStartPoint(null);
-            setPreviewBox(null);
-            setReliefAreaCoordinates({ north: null, south: null, east: null, west: null });
+            setPolygonPoints([]);
+            setTempPoint(null);
             setAffectedHouseholds([]);
         }
     };
 
-    // Handle map click for drawing bounding box
+    // Handle map click for drawing polygon
     const handleMapClick = (event: { lngLat: [number, number] }) => {
         if (!reliefMode) return;
 
@@ -356,55 +342,74 @@ export default function MapPage() {
         if (!isDrawing) {
             // Start drawing
             setIsDrawing(true);
-            setStartPoint([lng, lat]);
+            setPolygonPoints([[lng, lat]]);
         } else {
-            // Finish drawing
-            setIsDrawing(false);
-            setPreviewBox(null);
-
-            if (startPoint) {
-                const [startLng, startLat] = startPoint;
-
-                // Calculate the bounds
-                const north = Math.max(lat, startLat);
-                const south = Math.min(lat, startLat);
-                const east = Math.max(lng, startLng);
-                const west = Math.min(lng, startLng);
-
-                setReliefAreaCoordinates({ north, south, east, west });
-
-                // Find affected households
-                const affected = households.filter((household) => {
-                    if (!household.latitude || !household.longitude) return false;
-
-                    return (
-                        household.latitude <= north &&
-                        household.latitude >= south &&
-                        household.longitude <= east &&
-                        household.longitude >= west
-                    );
-                });
-
-                setAffectedHouseholds(affected);
-                setShowReliefDialog(true);
+            // Continue drawing the polygon
+            setPolygonPoints(prev => [...prev, [lng, lat]]);
+            
+            // Check if the polygon is being closed (clicking near the first point)
+            if (polygonPoints.length >= 3) {
+                const [firstLng, firstLat] = polygonPoints[0];
+                const distance = Math.sqrt(Math.pow(lng - firstLng, 2) + Math.pow(lat - firstLat, 2));
+                
+                // If clicked close to the first point, complete the polygon
+                if (distance < 0.0005) { // Small threshold for closing the polygon
+                    completePolygon();
+                }
             }
         }
     };
 
-    // Handle mouse move for preview box
+    // Complete the polygon drawing and calculate affected households
+    const completePolygon = () => {
+        if (polygonPoints.length < 3) {
+            alert('Please draw a polygon with at least 3 points');
+            return;
+        }
+        
+        setIsDrawing(false);
+        
+        // Close the polygon if not already closed
+        const firstPoint = polygonPoints[0];
+        const lastPoint = polygonPoints[polygonPoints.length - 1];
+        
+        if (firstPoint[0] !== lastPoint[0] || firstPoint[1] !== lastPoint[1]) {
+            setPolygonPoints(prev => [...prev, firstPoint]);
+        }
+        
+        // Find affected households using point-in-polygon check
+        const affected = households.filter((household) => {
+            if (!household.latitude || !household.longitude) return false;
+            
+            return isPointInPolygon(household.longitude, household.latitude, polygonPoints);
+        });
+        
+        setAffectedHouseholds(affected);
+        setShowReliefDialog(true);
+    };
+
+    // Function to check if a point is inside a polygon
+    const isPointInPolygon = (lng: number, lat: number, polygon: [number, number][]) => {
+        let inside = false;
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+            const xi = polygon[i][0], yi = polygon[i][1];
+            const xj = polygon[j][0], yj = polygon[j][1];
+            
+            const intersect = ((yi > lat) !== (yj > lat)) && 
+                (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+                
+            if (intersect) inside = !inside;
+        }
+        
+        return inside;
+    };
+
+    // Handle mouse move for preview point
     const handleMapMove = (event: { lngLat: [number, number] }) => {
-        if (!reliefMode || !isDrawing || !startPoint) return;
-
+        if (!reliefMode || !isDrawing) return;
+        
         const [lng, lat] = event.lngLat;
-        const [startLng, startLat] = startPoint;
-
-        // Calculate the preview bounds
-        const north = Math.max(lat, startLat);
-        const south = Math.min(lat, startLat);
-        const east = Math.max(lng, startLng);
-        const west = Math.min(lng, startLng);
-
-        setPreviewBox({ north, south, east, west });
+        setTempPoint([lng, lat]);
     };
 
     // Handle map loading
@@ -437,24 +442,35 @@ export default function MapPage() {
                 onMapMove={reliefMode && isDrawing ? handleMapMove : undefined}
                 isDrawingBox={isDrawing}
                 onMapLoad={handleMapLoad}
-                boxCoordinates={
-                    // Use preview box while drawing, final coordinates when done
-                    isDrawing && previewBox ? previewBox : (
-                        reliefAreaCoordinates.north !== null &&
-                            reliefAreaCoordinates.south !== null &&
-                            reliefAreaCoordinates.east !== null &&
-                            reliefAreaCoordinates.west !== null
-                            ? {
-                                north: reliefAreaCoordinates.north,
-                                south: reliefAreaCoordinates.south,
-                                east: reliefAreaCoordinates.east,
-                                west: reliefAreaCoordinates.west
-                            }
-                            : undefined
-                    )
-                }
+                boxCoordinates={polygonPoints.length > 0 ? polygonPoints : undefined}
+                tempDrawingPoint={tempPoint}
             />
         );
+    };
+
+    // Calculate polygon area in square kilometers
+    const calculatePolygonArea = (polygon: [number, number][]) => {
+        if (polygon.length < 3) return 0;
+        
+        // Make sure polygon is closed
+        const coords = polygon[0][0] === polygon[polygon.length-1][0] && 
+                      polygon[0][1] === polygon[polygon.length-1][1] ?
+                      polygon : [...polygon, polygon[0]];
+        
+        // Use the Shoelace formula to calculate the area
+        let area = 0;
+        for (let i = 0; i < coords.length - 1; i++) {
+            area += coords[i][0] * coords[i+1][1] - coords[i+1][0] * coords[i][1];
+        }
+        area = Math.abs(area) / 2;
+        
+        // Convert to square kilometers (approximate conversion at equator)
+        // 1 degree of longitude at equator is approximately 111.32 km
+        // Area needs to be multiplied by (111.32 km)² per square degree
+        const areaInSquareKm = area * 111.32 * 111.32;
+        
+        // For more precision, we should take into account the latitude, but this is a good approximation
+        return areaInSquareKm;
     };
 
     return (
@@ -544,10 +560,29 @@ export default function MapPage() {
                                     {reliefMode ? "Exit Relief Mode" : "Relief Area Selection"}
                                 </Button>
                                 {reliefMode && (
-                                    <p className="text-xs text-gray-600 mt-2">
-                                        Click once on the map to start drawing a box, then click again to complete it.
-                                        The area will be used to identify affected households for disaster relief.
-                                    </p>
+                                    <div className="text-xs text-gray-600 mt-2 space-y-2">
+                                        <p>
+                                            Click on the map to create polygon points. Continue clicking to add more points and shape your area.
+                                        </p>
+                                        <p>
+                                            To complete the polygon, either click near the starting point or use the button below.
+                                        </p>
+                                        {isDrawing && polygonPoints.length >= 3 && (
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                className="w-full mt-2"
+                                                onClick={completePolygon}
+                                            >
+                                                Complete Polygon
+                                            </Button>
+                                        )}
+                                        {isDrawing && (
+                                            <p className="font-medium">
+                                                Points: {polygonPoints.length}
+                                            </p>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         </CardContent>
@@ -804,21 +839,13 @@ export default function MapPage() {
                         <div>
                             <h4 className="text-sm font-medium mb-1">Selected Area:</h4>
                             <div className="grid grid-cols-2 gap-2 text-sm">
-                                <div>
-                                    <span className="text-gray-500">North: </span>
-                                    {reliefAreaCoordinates.north?.toFixed(6)}°
+                                <div className="col-span-2">
+                                    <span className="text-gray-500">Polygon Points: </span>
+                                    {polygonPoints.length}
                                 </div>
-                                <div>
-                                    <span className="text-gray-500">South: </span>
-                                    {reliefAreaCoordinates.south?.toFixed(6)}°
-                                </div>
-                                <div>
-                                    <span className="text-gray-500">East: </span>
-                                    {reliefAreaCoordinates.east?.toFixed(6)}°
-                                </div>
-                                <div>
-                                    <span className="text-gray-500">West: </span>
-                                    {reliefAreaCoordinates.west?.toFixed(6)}°
+                                <div className="col-span-2">
+                                    <span className="text-gray-500">Area Size: </span>
+                                    {calculatePolygonArea(polygonPoints).toFixed(2)} km²
                                 </div>
                             </div>
                         </div>

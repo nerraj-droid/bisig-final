@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -33,7 +33,9 @@ import {
   Calendar,
   PiggyBank,
   BrainCircuit,
-  Lightbulb
+  Lightbulb,
+  Pencil,
+  Upload
 } from "lucide-react";
 import { LoadingBar } from "@/components/ui/loading-bar";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -123,6 +125,12 @@ export default function ClientDashboardLayout({
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [clientLogo, setClientLogo] = useState<string>("/default-brgy-logo.png");
+  const [isEditingLogo, setIsEditingLogo] = useState(false);
+  const [logoInput, setLogoInput] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const pathname = usePathname();
 
   // Check if we're on mobile
@@ -142,6 +150,12 @@ export default function ClientDashboardLayout({
     // Add event listener
     window.addEventListener('resize', checkIfMobile);
 
+    // Load saved client logo if available
+    const savedClientLogo = localStorage.getItem('clientLogo');
+    if (savedClientLogo) {
+      setClientLogo(savedClientLogo);
+    }
+
     // Cleanup
     return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
@@ -156,6 +170,63 @@ export default function ClientDashboardLayout({
 
   const formatRole = (role: string) => {
     return role.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  const handleLogoEdit = () => {
+    setIsEditingLogo(true);
+    setLogoInput(clientLogo);
+    setPreviewImage(null);
+  };
+
+  const saveClientLogo = () => {
+    const logoToSave = previewImage || logoInput;
+    setClientLogo(logoToSave);
+    localStorage.setItem('clientLogo', logoToSave);
+    setIsEditingLogo(false);
+    setPreviewImage(null);
+  };
+
+  const cancelLogoEdit = () => {
+    setIsEditingLogo(false);
+    setPreviewImage(null);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file type
+    if (!file.type.match('image.*')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Check file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File size should be less than 2MB');
+      return;
+    }
+
+    setIsUploading(true);
+
+    // Create a FileReader to read the file
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        // Set the preview image
+        setPreviewImage(event.target.result as string);
+        setIsUploading(false);
+      }
+    };
+    reader.onerror = () => {
+      alert('Error reading the file');
+      setIsUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   // Navigation items
@@ -300,14 +371,37 @@ export default function ClientDashboardLayout({
           {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
         <div className="flex items-center">
-          <Image
-            src="/bisig-logo.jpg"
-            alt="BISIG Logo"
-            width={32}
-            height={32}
-            className="rounded-full mr-2"
-          />
-          <div className="font-bold text-xl">BISIG</div>
+          <div className="flex space-x-2 items-center">
+            <Image
+              src="/bisig-logo.jpg"
+              alt="BISIG Logo"
+              width={32}
+              height={32}
+              className="rounded-full"
+            />
+            {clientLogo && (
+              <div className="relative group">
+                <Image
+                  src={clientLogo}
+                  alt="Client Logo"
+                  width={32}
+                  height={32}
+                  className="rounded-full"
+                  onError={(e) => {
+                    e.currentTarget.src = "/default-brgy-logo.png";
+                    setClientLogo("/default-brgy-logo.png");
+                  }}
+                />
+                <button 
+                  onClick={handleLogoEdit}
+                  className="absolute -top-1 -right-1 bg-white/20 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Pencil size={12} />
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="font-bold text-xl ml-2">BISIG</div>
         </div>
         <div className="relative">
           <button className="p-1 rounded-md hover:bg-white/10">
@@ -326,17 +420,118 @@ export default function ClientDashboardLayout({
         >
           {/* Sidebar Header - Desktop */}
           <div className="p-4 border-b border-white/10 hidden md:flex flex-col items-center justify-center">
-            <div className="w-24 h-24 relative mb-2">
-              <Image
-                src="/bisig-logo.jpg"
-                alt="BISIG Logo"
-                width={96}
-                height={96}
-                className="rounded-full"
-              />
+            <div className="flex items-center justify-center space-x-4 mb-2">
+              <div className="w-24 h-24 relative">
+                <Image
+                  src="/bisig-logo.jpg"
+                  alt="BISIG Logo"
+                  width={96}
+                  height={96}
+                  className="rounded-full"
+                />
+              </div>
+              {clientLogo && (
+                <div className="w-24 h-24 relative group">
+                  <Image
+                    src={clientLogo}
+                    alt="Client Logo"
+                    width={96}
+                    height={96}
+                    className="rounded-full"
+                    onError={(e) => {
+                      e.currentTarget.src = "/default-brgy-logo.png";
+                      setClientLogo("/default-brgy-logo.png");
+                    }}
+                  />
+                  <button 
+                    onClick={handleLogoEdit}
+                    className="absolute top-0 right-0 bg-white/20 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                </div>
+              )}
             </div>
             <div className="font-bold text-xl text-center">BISIG</div>
           </div>
+
+          {/* Logo Edit Modal */}
+          {isEditingLogo && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Client Logo</h3>
+                
+                {/* Logo Upload Section */}
+                <div className="mb-6 border-b pb-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Upload Logo</h4>
+                  <div 
+                    onClick={triggerFileInput}
+                    className="border-2 border-dashed border-gray-300 rounded-md p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50"
+                  >
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <p className="text-sm text-gray-500">Click to upload or drag and drop</p>
+                    <p className="text-xs text-gray-400 mt-1">PNG, JPG, GIF up to 2MB</p>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef}
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={handleFileChange}
+                    />
+                  </div>
+                  {isUploading && <p className="text-sm text-blue-500 mt-2">Uploading...</p>}
+                </div>
+                
+                {/* Logo URL Section */}
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Or Enter Logo URL</h4>
+                  <input
+                    type="text"
+                    value={logoInput}
+                    onChange={(e) => {
+                      setLogoInput(e.target.value);
+                      setPreviewImage(null);
+                    }}
+                    className="w-full p-2 border border-gray-300 rounded-md text-gray-900"
+                    placeholder="Enter logo URL..."
+                  />
+                </div>
+                
+                {/* Preview */}
+                {(previewImage || logoInput) && (
+                  <div className="mb-6 flex justify-center">
+                    <div className="border border-gray-200 rounded-full p-1 inline-block">
+                      <Image
+                        src={previewImage || logoInput}
+                        alt="Preview"
+                        width={100}
+                        height={100}
+                        className="rounded-full"
+                        onError={(e) => {
+                          e.currentTarget.src = "/default-brgy-logo.png";
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={cancelLogoEdit}
+                    className="px-4 py-2 bg-gray-200 rounded-md text-gray-800 hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveClientLogo}
+                    className="px-4 py-2 bg-[#006B5E] rounded-md text-white hover:bg-[#005a4f]"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* User Info */}
           <div className="p-4 border-b border-white/10">

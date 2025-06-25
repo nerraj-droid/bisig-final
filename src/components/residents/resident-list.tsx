@@ -79,6 +79,49 @@ export const ResidentList = ({ initialResidents, currentFilters = {} }: Resident
             if (currentFilters.voterInBarangay !== undefined) {
                 queryParams.append("voter", currentFilters.voterInBarangay.toString())
             }
+            
+            // Add age range filters
+            if (currentFilters.minAge !== undefined) {
+                queryParams.append("minAge", currentFilters.minAge.toString())
+            }
+            
+            if (currentFilters.maxAge !== undefined) {
+                queryParams.append("maxAge", currentFilters.maxAge.toString())
+            }
+            
+            // Add precise age filters
+            if (currentFilters.ageYears !== undefined) {
+                queryParams.append("ageYears", currentFilters.ageYears.toString())
+            }
+            
+            if (currentFilters.ageMonths !== undefined) {
+                queryParams.append("ageMonths", currentFilters.ageMonths.toString())
+            }
+            
+            if (currentFilters.ageDays !== undefined) {
+                queryParams.append("ageDays", currentFilters.ageDays.toString())
+            }
+            
+            // Add other advanced filters
+            if (currentFilters.employmentStatus) {
+                queryParams.append("employmentStatus", currentFilters.employmentStatus)
+            }
+            
+            if (currentFilters.educationalAttainment) {
+                queryParams.append("educationalAttainment", currentFilters.educationalAttainment)
+            }
+            
+            if (currentFilters.sectors && currentFilters.sectors.length > 0) {
+                queryParams.append("sectors", currentFilters.sectors.join(','))
+            }
+            
+            if (currentFilters.religion) {
+                queryParams.append("religion", currentFilters.religion)
+            }
+            
+            if (currentFilters.bloodType) {
+                queryParams.append("bloodType", currentFilters.bloodType)
+            }
 
             // Fetch data with filters
             const response = await fetch(`/api/residents?${queryParams.toString()}`)

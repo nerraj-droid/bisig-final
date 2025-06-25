@@ -223,6 +223,187 @@ export async function GET(request: NextRequest) {
                     }
                     break
             }
+        } 
+        // Process direct age filters (min/max age)
+        else {
+            const minAge = searchParams.get('minAge')
+            const maxAge = searchParams.get('maxAge')
+            const today = new Date()
+            
+            if (minAge !== null && maxAge !== null) {
+                // Both min and max age provided
+                const minAgeValue = parseInt(minAge)
+                const maxAgeValue = parseInt(maxAge)
+                
+                if (!isNaN(minAgeValue) && !isNaN(maxAgeValue)) {
+                    // Calculate the birthdate range more precisely
+                    // For min age, we need a date that is minAge years ago
+                    const minAgeDate = new Date(today)
+                    minAgeDate.setFullYear(today.getFullYear() - minAgeValue)
+                    
+                    // For max age, we need a date that is maxAge years ago
+                    const maxAgeDate = new Date(today)
+                    maxAgeDate.setFullYear(today.getFullYear() - maxAgeValue)
+                    
+                    // Someone between minAge and maxAge years old
+                    // Their birthdate must be between maxAgeDate and minAgeDate
+                    whereCondition.birthDate = {
+                        lte: minAgeDate,
+                        gte: maxAgeDate
+                    }
+                    console.log('API: Age filter conditions:', {
+                        minAge: minAgeValue,
+                        maxAge: maxAgeValue,
+                        minAgeDate: minAgeDate.toISOString(),
+                        maxAgeDate: maxAgeDate.toISOString(),
+                        birthDateConditions: whereCondition.birthDate
+                    });
+                }
+            } else if (minAge !== null) {
+                // Only min age provided - older than minAge
+                const minAgeValue = parseInt(minAge)
+                
+                if (!isNaN(minAgeValue)) {
+                    // Calculate the date for minAge more precisely
+                    const minAgeDate = new Date(today)
+                    minAgeDate.setFullYear(today.getFullYear() - minAgeValue)
+                    
+                    // Their birthdate must be earlier than minAgeDate
+                    whereCondition.birthDate = {
+                        lte: minAgeDate
+                    }
+                    console.log('API: Min age filter:', {
+                        minAge: minAgeValue,
+                        minAgeDate: minAgeDate.toISOString(),
+                        birthDateCondition: whereCondition.birthDate
+                    });
+                }
+            } else if (maxAge !== null) {
+                // Only max age provided - younger than maxAge
+                const maxAgeValue = parseInt(maxAge)
+                
+                if (!isNaN(maxAgeValue)) {
+                    // Calculate the date for maxAge more precisely
+                    const maxAgeDate = new Date(today)
+                    maxAgeDate.setFullYear(today.getFullYear() - maxAgeValue)
+                    
+                    // Their birthdate must be later than maxAgeDate
+                    whereCondition.birthDate = {
+                        gte: maxAgeDate
+                    }
+                    console.log('API: Max age filter:', {
+                        maxAge: maxAgeValue,
+                        maxAgeDate: maxAgeDate.toISOString(),
+                        birthDateCondition: whereCondition.birthDate
+                    });
+                }
+            }
+            
+            // Handle additional precision parameters
+            const ageYears = searchParams.get('ageYears')
+            const ageMonths = searchParams.get('ageMonths')
+            const ageDays = searchParams.get('ageDays')
+            
+            if (ageYears !== null || ageMonths !== null || ageDays !== null) {
+                // Calculate exact date based on years, months, days
+                const preciseDate = new Date(today)
+                
+                if (ageYears !== null) {
+                    const years = parseInt(ageYears)
+                    if (!isNaN(years)) {
+                        preciseDate.setFullYear(preciseDate.getFullYear() - years)
+                    }
+                }
+                
+                if (ageMonths !== null) {
+                    const months = parseInt(ageMonths)
+                    if (!isNaN(months)) {
+                        preciseDate.setMonth(preciseDate.getMonth() - months)
+                    }
+                }
+                
+                if (ageDays !== null) {
+                    const days = parseInt(ageDays)
+                    if (!isNaN(days)) {
+                        preciseDate.setDate(preciseDate.getDate() - days)
+                    }
+                }
+                
+                // If we already have a birthDate condition, refine it
+                if (whereCondition.birthDate && typeof whereCondition.birthDate === 'object' && 'lte' in whereCondition.birthDate && 'gte' in whereCondition.birthDate) {
+                    // If exact age is specified, create a range of ±2 days around that age
+                    const rangeStart = new Date(preciseDate)
+                    rangeStart.setDate(rangeStart.getDate() - 2)
+                    
+                    const rangeEnd = new Date(preciseDate)
+                    rangeEnd.setDate(rangeEnd.getDate() + 2)
+                    
+                    const birthDateFilter = whereCondition.birthDate as any;
+                    
+                    // Check and update constraints if needed
+                    if (!birthDateFilter.lte || birthDateFilter.lte > rangeEnd) {
+                        birthDateFilter.lte = rangeEnd;
+                    }
+                    
+                    if (!birthDateFilter.gte || birthDateFilter.gte < rangeStart) {
+                        birthDateFilter.gte = rangeStart;
+                    }
+                } else {
+                    // Create a small range around the exact age (±2 days)
+                    const rangeStart = new Date(preciseDate)
+                    rangeStart.setDate(rangeStart.getDate() - 2)
+                    
+                    const rangeEnd = new Date(preciseDate)
+                    rangeEnd.setDate(rangeEnd.getDate() + 2)
+                    
+                    whereCondition.birthDate = {
+                        lte: rangeEnd,
+                        gte: rangeStart
+                    }
+                }
+                
+                console.log('API: Precise age filter:', {
+                    years: ageYears,
+                    months: ageMonths,
+                    days: ageDays,
+                    targetDate: preciseDate.toISOString(),
+                    birthDateCondition: whereCondition.birthDate
+                });
+            }
+        }
+
+        // Process other advanced filters
+        const employmentStatus = searchParams.get('employmentStatus')
+        if (employmentStatus) {
+            whereCondition.employmentStatus = employmentStatus
+        }
+        
+        const educationalAttainment = searchParams.get('educationalAttainment')
+        if (educationalAttainment) {
+            whereCondition.educationalAttainment = educationalAttainment
+        }
+        
+        const sectors = searchParams.get('sectors')
+        if (sectors) {
+            const sectorArray = sectors.split(',')
+            if (sectorArray.length > 0) {
+                whereCondition.sectors = {
+                    hasSome: sectorArray
+                }
+            }
+        }
+        
+        const religion = searchParams.get('religion')
+        if (religion) {
+            whereCondition.religion = {
+                contains: religion,
+                mode: 'insensitive' as Prisma.QueryMode
+            }
+        }
+        
+        const bloodType = searchParams.get('bloodType')
+        if (bloodType) {
+            whereCondition.bloodType = bloodType
         }
 
         // Only request fields that are actually needed to improve performance

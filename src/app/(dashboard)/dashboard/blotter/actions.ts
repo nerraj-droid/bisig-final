@@ -13,6 +13,7 @@ export type FilterCriteria = {
   searchTerm?: string;
   page?: number;
   pageSize?: number;
+  caseType?: string;
 };
 
 // Type for formatted case display
@@ -51,7 +52,8 @@ export async function getBlotterData(filters: FilterCriteria = {}): Promise<{
     incidentType, 
     searchTerm,
     page = 1,
-    pageSize = 10
+    pageSize = 10,
+    caseType
   } = filters;
   
   // Build query conditions
@@ -82,6 +84,16 @@ export async function getBlotterData(filters: FilterCriteria = {}): Promise<{
           }
         }
       ]
+    }),
+    ...(caseType === 'blotter' && {
+      caseNumber: {
+        startsWith: 'BLT-'
+      }
+    }),
+    ...(caseType === 'complaint' && {
+      caseNumber: {
+        startsWith: 'CMP-'
+      }
     })
   };
   

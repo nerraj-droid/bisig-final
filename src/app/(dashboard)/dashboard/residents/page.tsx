@@ -49,6 +49,9 @@ export type FilterCriteria = {
   bloodType?: string;
   minAge?: number;
   maxAge?: number;
+  ageYears?: string | number;
+  ageMonths?: string | number;
+  ageDays?: string | number;
 }
 
 async function getResidentsData(page: number = 1, limit: number = 10, filters: FilterCriteria = {}) {
@@ -308,75 +311,94 @@ export default async function ResidentsPage({
 }) {
   // Parse and validate filter parameters
   const filters: FilterCriteria = {};
+  
+  // Safely access search parameters by assigning to a local variable first
+  const params = await searchParams;
 
   // Basic filters (existing code)
-  if (searchParams.gender) {
-    const gender = searchParams.gender.toString().toUpperCase();
+  if (params.gender) {
+    const gender = params.gender.toString().toUpperCase();
     if (gender === 'MALE' || gender === 'FEMALE') {
       filters.gender = gender as Gender;
     }
   }
 
-  if (searchParams.ageGroup) {
-    const ageGroup = searchParams.ageGroup.toString().toLowerCase();
+  if (params.ageGroup) {
+    const ageGroup = params.ageGroup.toString().toLowerCase();
     if (['child', 'young-adult', 'adult', 'senior'].includes(ageGroup)) {
       filters.ageGroup = ageGroup as FilterCriteria['ageGroup'];
     }
   }
 
-  if (searchParams.civilStatus) {
-    const civilStatus = searchParams.civilStatus.toString().toUpperCase();
+  if (params.civilStatus) {
+    const civilStatus = params.civilStatus.toString().toUpperCase();
     if (['SINGLE', 'MARRIED', 'WIDOWED', 'DIVORCED', 'SEPARATED'].includes(civilStatus)) {
       filters.civilStatus = civilStatus as CivilStatus;
     }
   }
 
-  if (searchParams.voter) {
-    filters.voterInBarangay = searchParams.voter === 'true';
+  if (params.voter) {
+    filters.voterInBarangay = params.voter === 'true';
   }
 
   // Advanced filters
-  if (searchParams.employmentStatus) {
-    filters.employmentStatus = searchParams.employmentStatus.toString();
+  if (params.employmentStatus) {
+    filters.employmentStatus = params.employmentStatus.toString();
   }
 
-  if (searchParams.educationalAttainment) {
-    filters.educationalAttainment = searchParams.educationalAttainment.toString();
+  if (params.educationalAttainment) {
+    filters.educationalAttainment = params.educationalAttainment.toString();
   }
 
-  if (searchParams.sectors) {
-    filters.sectors = Array.isArray(searchParams.sectors)
-      ? searchParams.sectors
-      : searchParams.sectors.toString().split(',');
+  if (params.sectors) {
+    filters.sectors = Array.isArray(params.sectors)
+      ? params.sectors
+      : params.sectors.toString().split(',');
   }
 
-  if (searchParams.religion) {
-    filters.religion = searchParams.religion.toString();
+  if (params.religion) {
+    filters.religion = params.religion.toString();
   }
 
-  if (searchParams.bloodType) {
-    filters.bloodType = searchParams.bloodType.toString();
+  if (params.bloodType) {
+    filters.bloodType = params.bloodType.toString();
   }
 
   // Age range filters
-  if (searchParams.minAge) {
-    const minAge = parseInt(searchParams.minAge.toString());
+  if (params.minAge) {
+    const minAge = parseInt(params.minAge.toString());
     if (!isNaN(minAge) && minAge >= 0) {
       filters.minAge = minAge;
       console.log(`Setting minAge filter to ${minAge}`);
     }
   }
 
-  if (searchParams.maxAge) {
-    const maxAge = parseInt(searchParams.maxAge.toString());
+  if (params.maxAge) {
+    const maxAge = parseInt(params.maxAge.toString());
     if (!isNaN(maxAge) && maxAge >= 0) {
       filters.maxAge = maxAge;
       console.log(`Setting maxAge filter to ${maxAge}`);
     }
   }
+  
+  // Precise age filters
+  if (params.ageYears) {
+    filters.ageYears = params.ageYears.toString();
+    console.log(`Setting ageYears filter to ${params.ageYears}`);
+  }
+  
+  if (params.ageMonths) {
+    filters.ageMonths = params.ageMonths.toString();
+    console.log(`Setting ageMonths filter to ${params.ageMonths}`);
+  }
+  
+  if (params.ageDays) {
+    filters.ageDays = params.ageDays.toString();
+    console.log(`Setting ageDays filter to ${params.ageDays}`);
+  }
 
   // Get page number
-  const page = searchParams.page ? parseInt(searchParams.page.toString()) : 1;
+  const page = params.page ? parseInt(params.page.toString()) : 1;
 
   // Fetch filtered data
   const data = await getResidentsData(page, 10, filters);
@@ -404,6 +426,16 @@ export default async function ResidentsPage({
   if (filters.bloodType) filterDescriptions.push(`Blood Type: ${filters.bloodType}`);
   if (filters.minAge !== undefined || filters.maxAge !== undefined) {
     filterDescriptions.push(`Age: ${filters.minAge || '0'} - ${filters.maxAge || '∞'}`);
+  }
+  
+  // Add precise age to filter description
+  if (filters.ageYears || filters.ageMonths || filters.ageDays) {
+    const yearsPart = filters.ageYears ? `${filters.ageYears} years` : '';
+    const monthsPart = filters.ageMonths ? `${filters.ageMonths} months` : '';
+    const daysPart = filters.ageDays ? `${filters.ageDays} days` : '';
+    
+    const parts = [yearsPart, monthsPart, daysPart].filter(Boolean);
+    filterDescriptions.push(`Exact Age: ${parts.join(', ')}`);
   }
 
   const filterDescription = filterDescriptions.length > 0

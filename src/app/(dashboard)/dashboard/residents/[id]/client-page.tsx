@@ -17,7 +17,8 @@ import {
   FileCheck,
   UserCircle,
   FileOutput,
-  Award
+  Award,
+  X
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -78,6 +79,8 @@ interface ExtendedResident {
   ethnicGroup: string | null;
   bloodType: string | null;
   alias: string | null;
+  isDeceased: boolean | null;
+  dateOfDeath: string | null;
   [key: string]: any; // For any other properties
 }
 
@@ -88,8 +91,11 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
   const [selectedCertificate, setSelectedCertificate] = useState<string>('');
   const [purpose, setPurpose] = useState<string>('');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeceasedModalOpen, setIsDeceasedModalOpen] = useState(false);
+  const [deceasedDate, setDeceasedDate] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const router = useRouter();
 
   // Debug info about the resident data
@@ -138,6 +144,47 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
     router.push(`/dashboard/certificates/new?type=${certificateType}&residentId=${resident.id}&purpose=${encodeURIComponent(purpose.trim())}`);
   };
 
+  // Function to mark resident as deceased
+  const handleMarkDeceased = async () => {
+    if (!deceasedDate) {
+      setError("Please select a date of death");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`/api/residents/${resident.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isDeceased: true,
+          dateOfDeath: deceasedDate
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update resident status');
+      }
+
+      setSuccessMessage("Resident has been marked as deceased");
+      // Close the modal
+      setIsDeceasedModalOpen(false);
+      // Refresh the page after 1 second to show updated data
+      setTimeout(() => {
+        router.refresh();
+      }, 1000);
+    } catch (error) {
+      console.error('Error updating resident:', error);
+      setError(error instanceof Error ? error.message : 'An unknown error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <PageTransition>
       <div className="w-full max-w-[1200px] mx-auto">
@@ -155,6 +202,14 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
                 <Edit className="mr-2 h-4 w-4" /> Edit
               </Button>
             </Link>
+            <Button 
+              variant="outline" 
+              className={`border-red-500 text-red-500 hover:bg-red-50 ${resident.isDeceased === true ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={() => setIsDeceasedModalOpen(true)}
+              disabled={resident.isDeceased === true}
+            >
+              <span className="mr-2">⚰️</span> Mark as Deceased
+            </Button>
             <Link href={`/dashboard/residents/${resident.id}/delete`}>
               <Button variant="destructive">
                 <Trash2 className="mr-2 h-4 w-4" /> Delete
@@ -162,6 +217,19 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
             </Link>
           </div>
         </div>
+
+        {/* Success message */}
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md mb-6 flex justify-between items-center">
+            <span>{successMessage}</span>
+            <button 
+              onClick={() => setSuccessMessage(null)} 
+              className="text-green-700 hover:text-green-900"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        )}
 
         {/* Resident Details */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -204,8 +272,21 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
               <div className="text-center sm:text-left">
                 <h2 className="text-xl sm:text-2xl font-bold">{fullName}</h2>
                 <p className="text-white/80">ID: {resident.id}</p>
-                <div className="mt-2 inline-block bg-[#F39C12] text-white px-3 py-1 rounded-full text-sm">
-                  {resident.gender}
+                <div className="mt-2 flex flex-wrap justify-center sm:justify-start gap-2">
+                  <span className="inline-block bg-[#F39C12] text-white px-3 py-1 rounded-full text-sm">
+                    {resident.gender}
+                  </span>
+                  
+                  {resident.isDeceased === true && (
+                    <span className="inline-block bg-red-600 text-white px-3 py-1 rounded-full text-sm">
+                      Deceased
+                      {resident.dateOfDeath && (
+                        <span className="ml-1 text-xs">
+                          ({new Date(resident.dateOfDeath).toLocaleDateString()})
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </div>
                 {resident.sectors && resident.sectors.length > 0 && (
                   <div className="mt-2 flex flex-wrap justify-center sm:justify-start gap-2">
@@ -364,6 +445,27 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
                           )}
                         </div>
                       </div>
+                      
+                      {/* Deceased status */}
+                      {resident.isDeceased === true && (
+                        <div className="grid grid-cols-3 mt-3 border-t pt-3">
+                          <span className="text-gray-500">Vital Status:</span>
+                          <div className="col-span-2">
+                            <span className="inline-flex items-center bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-medium">
+                              Deceased
+                              {resident.dateOfDeath && (
+                                <span className="ml-1">
+                                  on {new Date(resident.dateOfDeath).toLocaleDateString('en-US', {
+                                    month: 'long',
+                                    day: 'numeric', 
+                                    year: 'numeric'
+                                  })}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -905,6 +1007,96 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
           </div>
         </div>
       </div>
+
+      {/* Deceased Modal */}
+      <DeceasedModal
+        isOpen={isDeceasedModalOpen}
+        onClose={() => setIsDeceasedModalOpen(false)}
+        onConfirm={handleMarkDeceased}
+        deceasedDate={deceasedDate}
+        setDeceasedDate={setDeceasedDate}
+        isLoading={isLoading}
+        error={error}
+      />
     </PageTransition>
+  );
+}
+
+// Add Modal component at the end of the file
+function DeceasedModal({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  deceasedDate, 
+  setDeceasedDate, 
+  isLoading, 
+  error 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  onConfirm: () => void; 
+  deceasedDate: string; 
+  setDeceasedDate: (date: string) => void; 
+  isLoading: boolean;
+  error: string | null;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-4">Mark Resident as Deceased</h3>
+        
+        <p className="text-gray-700 mb-4">
+          You are about to mark this resident as deceased. This action will update their status in the system.
+        </p>
+        
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Date of Death <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            value={deceasedDate}
+            onChange={(e) => setDeceasedDate(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+            max={new Date().toISOString().split('T')[0]} // Prevent future dates
+            required
+          />
+        </div>
+        
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4">
+            {error}
+          </div>
+        )}
+        
+        <div className="flex justify-end gap-2 mt-6">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={!deceasedDate || isLoading}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? (
+              <span className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
+              </span>
+            ) : (
+              "Confirm"
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 } 

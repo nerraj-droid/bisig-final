@@ -71,12 +71,8 @@ export interface MapViewProps {
     onMapClick?: (event: { lngLat: [number, number] }) => void;
     onMapMove?: (event: { lngLat: [number, number] }) => void;
     isDrawingBox?: boolean;
-    boxCoordinates?: {
-        north: number;
-        south: number;
-        east: number;
-        west: number;
-    };
+    boxCoordinates?: [number, number][];
+    tempDrawingPoint?: [number, number] | null;
     onMapLoad?: (mapRef: MapRef) => void;
 }
 
@@ -89,6 +85,7 @@ export function MapView({
     onMapMove,
     isDrawingBox = false,
     boxCoordinates,
+    tempDrawingPoint,
     onMapLoad
 }: MapViewProps) {
     const [isMounted, setIsMounted] = useState(false);
@@ -226,27 +223,62 @@ export function MapView({
         }
     };
 
-    // Generate GeoJSON for the bounding box
-    const generateBoxGeoJSON = () => {
-        if (!boxCoordinates) return null;
-
-        const { north, south, east, west } = boxCoordinates;
+    // Generate GeoJSON for the polygon
+    const generatePolygonGeoJSON = () => {
+        if (!boxCoordinates || boxCoordinates.length < 3) return null;
 
         return {
             type: 'Feature',
             geometry: {
                 type: 'Polygon',
                 coordinates: [
-                    [
-                        [west, north],
-                        [east, north],
-                        [east, south],
-                        [west, south],
-                        [west, north]
-                    ]
+                    // Close the polygon if it isn't already closed
+                    (boxCoordinates[0][0] !== boxCoordinates[boxCoordinates.length - 1][0] ||
+                    boxCoordinates[0][1] !== boxCoordinates[boxCoordinates.length - 1][1])
+                        ? [...boxCoordinates, boxCoordinates[0]]
+                        : boxCoordinates
                 ]
             },
             properties: {}
+        };
+    };
+
+    // Generate GeoJSON for the line being drawn
+    const generateLineGeoJSON = () => {
+        if (!boxCoordinates || boxCoordinates.length < 2) return null;
+
+        // If we have a temporary point, add it to the line
+        const linePoints = tempDrawingPoint && boxCoordinates.length > 0
+            ? [...boxCoordinates, tempDrawingPoint]
+            : boxCoordinates;
+
+        return {
+            type: 'Feature',
+            geometry: {
+                type: 'LineString',
+                coordinates: linePoints
+            },
+            properties: {}
+        };
+    };
+
+    // Generate GeoJSON for the points of the polygon
+    const generatePointsGeoJSON = () => {
+        if (!boxCoordinates || boxCoordinates.length === 0) return null;
+
+        return {
+            type: 'FeatureCollection',
+            features: boxCoordinates.map((point, index) => ({
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: point
+                },
+                properties: {
+                    id: index,
+                    isFirst: index === 0
+                }
+            }))
         };
     };
 
@@ -341,11 +373,84 @@ export function MapView({
             ))}
 
             {/* Bounding box for disaster relief area */}
-            {boxCoordinates && (
-                <Source id="box-source" type="geojson" data={generateBoxGeoJSON() as any}>
-                    <Layer {...boxFillLayer as any} />
-                    <Layer {...boxOutlineLayer as any} />
-                </Source>
+            {boxCoordinates && boxCoordinates.length > 0 && (
+                <>
+                    {/* Render the polygon if it has at least 3 points */}
+                    {(() => {
+                        if (boxCoordinates.length >= 3) {
+                            const polygonGeoJSON = generatePolygonGeoJSON();
+                            if (polygonGeoJSON) {
+                                return (
+                                    <Source id="polygon-source" type="geojson" data={polygonGeoJSON as any}>
+                                        <Layer {...boxFillLayer as any} />
+                                        <Layer {...boxOutlineLayer as any} />
+                                    </Source>
+                                );
+                            }
+                        }
+                        return null;
+                    })()}
+                    
+                    {/* Render the line while drawing */}
+                    {(() => {
+                        if (isDrawingBox) {
+                            const lineGeoJSON = generateLineGeoJSON();
+                            if (lineGeoJSON) {
+                                return (
+                                    <Source id="line-source" type="geojson" data={lineGeoJSON as any}>
+                                        <Layer
+                                            id="line-layer"
+                                            type="line"
+                                            paint={{
+                                                'line-color': '#ef4444',
+                                                'line-width': 2,
+                                                'line-dasharray': [2, 1]
+                                            }}
+                                        />
+                                    </Source>
+                                );
+                            }
+                        }
+                        return null;
+                    })()}
+                    
+                    {/* Render points */}
+                    {(() => {
+                        const pointsGeoJSON = generatePointsGeoJSON();
+                        if (pointsGeoJSON) {
+                            return (
+                                <Source id="points-source" type="geojson" data={pointsGeoJSON as any}>
+                                    <Layer
+                                        id="points-layer"
+                                        type="circle"
+                                        paint={{
+                                            'circle-radius': 5,
+                                            'circle-color': [
+                                                'case',
+                                                ['get', 'isFirst'],
+                                                '#22c55e',  // First point is green
+                                                '#ef4444'   // Other points are red
+                                            ],
+                                            'circle-stroke-color': '#ffffff',
+                                            'circle-stroke-width': 2
+                                        }}
+                                    />
+                                </Source>
+                            );
+                        }
+                        return null;
+                    })()}
+                    
+                    {/* Render temporary drawing point */}
+                    {isDrawingBox && tempDrawingPoint && (
+                        <Marker
+                            latitude={tempDrawingPoint[1]}
+                            longitude={tempDrawingPoint[0]}
+                        >
+                            <div className="w-3 h-3 bg-blue-500 rounded-full border-2 border-white"></div>
+                        </Marker>
+                    )}
+                </>
             )}
         </Map>
     );

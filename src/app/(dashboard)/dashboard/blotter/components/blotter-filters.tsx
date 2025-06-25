@@ -12,10 +12,12 @@ export default function BlotterFilters({
   initialStatus,
   initialPriority,
   initialSearchTerm,
+  caseType,
 }: {
   initialStatus?: string,
   initialPriority?: string,
   initialSearchTerm?: string,
+  caseType?: string,
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -35,6 +37,7 @@ export default function BlotterFilters({
     if (status && status !== "all") params.set("status", status);
     if (priority && priority !== "all") params.set("priority", priority);
     if (searchTerm) params.set("q", searchTerm);
+    if (caseType) params.set("caseType", caseType);
     
     router.push(`/dashboard/blotter?${params.toString()}`);
   };
@@ -43,7 +46,12 @@ export default function BlotterFilters({
     setStatus("all");
     setPriority("all");
     setSearchTerm("");
-    router.push("/dashboard/blotter");
+    
+    // Keep caseType when resetting other filters
+    const params = new URLSearchParams();
+    if (caseType) params.set("caseType", caseType);
+    
+    router.push(`/dashboard/blotter${params.toString() ? `?${params.toString()}` : ""}`);
   };
   
   return (
@@ -90,7 +98,7 @@ export default function BlotterFilters({
             <Filter size={16} />
           </Button>
           
-          {(status || priority || searchTerm) && (
+          {(status !== "all" || priority !== "all" || searchTerm) && (
             <Button type="button" variant="outline" size="sm" onClick={resetFilters}>
               Reset
             </Button>

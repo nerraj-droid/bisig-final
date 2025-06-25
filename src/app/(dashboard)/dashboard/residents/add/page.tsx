@@ -144,7 +144,8 @@ export default function AddResidentPage() {
     address: '',
     notes: '',
     latitude: 14.5995, // Default to Philippines location
-    longitude: 120.9842
+    longitude: 120.9842,
+    purokSitio: ''
   });
 
   // Add form context for the map component
@@ -190,6 +191,7 @@ export default function AddResidentPage() {
     city: '',
     province: '',
     zipCode: '',
+    purokSitio: '',
 
     // Employment & Education
     occupation: '',
@@ -482,6 +484,7 @@ export default function AddResidentPage() {
       const formattedAddress = [
         formData.houseNo,
         formData.street,
+        formData.purokSitio ? `Purok/Sitio ${formData.purokSitio}` : '',
         formData.barangay,
         formData.city,
         formData.province,
@@ -563,6 +566,12 @@ export default function AddResidentPage() {
         gender: formData.gender,
         civilStatus: formData.civilStatus,
         address: formattedAddress,
+        houseNo: formData.houseNo || '',
+        street: formData.street || '',
+        purokSitio: formData.purokSitio || '',
+        barangay: formData.barangay || '',
+        city: formData.city || '',
+        province: formData.province || '',
         email: formData.email || '',
         contactNo: formData.contactNo || '',
         occupation: formData.occupation || '',
@@ -628,7 +637,8 @@ export default function AddResidentPage() {
         address: formattedAddress,
         notes: '',
         latitude: 14.5995, // Default to Philippines location
-        longitude: 120.9842
+        longitude: 120.9842,
+        purokSitio: formData.purokSitio || ''
       });
 
       // Move to step 2 (household selection)
@@ -902,6 +912,7 @@ export default function AddResidentPage() {
       const formattedAddress = [
         householdFormData.houseNo,
         householdFormData.street,
+        householdFormData.purokSitio ? `Purok/Sitio ${householdFormData.purokSitio}` : '',
         householdFormData.barangay,
         householdFormData.city,
         householdFormData.province
@@ -915,6 +926,7 @@ export default function AddResidentPage() {
         residentIds: [createdResidentId],
         houseNo: householdFormData.houseNo || '',
         street: householdFormData.street || '',
+        purokSitio: householdFormData.purokSitio || '',
         barangay: householdFormData.barangay || '',
         city: householdFormData.city || '',
         province: householdFormData.province || '',
@@ -1299,6 +1311,16 @@ export default function AddResidentPage() {
                       type="text"
                       name="zipCode"
                       value={formData.zipCode}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Purok/Sitio</label>
+                    <input
+                      type="text"
+                      name="purokSitio"
+                      value={formData.purokSitio}
                       onChange={handleChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
                     />
@@ -1878,6 +1900,15 @@ export default function AddResidentPage() {
                       type="text"
                       value={householdFormData.province}
                       onChange={(e) => setHouseholdFormData({ ...householdFormData, province: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Purok/Sitio</label>
+                    <input
+                      type="text"
+                      value={householdFormData.purokSitio}
+                      onChange={(e) => setHouseholdFormData({ ...householdFormData, purokSitio: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#006B5E]"
                     />
                   </div>
