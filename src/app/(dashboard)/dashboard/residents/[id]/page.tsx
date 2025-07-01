@@ -45,6 +45,8 @@ interface ExtendedResident {
   ethnicGroup: string | null;
   bloodType: string | null;
   alias: string | null;
+  isDeceased: boolean | null;
+  dateOfDeath: string | null;
   [key: string]: any; // For any other properties
 }
 

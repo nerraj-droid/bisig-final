@@ -17,7 +17,10 @@ import {
   TrendingUp,
   User,
   ChevronRight,
-  ShieldAlert
+  ShieldAlert,
+  Plus,
+  BarChart3,
+  Activity
 } from "lucide-react";
 import { format, subDays } from "date-fns";
 import { PageTransition } from "@/components/ui/page-transition";
@@ -149,19 +152,8 @@ export default async function Dashboard() {
   const data = await getDashboardData();
 
   const today = new Date();
-  const formattedDate = format(today, "MMMM d yyyy");
+  const formattedDate = format(today, "MMMM d, yyyy");
   const dayOfWeek = format(today, "EEEE");
-
-  const nextDays = [
-    format(new Date(today.getTime() + 1 * 24 * 60 * 60 * 1000), "d"),
-    format(new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000), "d"),
-    format(new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000), "d")
-  ];
-
-  const mockEvents = [
-    { title: "Barangay Meeting", time: new Date().setHours(8, 0, 0, 0) },
-    { title: "Outreach Program", time: new Date().setHours(13, 0, 0, 0) }
-  ];
 
   // Calculate certificate issuance rate
   const issuanceRate = data.certificates.total > 0
@@ -178,175 +170,241 @@ export default async function Dashboard() {
 
   return (
     <PageTransition>
-      <div className="w-full space-y-6 sm:space-y-8">
-        {/* Welcome Section */}
-        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-[#F39C12]/30">
-          <h1 className="text-xl sm:text-2xl font-bold text-[#006B5E]">
-            Welcome back, {session?.user?.name || 'User'}!
-          </h1>
-          <p className="mt-2 text-gray-600">
-            Today is {dayOfWeek}, {formattedDate}. Here's your barangay summary.
-          </p>
-        </div>
-
-        {/* Action Cards - Quick Actions */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <Link href="/dashboard/residents/add" className="bg-white rounded-xl border border-[#F39C12]/30 p-4 hover:border-[#006B5E] transition-colors">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#006B5E] text-white rounded-full flex items-center justify-center mb-2">
-                <User size={24} className="sm:w-8 sm:h-8" />
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        {/* Header Section */}
+        <div className="py-6 border-b border-gray-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">
+                Welcome back, {session?.user?.name || 'User'}
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                {dayOfWeek}, {formattedDate} • Barangay Management Dashboard
+              </p>
+            </div>
+            <div className="mt-4 sm:mt-0">
+              <div className="text-sm text-gray-500">
+                System Status: <span className="text-green-600 font-medium">Active</span>
               </div>
-              <div className="font-medium text-[#006B5E]">Add New Resident</div>
-              <div className="text-xs text-gray-500 mt-1">Register a new barangay resident</div>
-            </div>
-          </Link>
-
-          <Link href="/dashboard/households/new" className="bg-white rounded-xl border border-[#F39C12]/30 p-4 hover:border-[#006B5E] transition-colors">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#006B5E] text-white rounded-full flex items-center justify-center mb-2">
-                <Home size={24} className="sm:w-8 sm:h-8" />
-              </div>
-              <div className="font-medium text-[#006B5E]">Add Household</div>
-              <div className="text-xs text-gray-500 mt-1">Register a new household</div>
-            </div>
-          </Link>
-
-          <Link href="/dashboard/certificates/issue" className="bg-white rounded-xl border border-[#F39C12]/30 p-4 hover:border-[#006B5E] transition-colors">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#006B5E] text-white rounded-full flex items-center justify-center mb-2">
-                <FileText size={24} className="sm:w-8 sm:h-8" />
-              </div>
-              <div className="font-medium text-[#006B5E]">Issue Certificate</div>
-              <div className="text-xs text-gray-500 mt-1">Create a new certificate</div>
-            </div>
-          </Link>
-
-          <Link href="/dashboard/certificates" className="bg-white rounded-xl border border-[#F39C12]/30 p-4 hover:border-[#006B5E] transition-colors">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#006B5E] text-white rounded-full flex items-center justify-center mb-2">
-                <Clipboard size={24} className="sm:w-8 sm:h-8" />
-              </div>
-              <div className="font-medium text-[#006B5E]">Manage Certificates</div>
-              <div className="text-xs text-gray-500 mt-1">View and update certificates</div>
-            </div>
-          </Link>
-        </div>
-
-        {/* Key Statistics Cards - Simple, clean overview */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {/* Total Residents Stat */}
-          <div className="bg-white rounded-xl border border-[#F39C12]/30 p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[#006B5E] font-medium">RESIDENTS</h3>
-              <Users className="text-[#F39C12] h-5 w-5" />
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold text-[#006B5E]">
-              {data.residents.total.toLocaleString()}
-            </div>
-            <div className="mt-3 flex justify-between items-center">
-              <div className="flex gap-3">
-                <div className="text-center">
-                  <div className="text-sm font-semibold text-[#006B5E]">{data.residents.male.toLocaleString()}</div>
-                  <div className="text-xs text-gray-500">Male</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm font-semibold text-[#006B5E]">{data.residents.female.toLocaleString()}</div>
-                  <div className="text-xs text-gray-500">Female</div>
-                </div>
-              </div>
-              <Link href="/dashboard/residents" className="text-xs text-[#006B5E] hover:text-[#F39C12] flex items-center">
-                View
-                <ChevronRight size={14} className="ml-0.5" />
-              </Link>
-            </div>
-          </div>
-
-          {/* Households Stat */}
-          <div className="bg-white rounded-xl border border-[#F39C12]/30 p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[#006B5E] font-medium">HOUSEHOLDS</h3>
-              <Home className="text-[#F39C12] h-5 w-5" />
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold text-[#006B5E]">
-              {data.households.total.toLocaleString()}
-            </div>
-            <div className="mt-3 flex justify-between items-center">
-              <div className="text-xs text-gray-500">
-                {data.households.byType.length} household types registered
-              </div>
-              <Link href="/dashboard/households" className="text-xs text-[#006B5E] hover:text-[#F39C12] flex items-center">
-                View
-                <ChevronRight size={14} className="ml-0.5" />
-              </Link>
-            </div>
-          </div>
-
-          {/* Certificates Stat */}
-          <div className="bg-white rounded-xl border border-[#F39C12]/30 p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[#006B5E] font-medium">CERTIFICATES</h3>
-              <FileText className="text-[#F39C12] h-5 w-5" />
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold text-[#006B5E]">
-              {data.certificates.total.toLocaleString()}
-            </div>
-            <div className="mt-3 flex justify-between items-center">
-              <div className="flex gap-3">
-                <div className="text-center">
-                  <div className="text-sm font-semibold text-green-600">{data.certificates.released.toLocaleString()}</div>
-                  <div className="text-xs text-gray-500">Released</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm font-semibold text-amber-500">{data.certificates.pending.toLocaleString()}</div>
-                  <div className="text-xs text-gray-500">Pending</div>
-                </div>
-              </div>
-              <Link href="/dashboard/certificates" className="text-xs text-[#006B5E] hover:text-[#F39C12] flex items-center">
-                View
-                <ChevronRight size={14} className="ml-0.5" />
-              </Link>
-            </div>
-          </div>
-
-          {/* Voter Stat */}
-          <div className="bg-white rounded-xl border border-[#F39C12]/30 p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[#006B5E] font-medium">REGISTERED VOTERS</h3>
-              <Vote className="text-[#F39C12] h-5 w-5" />
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold text-[#006B5E]">
-              {data.residents.voters.toLocaleString()}
-            </div>
-            <div className="mt-3 flex justify-between items-center">
-              <div className="text-xs text-gray-500">
-                {Math.round((data.residents.voters / data.residents.total) * 100)}% of total residents
-              </div>
-              <Link href="/dashboard/residents?voter=true" className="text-xs text-[#006B5E] hover:text-[#F39C12] flex items-center">
-                View
-                <ChevronRight size={14} className="ml-0.5" />
-              </Link>
             </div>
           </div>
         </div>
 
-        {/* Content Area - Main dashboard content */}
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <Link
+            href="/dashboard/residents/add"
+            className="group bg-white border border-gray-200 rounded-xl p-6 hover:border-blue-300 hover:shadow-md transition-all duration-200"
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-100 transition-colors">
+                <Plus className="h-8 w-8" />
+              </div>
+              <div className="font-semibold text-gray-900 text-base">Add Resident</div>
+              <div className="text-sm text-gray-500 mt-2">Register new resident</div>
+            </div>
+          </Link>
+
+          <Link
+            href="/dashboard/households/new"
+            className="group bg-white border border-gray-200 rounded-xl p-6 hover:border-blue-300 hover:shadow-md transition-all duration-200"
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-green-100 transition-colors">
+                <Home className="h-8 w-8" />
+              </div>
+              <div className="font-semibold text-gray-900 text-base">Add Household</div>
+              <div className="text-sm text-gray-500 mt-2">Register household</div>
+            </div>
+          </Link>
+
+          <Link
+            href="/dashboard/certificates/new"
+            className="group bg-white border border-gray-200 rounded-xl p-6 hover:border-blue-300 hover:shadow-md transition-all duration-200"
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-purple-100 transition-colors">
+                <FileText className="h-8 w-8" />
+              </div>
+              <div className="font-semibold text-gray-900 text-base">Issue Certificate</div>
+              <div className="text-sm text-gray-500 mt-2">Create certificate</div>
+            </div>
+          </Link>
+
+          <Link
+            href="/dashboard/certificates"
+            className="group bg-white border border-gray-200 rounded-xl p-6 hover:border-blue-300 hover:shadow-md transition-all duration-200"
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-orange-100 transition-colors">
+                <Clipboard className="h-8 w-8" />
+              </div>
+              <div className="font-semibold text-gray-900 text-base">Manage Docs</div>
+              <div className="text-sm text-gray-500 mt-2">View certificates</div>
+            </div>
+          </Link>
+        </div>
+
+        {/* Key Statistics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Total Residents */}
+          <div className="bg-white border border-gray-200 rounded-xl p-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <Users className="h-8 w-8 text-blue-600" />
+                  </div>
+                </div>
+                <div className="ml-5">
+                  <p className="text-base font-medium text-gray-500">Total Residents</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {data.residents.total.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-6 flex items-center justify-between">
+              <div className="flex space-x-6">
+                <div className="text-center">
+                  <div className="text-base font-semibold text-gray-900">{data.residents.male.toLocaleString()}</div>
+                  <div className="text-sm text-gray-500">Male</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-base font-semibold text-gray-900">{data.residents.female.toLocaleString()}</div>
+                  <div className="text-sm text-gray-500">Female</div>
+                </div>
+              </div>
+              <Link
+                href="/dashboard/residents"
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
+              >
+                View all
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Households */}
+          <div className="bg-white border border-gray-200 rounded-xl p-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center">
+                    <Home className="h-8 w-8 text-green-600" />
+                  </div>
+                </div>
+                <div className="ml-5">
+                  <p className="text-base font-medium text-gray-500">Households</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {data.households.total.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-6 flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                {data.households.byType.length} types registered
+              </div>
+              <Link
+                href="/dashboard/households"
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
+              >
+                View all
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Certificates */}
+          <div className="bg-white border border-gray-200 rounded-xl p-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center">
+                    <FileText className="h-8 w-8 text-purple-600" />
+                  </div>
+                </div>
+                <div className="ml-5">
+                  <p className="text-base font-medium text-gray-500">Certificates</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {data.certificates.total.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-6 flex items-center justify-between">
+              <div className="flex space-x-6">
+                <div className="text-center">
+                  <div className="text-base font-semibold text-green-600">{data.certificates.released.toLocaleString()}</div>
+                  <div className="text-sm text-gray-500">Released</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-base font-semibold text-amber-600">{data.certificates.pending.toLocaleString()}</div>
+                  <div className="text-sm text-gray-500">Pending</div>
+                </div>
+              </div>
+              <Link
+                href="/dashboard/certificates"
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
+              >
+                View all
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Registered Voters */}
+          <div className="bg-white border border-gray-200 rounded-xl p-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center">
+                    <Vote className="h-8 w-8 text-indigo-600" />
+                  </div>
+                </div>
+                <div className="ml-5">
+                  <p className="text-base font-medium text-gray-500">Registered Voters</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {data.residents.voters.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-6 flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                {Math.round((data.residents.voters / data.residents.total) * 100)}% of residents
+              </div>
+              <Link
+                href="/dashboard/residents?voter=true"
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
+              >
+                View all
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Area */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Activity - Takes 2/3 of space on large screens */}
-          <div className="lg:col-span-2 bg-white rounded-xl border border-[#F39C12]/30 overflow-hidden">
-            <div className="p-4 sm:p-6">
-              <h3 className="text-lg font-semibold text-[#006B5E] flex items-center gap-2 mb-4">
-                <TrendingUp size={20} className="text-[#F39C12]" />
-                RECENT ACTIVITY
+          {/* Recent Activity */}
+          <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl">
+            <div className="px-8 py-6 border-b border-gray-200">
+              <h3 className="text-xl font-semibold text-gray-900 flex items-center">
+                <Activity className="h-6 w-6 text-gray-600 mr-3" />
+                Recent Activity
               </h3>
-
-              <div className="divide-y">
-                {data.residents.recent.length > 0 ? (
-                  <div className="py-3">
-                    <h4 className="text-[#006B5E] font-medium text-sm mb-3">Recently Added Residents</h4>
-                    <div className="space-y-3">
+            </div>
+            <div className="p-8">
+              <div className="space-y-6">
+                {data.residents.recent.length > 0 && (
+                  <div>
+                    <h4 className="text-base font-semibold text-gray-900 mb-4">New Residents</h4>
+                    <div className="space-y-4">
                       {data.residents.recent.slice(0, 3).map((resident, index) => (
-                        <div key={index} className="flex items-center bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors">
-                          <div className="w-10 h-10 rounded-full bg-[#E8F5F3] text-[#006B5E] flex items-center justify-center mr-3 overflow-hidden">
+                        <div key={index} className="flex items-center p-4 bg-gray-50 rounded-xl">
+                          <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-4 overflow-hidden">
                             {resident.userPhoto ? (
                               <img
                                 src={resident.userPhoto}
@@ -354,16 +412,19 @@ export default async function Dashboard() {
                                 className="w-full h-full rounded-full object-cover"
                               />
                             ) : (
-                              <User size={18} />
+                              <User className="h-6 w-6" />
                             )}
                           </div>
                           <div className="flex-1">
-                            <Link href={`/dashboard/residents/${resident.id}`} className="font-medium hover:text-[#F39C12]">
+                            <Link
+                              href={`/dashboard/residents/${resident.id}`}
+                              className="font-semibold text-gray-900 hover:text-blue-600 text-base"
+                            >
                               {resident.firstName} {resident.lastName}
                             </Link>
-                            <div className="text-xs text-gray-500 flex items-center gap-1">
+                            <div className="text-sm text-gray-500 flex items-center space-x-1 mt-1">
                               <span>Added {format(new Date(resident.createdAt), "MMM d, yyyy")}</span>
-                              <span className="w-1 h-1 rounded-full bg-gray-400"></span>
+                              <span>•</span>
                               <span>{resident.gender}</span>
                             </div>
                           </div>
@@ -371,29 +432,29 @@ export default async function Dashboard() {
                       ))}
                     </div>
                   </div>
-                ) : null}
+                )}
 
-                {data.certificates.recent.length > 0 ? (
-                  <div className="py-3">
-                    <h4 className="text-[#006B5E] font-medium text-sm mb-3 mt-2">Recent Certificates</h4>
-                    <div className="space-y-3">
+                {data.certificates.recent.length > 0 && (
+                  <div>
+                    <h4 className="text-base font-semibold text-gray-900 mb-4">Recent Certificates</h4>
+                    <div className="space-y-4">
                       {data.certificates.recent.slice(0, 3).map((cert, index) => (
-                        <div key={index} className="flex items-center bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-colors">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${cert.status === "RELEASED"
+                        <div key={index} className="flex items-center p-4 bg-gray-50 rounded-xl">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 ${cert.status === "RELEASED"
                             ? "bg-green-100 text-green-600"
                             : "bg-amber-100 text-amber-600"
                             }`}>
                             {cert.status === "RELEASED" ? (
-                              <CheckCircle size={18} />
+                              <CheckCircle className="h-6 w-6" />
                             ) : (
-                              <Clock size={18} />
+                              <Clock className="h-6 w-6" />
                             )}
                           </div>
                           <div className="flex-1">
-                            <div className="font-medium">{cert.type}</div>
-                            <div className="text-xs text-gray-500 flex items-center gap-1">
+                            <div className="font-semibold text-gray-900 text-base">{cert.type}</div>
+                            <div className="text-sm text-gray-500 flex items-center space-x-1 mt-1">
                               <span>For {cert.Resident?.firstName} {cert.Resident?.lastName}</span>
-                              <span className="w-1 h-1 rounded-full bg-gray-400"></span>
+                              <span>•</span>
                               <span>{cert.status}</span>
                             </div>
                           </div>
@@ -401,31 +462,38 @@ export default async function Dashboard() {
                       ))}
                     </div>
                   </div>
-                ) : null}
+                )}
               </div>
 
-              <div className="mt-4 flex justify-between pt-3">
-                <Link href="/dashboard/residents" className="text-sm text-[#006B5E] hover:text-[#F39C12] inline-flex items-center">
+              <div className="mt-6 pt-4 border-t border-gray-200 flex justify-between">
+                <Link
+                  href="/dashboard/residents"
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium inline-flex items-center"
+                >
                   View all residents
-                  <ChevronRight size={16} className="ml-1" />
+                  <ChevronRight className="h-4 w-4 ml-1" />
                 </Link>
-                <Link href="/dashboard/certificates" className="text-sm text-[#006B5E] hover:text-[#F39C12] inline-flex items-center">
+                <Link
+                  href="/dashboard/certificates"
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium inline-flex items-center"
+                >
                   View all certificates
-                  <ChevronRight size={16} className="ml-1" />
+                  <ChevronRight className="h-4 w-4 ml-1" />
                 </Link>
               </div>
             </div>
           </div>
 
-          {/* Certificate Types - Takes 1/3 of space on large screens */}
-          <div className="bg-white rounded-xl border border-[#F39C12]/30 overflow-hidden">
-            <div className="p-4 sm:p-6">
-              <h3 className="text-lg font-semibold text-[#006B5E] flex items-center gap-2 mb-4">
-                <Clipboard size={20} className="text-[#F39C12]" />
-                DOCUMENTS ISSUED
+          {/* Certificate Analytics */}
+          <div className="bg-white border border-gray-200 rounded-xl">
+            <div className="px-8 py-6 border-b border-gray-200">
+              <h3 className="text-xl font-semibold text-gray-900 flex items-center">
+                <BarChart3 className="h-6 w-6 text-gray-600 mr-3" />
+                Document Types
               </h3>
-
-              <div className="space-y-4">
+            </div>
+            <div className="p-8">
+              <div className="space-y-6">
                 {(() => {
                   const maxCount = Math.max(...data.certificates.byType.map(c => c._count.type), 1);
 
@@ -434,14 +502,18 @@ export default async function Dashboard() {
                     const width = Math.max(8, Math.round((cert._count.type / maxCount) * 100));
 
                     return (
-                      <div key={index} className="space-y-1">
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="text-[#006B5E] truncate flex-1">{cert.type}</div>
-                          <div className="text-gray-500">{cert._count.type} ({percentage}%)</div>
+                      <div key={index} className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="text-gray-900 font-semibold truncate flex-1 text-base">{cert.type}</div>
+                          <div className="text-gray-500 text-sm font-medium">{cert._count.type}</div>
                         </div>
-                        <div className="w-full bg-gray-100 rounded-full h-2.5">
-                          <div className="bg-[#00BFA5] h-2.5 rounded-full" style={{ width: `${width}%` }}></div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                            style={{ width: `${width}%` }}
+                          ></div>
                         </div>
+                        <div className="text-sm text-gray-500">{percentage}% of total</div>
                       </div>
                     );
                   });
@@ -449,60 +521,86 @@ export default async function Dashboard() {
               </div>
 
               {data.certificates.byType.length === 0 && (
-                <div className="py-8 text-center text-gray-500">
-                  No certificate data available
+                <div className="py-12 text-center text-gray-500">
+                  <FileText className="h-16 w-16 mx-auto text-gray-300 mb-3" />
+                  <p className="text-base">No certificate data available</p>
                 </div>
               )}
             </div>
           </div>
         </div>
-        
-        {/* Officials Carousel - Full Width at Bottom */}
-        <div className="bg-white rounded-xl border border-[#F39C12]/30 overflow-hidden w-full">
-          <div className="p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg sm:text-xl font-semibold text-[#006B5E] flex items-center gap-2">
-                <Award size={24} className="text-[#F39C12]" />
-                BARANGAY OFFICIALS
+
+        {/* Barangay Officials */}
+        <div className="bg-white border border-gray-200 rounded-xl">
+          <div className="px-8 py-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-gray-900 flex items-center">
+                <Award className="h-6 w-6 text-gray-600 mr-3" />
+                Barangay Officials
               </h3>
-              
-              <Link href="/dashboard/certificates/settings/council-members" className="text-sm text-[#006B5E] hover:text-[#F39C12] inline-flex items-center">
-                View all officials
-                <ChevronRight size={16} className="ml-1" />
+              <Link
+                href="/dashboard/certificates/settings/council-members"
+                className="text-base text-blue-600 hover:text-blue-800 font-medium inline-flex items-center"
+              >
+                Manage officials
+                <ChevronRight className="h-5 w-5 ml-1" />
               </Link>
             </div>
-
+          </div>
+          <div className="p-8">
             {officialsList.length > 0 ? (
-              <div className="overflow-hidden">
-                <div className="overflow-x-auto py-4 no-scrollbar">
-                  <div className="flex space-x-10 animate-marquee px-4">
-                    {[...officialsList, ...officialsList].map((official: CouncilMember, index: number) => (
-                      <div key={index} className="flex flex-col items-center text-center w-32 flex-shrink-0 group">
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#006B5E] text-white flex items-center justify-center text-2xl mb-3 shadow-md overflow-hidden border-2 border-[#F39C12] transition-all duration-300 group-hover:border-4 group-hover:scale-105">
-                          {official.imageUrl ? (
-                            <img 
-                              src={official.imageUrl} 
-                              alt={official.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <span>{official.name.charAt(0)}</span>
-                          )}
-                        </div>
-                        <div className="font-semibold text-sm sm:text-base text-[#006B5E] truncate w-full group-hover:text-[#F39C12]">
-                          {official.name}
-                        </div>
-                        <div className="text-xs sm:text-sm text-gray-500 truncate w-full">
-                          {official.position}
-                        </div>
+              <div className="relative overflow-hidden">
+                <div className="flex animate-marquee hover:pause-marquee">
+                  {/* First set of officials */}
+                  {officialsList.map((official: CouncilMember, index: number) => (
+                    <div key={index} className="flex-shrink-0 text-center group mx-6">
+                      <div className="w-20 h-20 mx-auto rounded-full bg-gray-100 flex items-center justify-center text-xl mb-4 overflow-hidden border-2 border-gray-200 group-hover:border-blue-300 transition-colors">
+                        {official.imageUrl ? (
+                          <img
+                            src={official.imageUrl}
+                            alt={official.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-gray-600 font-semibold">{official.name.charAt(0)}</span>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                      <div className="font-semibold text-base text-gray-900 truncate min-w-[120px]">
+                        {official.name}
+                      </div>
+                      <div className="text-sm text-gray-500 truncate mt-1">
+                        {official.position}
+                      </div>
+                    </div>
+                  ))}
+                  {/* Duplicate set for seamless loop */}
+                  {officialsList.map((official: CouncilMember, index: number) => (
+                    <div key={`duplicate-${index}`} className="flex-shrink-0 text-center group mx-6">
+                      <div className="w-20 h-20 mx-auto rounded-full bg-gray-100 flex items-center justify-center text-xl mb-4 overflow-hidden border-2 border-gray-200 group-hover:border-blue-300 transition-colors">
+                        {official.imageUrl ? (
+                          <img
+                            src={official.imageUrl}
+                            alt={official.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-gray-600 font-semibold">{official.name.charAt(0)}</span>
+                        )}
+                      </div>
+                      <div className="font-semibold text-base text-gray-900 truncate min-w-[120px]">
+                        {official.name}
+                      </div>
+                      <div className="text-sm text-gray-500 truncate mt-1">
+                        {official.position}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ) : (
-              <div className="py-8 text-center text-gray-500">
-                No officials data available
+              <div className="py-12 text-center text-gray-500">
+                <Award className="h-16 w-16 mx-auto text-gray-300 mb-3" />
+                <p className="text-base">No officials data available</p>
               </div>
             )}
           </div>

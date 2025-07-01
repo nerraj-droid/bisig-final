@@ -117,8 +117,8 @@ export const AgeDistributionChart = forwardRef<HTMLDivElement, AgeDistributionPr
     }
 
     return (
-        <div ref={ref} className="w-full">
-            <div className="flex justify-between items-center mb-4">
+        <div ref={ref} className="w-full h-full flex flex-col">
+            <div className="flex justify-between items-center mb-4 flex-shrink-0">
                 <h3 className="text-lg font-medium">Age Distribution</h3>
                 <button
                     onClick={handleChartDownload}
@@ -130,7 +130,7 @@ export const AgeDistributionChart = forwardRef<HTMLDivElement, AgeDistributionPr
             </div>
 
             {hasData ? (
-                <div className={`w-full ${compact ? 'h-52' : 'h-80'}`}>
+                <div className="flex-1 min-h-0 w-full">
                     <Bar
                         ref={chartRef}
                         data={data}
@@ -138,7 +138,7 @@ export const AgeDistributionChart = forwardRef<HTMLDivElement, AgeDistributionPr
                     />
                 </div>
             ) : (
-                <div className="text-center py-8 text-gray-500">
+                <div className="flex-1 flex items-center justify-center text-gray-500">
                     No age distribution data available to display
                 </div>
             )}

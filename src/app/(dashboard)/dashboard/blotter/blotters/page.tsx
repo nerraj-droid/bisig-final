@@ -6,12 +6,12 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Filter, 
-  Search, 
-  Shield, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  Search,
+  Shield,
   ArrowRight,
   ArrowLeft,
   Clock,
@@ -30,9 +30,9 @@ const StatusBadge = ({ status }: { status: BlotterCaseStatus }) => {
     [BlotterCaseStatus.RESOLVED]: { color: "bg-green-100 text-green-800", label: "Resolved" },
     [BlotterCaseStatus.ESCALATED]: { color: "bg-red-100 text-red-800", label: "Escalated" }
   };
-  
+
   const config = statusConfig[status] || statusConfig[BlotterCaseStatus.PENDING];
-  
+
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full ${config.color}`}>
       {config.label}
@@ -48,9 +48,9 @@ const PriorityBadge = ({ priority }: { priority: BlotterPriority }) => {
     [BlotterPriority.HIGH]: { color: "bg-orange-100 text-orange-800", label: "High" },
     [BlotterPriority.URGENT]: { color: "bg-red-100 text-red-800", label: "Urgent" }
   };
-  
+
   const config = priorityConfig[priority] || priorityConfig[BlotterPriority.MEDIUM];
-  
+
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full ${config.color}`}>
       {config.label}
@@ -64,7 +64,7 @@ export default async function BlotterListingPage({
   searchParams: { [key: string]: string | string[] | undefined }
 }) {
   const session = await getServerSession(authOptions);
-  
+
   // Check if the user is authenticated
   if (!session) {
     return (
@@ -73,7 +73,7 @@ export default async function BlotterListingPage({
       </div>
     );
   }
-  
+
   // Parse search parameters - safely access them by awaiting the values first
   const params = searchParams;
   const status = params.status === 'all' ? undefined : params.status as BlotterCaseStatus | undefined;
@@ -81,7 +81,7 @@ export default async function BlotterListingPage({
   const incidentType = params.incidentType as string | undefined;
   const searchTerm = params.q as string | undefined;
   const page = params.page ? parseInt(params.page.toString()) : 1;
-  
+
   // Get blotter data with filters (only for blotter type)
   const blotterData = await getBlotterData({
     status,
@@ -91,7 +91,7 @@ export default async function BlotterListingPage({
     page,
     caseType: 'blotter'
   });
-  
+
   return (
     <PageTransition>
       <div className="p-6 max-w-7xl mx-auto">
@@ -113,7 +113,7 @@ export default async function BlotterListingPage({
               </p>
             </div>
           </div>
-          
+
           <Link href="/dashboard/blotter/new-blotter">
             <Button className="gap-1 bg-indigo-600 hover:bg-indigo-700">
               <Shield size={16} />
@@ -121,7 +121,7 @@ export default async function BlotterListingPage({
             </Button>
           </Link>
         </div>
-        
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Card className="bg-indigo-50 border-indigo-100">
@@ -133,7 +133,7 @@ export default async function BlotterListingPage({
               <Shield className="h-8 w-8 text-indigo-500" />
             </CardContent>
           </Card>
-          
+
           <Card className="bg-yellow-50 border-yellow-100">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
@@ -143,7 +143,7 @@ export default async function BlotterListingPage({
               <Clock className="h-8 w-8 text-yellow-500" />
             </CardContent>
           </Card>
-          
+
           <Card className="bg-green-50 border-green-100">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
@@ -153,7 +153,7 @@ export default async function BlotterListingPage({
               <CheckCircle className="h-8 w-8 text-green-500" />
             </CardContent>
           </Card>
-          
+
           <Card className="bg-red-50 border-red-100">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
@@ -164,7 +164,7 @@ export default async function BlotterListingPage({
             </CardContent>
           </Card>
         </div>
-        
+
         {/* Search and Filters */}
         <div className="mb-6 space-y-4">
           <div className="flex flex-col md:flex-row gap-4">
@@ -176,14 +176,14 @@ export default async function BlotterListingPage({
                 name="q"
                 defaultValue={searchTerm}
               />
-              
+
               {/* Hidden inputs to preserve other filters */}
               {status && <input type="hidden" name="status" value={status} />}
               {priority && <input type="hidden" name="priority" value={priority} />}
               {incidentType && <input type="hidden" name="incidentType" value={incidentType} />}
-              
+
               <div className="flex flex-wrap gap-2 mt-4 md:hidden">
-                <select 
+                <select
                   className="h-10 w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
                   name="status"
                   defaultValue={status || "all"}
@@ -194,7 +194,7 @@ export default async function BlotterListingPage({
                   <option value={BlotterCaseStatus.RESOLVED}>Resolved</option>
                   <option value={BlotterCaseStatus.ESCALATED}>Escalated</option>
                 </select>
-                
+
                 <select
                   className="h-10 w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
                   name="priority"
@@ -206,26 +206,22 @@ export default async function BlotterListingPage({
                   <option value={BlotterPriority.HIGH}>High</option>
                   <option value={BlotterPriority.URGENT}>Urgent</option>
                 </select>
-                
+
                 <Button type="submit" className="w-full">
                   Filter Results
                 </Button>
               </div>
             </form>
-            
+
             <div className="hidden md:flex flex-wrap gap-2">
               <form action="/dashboard/blotter/blotters" method="get" className="flex gap-2">
                 {/* Hidden input to preserve search term */}
                 {searchTerm && <input type="hidden" name="q" value={searchTerm} />}
-                
-                <select 
+
+                <select
                   className="h-10 w-[180px] px-3 py-2 rounded-md border border-input bg-background text-sm"
                   name="status"
                   defaultValue={status || "all"}
-                  onChange={(e) => {
-                    const form = e.target.form;
-                    if (form) form.submit();
-                  }}
                 >
                   <option value="all">All Statuses</option>
                   <option value={BlotterCaseStatus.PENDING}>Pending</option>
@@ -233,15 +229,11 @@ export default async function BlotterListingPage({
                   <option value={BlotterCaseStatus.RESOLVED}>Resolved</option>
                   <option value={BlotterCaseStatus.ESCALATED}>Escalated</option>
                 </select>
-                
+
                 <select
                   className="h-10 w-[180px] px-3 py-2 rounded-md border border-input bg-background text-sm"
                   name="priority"
                   defaultValue={priority || "all"}
-                  onChange={(e) => {
-                    const form = e.target.form;
-                    if (form) form.submit();
-                  }}
                 >
                   <option value="all">All Priorities</option>
                   <option value={BlotterPriority.LOW}>Low</option>
@@ -249,7 +241,7 @@ export default async function BlotterListingPage({
                   <option value={BlotterPriority.HIGH}>High</option>
                   <option value={BlotterPriority.URGENT}>Urgent</option>
                 </select>
-                
+
                 <Button type="submit" size="icon" className="h-10 w-10">
                   <Filter size={16} />
                 </Button>
@@ -257,7 +249,7 @@ export default async function BlotterListingPage({
             </div>
           </div>
         </div>
-        
+
         {/* Blotters Table */}
         <Card className="mb-6">
           <CardHeader className="pb-0">
@@ -298,7 +290,7 @@ export default async function BlotterListingPage({
                           <PriorityBadge priority={item.priority as BlotterPriority} />
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          <Link 
+                          <Link
                             href={`/dashboard/blotter/${item.id}`}
                             className="text-indigo-600 hover:text-indigo-800 flex items-center"
                           >
@@ -335,11 +327,10 @@ export default async function BlotterListingPage({
                       ...(searchTerm ? { q: searchTerm } : {}),
                       page: (blotterData.currentPage > 1 ? blotterData.currentPage - 1 : 1).toString()
                     }).toString()}`}
-                    className={`inline-flex items-center px-3 py-1 rounded border ${
-                      blotterData.currentPage === 1
-                        ? "border-gray-200 text-gray-300 cursor-not-allowed"
-                        : "border-gray-300 text-gray-600 hover:bg-gray-50"
-                    }`}
+                    className={`inline-flex items-center px-3 py-1 rounded border ${blotterData.currentPage === 1
+                      ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                      : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                      }`}
                     aria-disabled={blotterData.currentPage === 1}
                     tabIndex={blotterData.currentPage === 1 ? -1 : 0}
                   >
@@ -354,11 +345,10 @@ export default async function BlotterListingPage({
                       ...(searchTerm ? { q: searchTerm } : {}),
                       page: (blotterData.currentPage < blotterData.totalPages ? blotterData.currentPage + 1 : blotterData.totalPages).toString()
                     }).toString()}`}
-                    className={`inline-flex items-center px-3 py-1 rounded border ${
-                      blotterData.currentPage === blotterData.totalPages
-                        ? "border-gray-200 text-gray-300 cursor-not-allowed"
-                        : "border-gray-300 text-gray-600 hover:bg-gray-50"
-                    }`}
+                    className={`inline-flex items-center px-3 py-1 rounded border ${blotterData.currentPage === blotterData.totalPages
+                      ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                      : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                      }`}
                     aria-disabled={blotterData.currentPage === blotterData.totalPages}
                     tabIndex={blotterData.currentPage === blotterData.totalPages ? -1 : 0}
                   >

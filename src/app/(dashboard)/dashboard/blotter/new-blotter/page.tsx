@@ -48,13 +48,14 @@ type FormValues = {
   complainantContactNumber?: string;
   complainantEmail?: string;
   isResident: boolean;
-  respondentFirstName: string;
+  hasRespondent: boolean;
+  respondentFirstName?: string;
   respondentMiddleName?: string;
-  respondentLastName: string;
-  respondentAddress: string;
+  respondentLastName?: string;
+  respondentAddress?: string;
   respondentContactNumber?: string;
   respondentEmail?: string;
-  respondentIsResident: boolean;
+  respondentIsResident?: boolean;
 };
 
 export default function NewBlotterPage() {
@@ -65,7 +66,7 @@ export default function NewBlotterPage() {
   const [searchPartyType, setSearchPartyType] = useState<'complainant' | 'respondent'>('complainant');
   const [officials, setOfficials] = useState<Official[]>([]);
   const [loadingOfficials, setLoadingOfficials] = useState(false);
-  
+
   const {
     register,
     handleSubmit,
@@ -76,13 +77,15 @@ export default function NewBlotterPage() {
     defaultValues: {
       reportDate: new Date().toISOString().split('T')[0],
       incidentDate: new Date().toISOString().split('T')[0],
-      status: BlotterCaseStatus.PENDING
+      status: BlotterCaseStatus.PENDING,
+      hasRespondent: false
     },
     mode: "onSubmit"
   });
-  
+
   const incidentLocation = watch("incidentLocation");
-  
+  const hasRespondent = watch("hasRespondent");
+
   // Fetch officials on component mount
   useEffect(() => {
     const fetchOfficials = async () => {
@@ -101,15 +104,15 @@ export default function NewBlotterPage() {
         setLoadingOfficials(false);
       }
     };
-    
+
     fetchOfficials();
   }, []);
-  
+
   // Check for auth
   if (status === "loading") {
     return <div className="p-6">Loading...</div>;
   }
-  
+
   if (!session) {
     return (
       <div className="p-6">
@@ -117,11 +120,11 @@ export default function NewBlotterPage() {
       </div>
     );
   }
-  
+
   const onSubmit = async (formData: FormData) => {
     try {
       setSubmitting(true);
-      
+
       // Add the form values that are managed by react-hook-form
       // to ensure they're included in the FormData object
       const formValues = watch();
@@ -138,9 +141,9 @@ export default function NewBlotterPage() {
           }
         }
       });
-      
+
       const result = await createBlotterCase(formData);
-      
+
       if (result.success) {
         toast.success("Blotter case created successfully");
         router.push(`/dashboard/blotter/${result.caseId}`);
@@ -163,7 +166,7 @@ export default function NewBlotterPage() {
       setSubmitting(false);
     }
   };
-  
+
   // This function will run client-side validation first before submitting
   const validateAndSubmit = handleSubmit((data) => {
     // The form has been validated successfully by react-hook-form
@@ -174,7 +177,7 @@ export default function NewBlotterPage() {
     // There are validation errors
     console.log('Validation errors:', errors);
     toast.error("Please fix the highlighted fields");
-    
+
     // Scroll to the first error field
     const firstErrorField = document.querySelector('.text-red-500');
     if (firstErrorField) {
@@ -182,12 +185,12 @@ export default function NewBlotterPage() {
     }
     return false;
   });
-  
+
   const searchResident = (type: 'complainant' | 'respondent') => {
     setSearchPartyType(type);
     setSearchModalOpen(true);
   };
-  
+
   const handleResidentSelect = (resident: Resident) => {
     if (searchPartyType === 'complainant') {
       setValue('complainantFirstName', resident.firstName);
@@ -208,7 +211,7 @@ export default function NewBlotterPage() {
     }
     toast.success(`${searchPartyType === 'complainant' ? 'Complainant' : 'Respondent'} details populated from resident database`);
   };
-  
+
   return (
     <PageTransition>
       <div className="p-6 max-w-7xl mx-auto">
@@ -221,7 +224,7 @@ export default function NewBlotterPage() {
           </Link>
           <h1 className="text-2xl font-bold">Create New Blotter Entry</h1>
         </div>
-        
+
         {/* Form Container */}
         <form onSubmit={validateAndSubmit} className="space-y-8">
           {/* Case Information */}
@@ -244,7 +247,7 @@ export default function NewBlotterPage() {
                 </div>
                 <p className="mt-1 text-xs text-gray-500">This will be automatically generated</p>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="reportDate">Date Reported</label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -260,7 +263,7 @@ export default function NewBlotterPage() {
                   <p className="mt-1 text-xs text-red-500">{errors.reportDate.message}</p>
                 )}
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="entertainedBy">Entertained By</label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -286,7 +289,7 @@ export default function NewBlotterPage() {
                   <p className="mt-1 text-xs text-red-500">{errors.entertainedBy.message}</p>
                 )}
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="incidentType">Incident Type</label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -310,7 +313,7 @@ export default function NewBlotterPage() {
                   <p className="mt-1 text-xs text-red-500">{errors.incidentType.message}</p>
                 )}
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="priority">Priority Level</label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -330,7 +333,7 @@ export default function NewBlotterPage() {
                   <p className="mt-1 text-xs text-red-500">{errors.priority.message}</p>
                 )}
               </div>
-              
+
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="status">Initial Status</label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -347,7 +350,7 @@ export default function NewBlotterPage() {
               </div>
             </div>
           </div>
-          
+
           {/* Incident Details */}
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
@@ -369,7 +372,7 @@ export default function NewBlotterPage() {
                   <p className="mt-1 text-xs text-red-500">{errors.incidentDate.message}</p>
                 )}
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="incidentTime">Incident Time</label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -381,14 +384,14 @@ export default function NewBlotterPage() {
                   />
                 </div>
               </div>
-              
+
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="incidentLocation">Incident Location</label>
                 <LocationPicker
                   value={incidentLocation || ""}
-                  onChange={(value) => setValue("incidentLocation", value, { 
+                  onChange={(value) => setValue("incidentLocation", value, {
                     shouldValidate: true,
-                    shouldDirty: true 
+                    shouldDirty: true
                   })}
                   required={true}
                 />
@@ -396,7 +399,7 @@ export default function NewBlotterPage() {
                   <p className="mt-1 text-xs text-red-500">{errors.incidentLocation.message}</p>
                 )}
               </div>
-              
+
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="incidentDescription">Incident Description</label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -414,7 +417,7 @@ export default function NewBlotterPage() {
               </div>
             </div>
           </div>
-          
+
           {/* Complainant Details */}
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
@@ -436,7 +439,7 @@ export default function NewBlotterPage() {
                   <p className="mt-1 text-xs text-red-500">{errors.complainantFirstName.message}</p>
                 )}
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="complainantMiddleName">Middle Name</label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -449,7 +452,7 @@ export default function NewBlotterPage() {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="complainantLastName">Last Name</label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -465,7 +468,7 @@ export default function NewBlotterPage() {
                   <p className="mt-1 text-xs text-red-500">{errors.complainantLastName.message}</p>
                 )}
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="complainantContactNumber">Contact Number</label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -478,7 +481,7 @@ export default function NewBlotterPage() {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="complainantEmail">Email</label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -491,7 +494,7 @@ export default function NewBlotterPage() {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="complainantAddress">Address</label>
                 <div className="mt-1 relative rounded-md shadow-sm">
@@ -507,7 +510,7 @@ export default function NewBlotterPage() {
                   <p className="mt-1 text-xs text-red-500">{errors.complainantAddress.message}</p>
                 )}
               </div>
-              
+
               <div className="md:col-span-3 flex items-center">
                 <input
                   id="isResident"
@@ -519,7 +522,7 @@ export default function NewBlotterPage() {
                   Complainant is a registered resident
                 </label>
               </div>
-              
+
               <div className="md:col-span-3">
                 <button
                   type="button"
@@ -532,125 +535,141 @@ export default function NewBlotterPage() {
               </div>
             </div>
           </div>
-          
+
           {/* Respondent Details */}
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
               <h2 className="text-lg font-medium">Respondent Details</h2>
             </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="respondentFirstName">First Name</label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <input
-                    type="text"
-                    id="respondentFirstName"
-                    className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                    placeholder="Enter first name"
-                    {...register("respondentFirstName", { required: "First name is required" })}
-                  />
-                </div>
-                {errors.respondentFirstName && (
-                  <p className="mt-1 text-xs text-red-500">{errors.respondentFirstName.message}</p>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="respondentMiddleName">Middle Name</label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <input
-                    type="text"
-                    id="respondentMiddleName"
-                    className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                    placeholder="Enter middle name (optional)"
-                    {...register("respondentMiddleName")}
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="respondentLastName">Last Name</label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <input
-                    type="text"
-                    id="respondentLastName"
-                    className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                    placeholder="Enter last name"
-                    {...register("respondentLastName", { required: "Last name is required" })}
-                  />
-                </div>
-                {errors.respondentLastName && (
-                  <p className="mt-1 text-xs text-red-500">{errors.respondentLastName.message}</p>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="respondentContactNumber">Contact Number</label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <input
-                    type="text"
-                    id="respondentContactNumber"
-                    className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                    placeholder="Enter contact number (if available)"
-                    {...register("respondentContactNumber")}
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="respondentEmail">Email</label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <input
-                    type="email"
-                    id="respondentEmail"
-                    className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                    placeholder="Enter email (optional)"
-                    {...register("respondentEmail")}
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="respondentAddress">Address</label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <input
-                    type="text"
-                    id="respondentAddress"
-                    className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                    placeholder="Enter address (if available)"
-                    {...register("respondentAddress", { required: "Address is required" })}
-                  />
-                </div>
-                {errors.respondentAddress && (
-                  <p className="mt-1 text-xs text-red-500">{errors.respondentAddress.message}</p>
-                )}
-              </div>
-              
-              <div className="md:col-span-3 flex items-center">
+            <div className="p-6">
+              <div className="flex items-center mb-4">
                 <input
-                  id="respondentIsResident"
                   type="checkbox"
+                  id="hasRespondent"
+                  {...register("hasRespondent")}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  {...register("respondentIsResident")}
                 />
-                <label htmlFor="respondentIsResident" className="ml-2 block text-sm text-gray-900">
-                  Respondent is a registered resident
+                <label htmlFor="hasRespondent" className="ml-2 block text-sm font-medium text-gray-700">
+                  This incident involves a specific respondent
                 </label>
               </div>
-              
-              <div className="md:col-span-3">
-                <button
-                  type="button"
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  onClick={() => searchResident('respondent')}
-                >
-                  <Search size={16} className="mr-2" />
-                  Search from Resident Database
-                </button>
-              </div>
+
+              {hasRespondent && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="respondentFirstName">First Name</label>
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                      <input
+                        type="text"
+                        id="respondentFirstName"
+                        className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        placeholder="Enter first name"
+                        {...register("respondentFirstName", { required: hasRespondent ? "First name is required" : false })}
+                      />
+                    </div>
+                    {errors.respondentFirstName && (
+                      <p className="mt-1 text-xs text-red-500">{errors.respondentFirstName.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="respondentMiddleName">Middle Name</label>
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                      <input
+                        type="text"
+                        id="respondentMiddleName"
+                        className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        placeholder="Enter middle name (optional)"
+                        {...register("respondentMiddleName")}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="respondentLastName">Last Name</label>
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                      <input
+                        type="text"
+                        id="respondentLastName"
+                        className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        placeholder="Enter last name"
+                        {...register("respondentLastName", { required: hasRespondent ? "Last name is required" : false })}
+                      />
+                    </div>
+                    {errors.respondentLastName && (
+                      <p className="mt-1 text-xs text-red-500">{errors.respondentLastName.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="respondentContactNumber">Contact Number</label>
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                      <input
+                        type="text"
+                        id="respondentContactNumber"
+                        className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        placeholder="Enter contact number (if available)"
+                        {...register("respondentContactNumber")}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="respondentEmail">Email</label>
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                      <input
+                        type="email"
+                        id="respondentEmail"
+                        className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        placeholder="Enter email (optional)"
+                        {...register("respondentEmail")}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="respondentAddress">Address</label>
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                      <input
+                        type="text"
+                        id="respondentAddress"
+                        className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        placeholder="Enter address (if available)"
+                        {...register("respondentAddress", { required: hasRespondent ? "Address is required" : false })}
+                      />
+                    </div>
+                    {errors.respondentAddress && (
+                      <p className="mt-1 text-xs text-red-500">{errors.respondentAddress.message}</p>
+                    )}
+                  </div>
+
+                  <div className="md:col-span-3 flex items-center">
+                    <input
+                      id="respondentIsResident"
+                      type="checkbox"
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      {...register("respondentIsResident")}
+                    />
+                    <label htmlFor="respondentIsResident" className="ml-2 block text-sm text-gray-900">
+                      Respondent is a registered resident
+                    </label>
+                  </div>
+
+                  <div className="md:col-span-3">
+                    <button
+                      type="button"
+                      className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      onClick={() => searchResident('respondent')}
+                    >
+                      <Search size={16} className="mr-2" />
+                      Search from Resident Database
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-          
+
           {/* Action Buttons */}
           <div className="flex justify-end space-x-4">
             <Link href="/dashboard/blotter">
@@ -665,7 +684,7 @@ export default function NewBlotterPage() {
             </Button>
           </div>
         </form>
-        
+
         {/* Resident Search Modal */}
         <ResidentSearchModal
           open={searchModalOpen}
@@ -674,6 +693,6 @@ export default function NewBlotterPage() {
           partyType={searchPartyType}
         />
       </div>
-    </PageTransition>
+    </PageTransition >
   );
 } 

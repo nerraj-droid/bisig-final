@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import {
     ArrowLeft,
     Plus,
@@ -18,9 +19,11 @@ import {
     FileCheck,
     Trash2,
     Scale,
-    CheckCircle
+    CheckCircle,
+    Upload,
+    Loader2
 } from "lucide-react";
-import { CertificateEditor } from "../../components/CertificateEditor";
+import { CertificateEditor, CertificateEditorRef } from "../../components/CertificateEditor";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CertificateGenerator } from "../../components/CertificateGenerator";
 
@@ -42,6 +45,12 @@ interface TemplateData {
     showLogo?: boolean;
 }
 
+interface TemplateStats {
+    total: number;
+    byType: Record<TemplateType, number>;
+    defaults: number;
+}
+
 export default function CertificateTemplatesPage() {
     const router = useRouter();
     const [templates, setTemplates] = useState<TemplateData[]>([]);
@@ -50,156 +59,168 @@ export default function CertificateTemplatesPage() {
     const [previewVisible, setPreviewVisible] = useState(false);
     const [previewTemplate, setPreviewTemplate] = useState<TemplateData | null>(null);
     const [currentEdits, setCurrentEdits] = useState<Partial<TemplateData> | null>(null);
-    const editorRef = useRef<any>(null);
-
-    useEffect(() => {
-        // Load templates from localStorage
-        const loadTemplates = () => {
-            try {
-                // Try to load all templates from the new storage format
-                const savedTemplatesJson = localStorage.getItem('all-certificate-templates');
-                let loadedTemplates: TemplateData[] = [];
-
-                if (savedTemplatesJson) {
-                    // If we have templates in the new format, use those
-                    loadedTemplates = JSON.parse(savedTemplatesJson);
-                } else {
-                    // Otherwise, try to migrate from the old format
-                    const certificateTypes: TemplateType[] = ["clearance", "residency", "business", "indigency", "cfa"];
-
-                    certificateTypes.forEach(type => {
-                        try {
-                            const savedTemplate = localStorage.getItem(`certificate-template-${type}`);
-                            if (savedTemplate) {
-                                const templateData = JSON.parse(savedTemplate);
-                                loadedTemplates.push({
-                                    id: `template-${type}-${Date.now()}`,
-                                    type: type,
-                                    name: templateData.title || `${type.charAt(0).toUpperCase() + type.slice(1)} Template`,
-                                    content: templateData.content || "",
-                                    isDefault: true,
-                                    lastModified: new Date().toISOString(),
-                                    headerHtml: templateData.headerHtml,
-                                    footerHtml: templateData.footerHtml,
-                                    cssStyles: templateData.cssStyles,
-                                    showQRCode: templateData.showQRCode,
-                                    showBorder: templateData.showBorder,
-                                    showLogo: templateData.showLogo
-                                });
-                            }
-                        } catch (err) {
-                            console.error(`Error loading template for ${type}:`, err);
-                        }
-                    });
-                }
-
-                // Add default templates for any missing types
-                const certificateTypes: TemplateType[] = ["clearance", "residency", "business", "indigency", "cfa"];
-                certificateTypes.forEach(type => {
-                    // Check if we have a default template for this type
-                    const hasDefaultForType = loadedTemplates.some(t => t.type === type && t.isDefault);
-
-                    if (!hasDefaultForType) {
-                        loadedTemplates.push({
-                            id: `template-${type}-default`,
-                            type: type,
-                            name: `Default ${type.charAt(0).toUpperCase() + type.slice(1)} Template`,
-                            content: getDefaultContent(type),
-                            isDefault: true,
-                            lastModified: new Date().toISOString(),
-                            showQRCode: true,
-                            showBorder: true,
-                            showLogo: true
-                        });
-                    }
-                });
-
-                setTemplates(loadedTemplates);
-
-                // Save migrated templates in the new format
-                localStorage.setItem('all-certificate-templates', JSON.stringify(loadedTemplates));
-            } catch (err) {
-                console.error("Error loading templates:", err);
-                // If there's an error, initialize with default templates
-                const certificateTypes: TemplateType[] = ["clearance", "residency", "business", "indigency", "cfa"];
-                const defaultTemplates = certificateTypes.map(type => ({
-                    id: `template-${type}-default`,
-                    type: type,
-                    name: `Default ${type.charAt(0).toUpperCase() + type.slice(1)} Template`,
-                    content: getDefaultContent(type),
-                    isDefault: true,
-                    lastModified: new Date().toISOString(),
-                    showQRCode: true,
-                    showBorder: true,
-                    showLogo: true
-                }));
-
-                setTemplates(defaultTemplates);
-            }
-        };
-
-        loadTemplates();
-    }, []);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [stats, setStats] = useState<TemplateStats>({
+        total: 0,
+        byType: {} as Record<TemplateType, number>,
+        defaults: 0
+    });
+    const editorRef = useRef<CertificateEditorRef>(null);
 
     // Get default content based on template type
     const getDefaultContent = (type: TemplateType): string => {
-        switch (type) {
-            case "clearance":
-                return "This is to certify that {residentName}, of legal age, {civilStatus}, Filipino, and a resident of {address} is a person of good moral character and has no derogatory record on file in this Barangay.";
-            case "residency":
-                return "This is to certify that {residentName}, of legal age, {civilStatus}, Filipino, is a bonafide resident of {address} for at least six (6) months.";
-            case "business":
-                return "This is to certify that {businessName} owned and operated by {ownerName}, located at {address} is hereby granted permission to operate within the jurisdiction of this Barangay.";
-            case "indigency":
-                return "This is to certify that {residentName}, of legal age, {civilStatus}, Filipino, and a resident of {address} is an INDIGENT member of this Barangay.";
-            case "cfa":
-                return "This is to certify that the case filed by {complainantName} against {respondentName} with case number {caseNumber} has been processed through the Katarungang Pambarangay and meets the requirements for Certification to File Action (CFA).";
-            default:
-                return "";
-        }
-    };
-
-    // Get icon for certificate type
-    const getTemplateIcon = (type: TemplateType) => {
-        switch (type) {
-            case "clearance":
-                return <FileCheck className="h-5 w-5 text-amber-500" />;
-            case "residency":
-                return <Award className="h-5 w-5 text-emerald-500" />;
-            case "business":
-                return <ScrollText className="h-5 w-5 text-blue-500" />;
-            case "indigency":
-                return <FileText className="h-5 w-5 text-purple-500" />;
-            case "cfa":
-                return <Scale className="h-5 w-5 text-red-500" />;
-            default:
-                return <FileText className="h-5 w-5" />;
-        }
+        const contents = {
+            clearance: "This is to certify that {residentName}, of legal age, {civilStatus}, Filipino, and a resident of {address} is a person of good moral character and has no derogatory record on file in this Barangay.",
+            residency: "This is to certify that {residentName}, of legal age, {civilStatus}, Filipino, is a bonafide resident of {address} for at least six (6) months.",
+            business: "This is to certify that {businessName} owned and operated by {ownerName}, located at {address} is hereby granted permission to operate within the jurisdiction of this Barangay.",
+            indigency: "This is to certify that {residentName}, of legal age, {civilStatus}, Filipino, and a resident of {address} is an INDIGENT member of this Barangay.",
+            cfa: "This is to certify that the case filed by {complainantName} against {respondentName} with case number {caseNumber} has been processed through the Katarungang Pambarangay and meets the requirements for Certification to File Action (CFA)."
+        };
+        return contents[type] || "";
     };
 
     // Format template type for display
     const formatTemplateType = (type: TemplateType): string => {
-        switch (type) {
-            case "clearance":
-                return "Barangay Clearance";
-            case "residency":
-                return "Certificate of Residency";
-            case "business":
-                return "Business Permit";
-            case "indigency":
-                return "Certificate of Indigency";
-            case "cfa":
-                return "Certification to File Action";
-            default:
-                return type;
-        }
+        const types = {
+            clearance: "Barangay Clearance",
+            residency: "Certificate of Residency",
+            business: "Business Permit",
+            indigency: "Certificate of Indigency",
+            cfa: "Certification to File Action"
+        };
+        return types[type] || type;
     };
 
-    const handleCreateTemplate = (type: TemplateType) => {
+    // Update statistics
+    const updateStats = useCallback((templateList: TemplateData[]) => {
+        const byType = {} as Record<TemplateType, number>;
+        const certificateTypes: TemplateType[] = ["clearance", "residency", "business", "indigency", "cfa"];
+
+        certificateTypes.forEach(type => {
+            byType[type] = templateList.filter(t => t.type === type).length;
+        });
+
+        setStats({
+            total: templateList.length,
+            byType,
+            defaults: templateList.filter(t => t.isDefault).length
+        });
+    }, []);
+
+    // Load templates from localStorage
+    const loadTemplates = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for UX
+
+            const savedTemplatesJson = localStorage.getItem('all-certificate-templates');
+            let loadedTemplates: TemplateData[] = [];
+
+            if (savedTemplatesJson) {
+                loadedTemplates = JSON.parse(savedTemplatesJson);
+                loadedTemplates = loadedTemplates.filter(t =>
+                    t.id && t.type && t.name && typeof t.content === 'string'
+                );
+            }
+
+            // Ensure we have default templates for all types
+            const certificateTypes: TemplateType[] = ["clearance", "residency", "business", "indigency", "cfa"];
+            certificateTypes.forEach(type => {
+                const hasDefaultForType = loadedTemplates.some(t => t.type === type && t.isDefault);
+                if (!hasDefaultForType) {
+                    loadedTemplates.push({
+                        id: `template-${type}-default-${Date.now()}`,
+                        type: type,
+                        name: `Default ${formatTemplateType(type)} Template`,
+                        content: getDefaultContent(type),
+                        isDefault: true,
+                        lastModified: new Date().toISOString(),
+                        showQRCode: true,
+                        showBorder: true,
+                        showLogo: true
+                    });
+                }
+            });
+
+            setTemplates(loadedTemplates);
+            updateStats(loadedTemplates);
+
+            localStorage.setItem('all-certificate-templates', JSON.stringify(loadedTemplates));
+            toast.success(`Successfully loaded ${loadedTemplates.length} template(s)`);
+        } catch (err) {
+            console.error("Error loading templates:", err);
+            toast.error("Error loading templates. Using defaults instead.");
+
+            const certificateTypes: TemplateType[] = ["clearance", "residency", "business", "indigency", "cfa"];
+            const defaultTemplates = certificateTypes.map(type => ({
+                id: `template-${type}-default-${Date.now()}`,
+                type: type,
+                name: `Default ${formatTemplateType(type)} Template`,
+                content: getDefaultContent(type),
+                isDefault: true,
+                lastModified: new Date().toISOString(),
+                showQRCode: true,
+                showBorder: true,
+                showLogo: true
+            }));
+
+            setTemplates(defaultTemplates);
+            updateStats(defaultTemplates);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // Save templates to localStorage
+    const saveTemplates = useCallback(async (templateList: TemplateData[]) => {
+        try {
+            localStorage.setItem('all-certificate-templates', JSON.stringify(templateList));
+
+            templateList.forEach(template => {
+                if (template.isDefault) {
+                    const templateData = {
+                        title: template.name,
+                        content: template.content,
+                        headerHtml: template.headerHtml,
+                        footerHtml: template.footerHtml,
+                        cssStyles: template.cssStyles,
+                        showQRCode: template.showQRCode,
+                        showBorder: template.showBorder,
+                        showLogo: template.showLogo
+                    };
+                    localStorage.setItem(`certificate-template-${template.type}`, JSON.stringify(templateData));
+                }
+            });
+
+            return true;
+        } catch (err) {
+            console.error("Error saving templates:", err);
+            return false;
+        }
+    }, []);
+
+    useEffect(() => {
+        loadTemplates();
+    }, [loadTemplates]);
+
+    // Get icon for certificate type
+    const getTemplateIcon = (type: TemplateType) => {
+        const icons = {
+            clearance: <FileCheck className="h-5 w-5 text-amber-500" />,
+            residency: <Award className="h-5 w-5 text-emerald-500" />,
+            business: <ScrollText className="h-5 w-5 text-blue-500" />,
+            indigency: <FileText className="h-5 w-5 text-purple-500" />,
+            cfa: <Scale className="h-5 w-5 text-red-500" />
+        };
+        return icons[type] || <FileText className="h-5 w-5" />;
+    };
+
+    const handleCreateTemplate = useCallback((type: TemplateType) => {
         const newTemplate: TemplateData = {
             id: `template-${type}-${Date.now()}`,
             type: type,
-            name: `New ${type.charAt(0).toUpperCase() + type.slice(1)} Template`,
+            name: `New ${formatTemplateType(type)} Template`,
             content: getDefaultContent(type),
             isDefault: false,
             lastModified: new Date().toISOString(),
@@ -209,7 +230,6 @@ export default function CertificateTemplatesPage() {
         };
 
         setSelectedTemplate(newTemplate);
-        // Initialize current edits with the new template
         setCurrentEdits({
             name: newTemplate.name,
             content: newTemplate.content,
@@ -221,12 +241,10 @@ export default function CertificateTemplatesPage() {
             showLogo: newTemplate.showLogo
         });
         setEditMode(true);
-    };
+    }, []);
 
-    const handleEditTemplate = (template: TemplateData) => {
+    const handleEditTemplate = useCallback((template: TemplateData) => {
         setSelectedTemplate(template);
-        // Initialize current edits with the full template
-        // This ensures we have all fields available for preview
         setCurrentEdits({
             name: template.name,
             content: template.content,
@@ -238,9 +256,9 @@ export default function CertificateTemplatesPage() {
             showLogo: template.showLogo
         });
         setEditMode(true);
-    };
+    }, []);
 
-    const handleDuplicateTemplate = (template: TemplateData) => {
+    const handleDuplicateTemplate = useCallback(async (template: TemplateData) => {
         const duplicatedTemplate: TemplateData = {
             ...template,
             id: `template-${template.type}-${Date.now()}`,
@@ -251,81 +269,74 @@ export default function CertificateTemplatesPage() {
 
         const updatedTemplates = [...templates, duplicatedTemplate];
         setTemplates(updatedTemplates);
+        updateStats(updatedTemplates);
 
-        // Save the updated templates list to localStorage
-        try {
-            localStorage.setItem('all-certificate-templates', JSON.stringify(updatedTemplates));
-        } catch (err) {
-            console.error("Error duplicating template:", err);
-            alert("Failed to duplicate template. Please try again.");
+        const success = await saveTemplates(updatedTemplates);
+        if (success) {
+            toast.success(`Created a copy of "${template.name}"`);
+        } else {
+            toast.error("Failed to duplicate template. Please try again.");
         }
-    };
+    }, [templates, saveTemplates, updateStats]);
 
-    const handleDeleteTemplate = (templateId: string) => {
-        if (confirm("Are you sure you want to delete this template?")) {
+    const handleDeleteTemplate = useCallback(async (templateId: string) => {
+        const template = templates.find(t => t.id === templateId);
+        if (!template) return;
+
+        if (template.isDefault) {
+            toast.error("Cannot delete default templates");
+            return;
+        }
+
+        if (window.confirm(`Are you sure you want to delete "${template.name}"?`)) {
             const updatedTemplates = templates.filter(t => t.id !== templateId);
             setTemplates(updatedTemplates);
+            updateStats(updatedTemplates);
 
-            // Save the updated templates list to localStorage
-            try {
-                localStorage.setItem('all-certificate-templates', JSON.stringify(updatedTemplates));
-            } catch (err) {
-                console.error("Error deleting template:", err);
-                alert("Failed to delete template. Please try again.");
+            const success = await saveTemplates(updatedTemplates);
+            if (success) {
+                toast.success(`"${template.name}" has been deleted`);
+            } else {
+                toast.error("Failed to delete template. Please try again.");
             }
         }
-    };
+    }, [templates, saveTemplates, updateStats]);
 
-    const handleSaveTemplate = (updatedTemplate: TemplateData) => {
-        // Check if this is a new template
-        const isNewTemplate = !templates.some(t => t.id === updatedTemplate.id);
-
-        let updatedTemplates: TemplateData[];
-
-        if (isNewTemplate) {
-            // Add the new template to the list
-            updatedTemplates = [...templates, updatedTemplate];
-        } else {
-            // Update existing template
-            updatedTemplates = templates.map(t =>
-                t.id === updatedTemplate.id ? updatedTemplate : t
-            );
-        }
-
-        // Update templates list
-        setTemplates(updatedTemplates);
-
-        // Save all templates to localStorage
+    const handleSaveTemplate = useCallback(async (updatedTemplate: TemplateData) => {
+        setIsSaving(true);
         try {
-            localStorage.setItem('all-certificate-templates', JSON.stringify(updatedTemplates));
+            const isNewTemplate = !templates.some(t => t.id === updatedTemplate.id);
+            let updatedTemplates: TemplateData[];
 
-            // Check if this is the default template for its type
-            if (updatedTemplate.isDefault) {
-                // Update the legacy storage format too for backward compatibility
-                const templateData = {
-                    title: updatedTemplate.name,
-                    content: updatedTemplate.content,
-                    headerHtml: updatedTemplate.headerHtml,
-                    footerHtml: updatedTemplate.footerHtml,
-                    cssStyles: updatedTemplate.cssStyles,
-                    showQRCode: updatedTemplate.showQRCode,
-                    showBorder: updatedTemplate.showBorder,
-                    showLogo: updatedTemplate.showLogo
-                };
-                localStorage.setItem(`certificate-template-${updatedTemplate.type}`, JSON.stringify(templateData));
+            if (isNewTemplate) {
+                updatedTemplates = [...templates, updatedTemplate];
+            } else {
+                updatedTemplates = templates.map(t =>
+                    t.id === updatedTemplate.id ? updatedTemplate : t
+                );
             }
 
-            // Exit edit mode
-            setEditMode(false);
-            setSelectedTemplate(null);
+            setTemplates(updatedTemplates);
+            updateStats(updatedTemplates);
+
+            const success = await saveTemplates(updatedTemplates);
+            if (success) {
+                toast.success(`"${updatedTemplate.name}" has been saved successfully`);
+                setEditMode(false);
+                setSelectedTemplate(null);
+                setCurrentEdits(null);
+            } else {
+                throw new Error("Failed to save to localStorage");
+            }
         } catch (err) {
             console.error("Error saving template:", err);
-            alert("Failed to save template. Please try again.");
+            toast.error("Failed to save template. Please try again.");
+        } finally {
+            setIsSaving(false);
         }
-    };
+    }, [templates, saveTemplates, updateStats]);
 
-    const handleSetAsDefault = (templateId: string, type: TemplateType) => {
-        // Update all templates of this type to not be default
+    const handleSetAsDefault = useCallback(async (templateId: string, type: TemplateType) => {
         const updatedTemplates = templates.map(t => {
             if (t.type === type) {
                 return { ...t, isDefault: t.id === templateId };
@@ -334,36 +345,19 @@ export default function CertificateTemplatesPage() {
         });
 
         setTemplates(updatedTemplates);
+        updateStats(updatedTemplates);
 
-        try {
-            // Save all templates to localStorage
-            localStorage.setItem('all-certificate-templates', JSON.stringify(updatedTemplates));
-
-            // Get the default template
-            const defaultTemplate = updatedTemplates.find(t => t.id === templateId);
-            if (defaultTemplate) {
-                // Save to legacy localStorage format for compatibility
-                const templateData = {
-                    title: defaultTemplate.name,
-                    content: defaultTemplate.content,
-                    headerHtml: defaultTemplate.headerHtml,
-                    footerHtml: defaultTemplate.footerHtml,
-                    cssStyles: defaultTemplate.cssStyles,
-                    showQRCode: defaultTemplate.showQRCode,
-                    showBorder: defaultTemplate.showBorder,
-                    showLogo: defaultTemplate.showLogo
-                };
-
-                localStorage.setItem(`certificate-template-${type}`, JSON.stringify(templateData));
-            }
-        } catch (err) {
-            console.error("Error setting default template:", err);
-            alert("Failed to set default template. Please try again.");
+        const success = await saveTemplates(updatedTemplates);
+        if (success) {
+            const template = templates.find(t => t.id === templateId);
+            toast.success(`"${template?.name}" is now the default template for ${formatTemplateType(type)}`);
+        } else {
+            toast.error("Failed to set default template. Please try again.");
         }
-    };
+    }, [templates, saveTemplates, updateStats]);
 
     // Generate sample data for preview
-    const getSampleData = (type: TemplateType) => {
+    const getSampleData = useCallback((type: TemplateType) => {
         const baseData = {
             residentName: "Juan Dela Cruz",
             address: "123 Main St., Sample Barangay, Metro Manila",
@@ -396,23 +390,22 @@ export default function CertificateTemplatesPage() {
             default:
                 return baseData;
         }
-    };
+    }, []);
 
-    const handleEditorChange = (fieldName: string, value: any) => {
+    const handleEditorChange = useCallback((fieldName: string, value: any) => {
         setCurrentEdits(prev => ({
             ...prev,
             [fieldName]: value
         }));
-    };
+    }, []);
 
-    const handlePreview = (template: TemplateData) => {
-        // If in edit mode, use the current edits merged with the original template
+    const handlePreview = useCallback((template: TemplateData) => {
+        let templateToPreview = template;
+
         if (editMode && selectedTemplate && selectedTemplate.id === template.id && currentEdits) {
-            // Create a merged template with current edits
-            const mergedTemplate = {
+            templateToPreview = {
                 ...template,
                 ...currentEdits,
-                // Ensure these fields are explicitly included to avoid undefined values
                 name: currentEdits.name || template.name,
                 content: currentEdits.content || template.content,
                 headerHtml: currentEdits.headerHtml !== undefined ? currentEdits.headerHtml : template.headerHtml,
@@ -422,16 +415,30 @@ export default function CertificateTemplatesPage() {
                 showBorder: currentEdits.showBorder !== undefined ? currentEdits.showBorder : template.showBorder,
                 showLogo: currentEdits.showLogo !== undefined ? currentEdits.showLogo : template.showLogo
             };
-
-            console.log("Previewing with edits:", mergedTemplate);
-            setPreviewTemplate(mergedTemplate);
-        } else {
-            // Regular preview, just use the template as is
-            console.log("Previewing original template:", template);
-            setPreviewTemplate(template);
         }
+
+        setPreviewTemplate(templateToPreview);
         setPreviewVisible(true);
-    };
+    }, [editMode, selectedTemplate, currentEdits]);
+
+    const handleCancelEdit = useCallback(() => {
+        setEditMode(false);
+        setSelectedTemplate(null);
+        setCurrentEdits(null);
+    }, []);
+
+    if (isLoading) {
+        return (
+            <div className="p-6 max-w-7xl mx-auto">
+                <div className="flex items-center justify-center h-64">
+                    <div className="flex items-center gap-2">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        <span>Loading templates...</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="p-6 max-w-7xl mx-auto">
@@ -443,17 +450,80 @@ export default function CertificateTemplatesPage() {
                             <ArrowLeft size={18} />
                         </Button>
                     </Link>
-                    <h1 className="text-3xl font-bold text-[#006B5E]">Certificate Templates</h1>
+                    <div>
+                        <h1 className="text-3xl font-bold text-[#006B5E]">Certificate Templates</h1>
+                        <p className="text-muted-foreground">
+                            Manage and customize certificate templates for your barangay
+                        </p>
+                    </div>
                 </div>
                 {!editMode && (
-                    <Button
-                        className="bg-[#006B5E] hover:bg-[#005046]"
-                        onClick={() => handleCreateTemplate("clearance")}
-                    >
-                        <Plus className="mr-2 h-4 w-4" /> Create New Template
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => loadTemplates()}
+                            disabled={isLoading}
+                        >
+                            <Upload className="mr-2 h-4 w-4" />
+                            Refresh
+                        </Button>
+                        <Button
+                            className="bg-[#006B5E] hover:bg-[#005046]"
+                            onClick={() => handleCreateTemplate("clearance")}
+                        >
+                            <Plus className="mr-2 h-4 w-4" /> Create New Template
+                        </Button>
+                    </div>
                 )}
             </div>
+
+            {/* Statistics Cards */}
+            {!editMode && (
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Total Templates</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-[#006B5E]">{stats.total}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Clearance</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-amber-600">{stats.byType.clearance || 0}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Residency</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-emerald-600">{stats.byType.residency || 0}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Business</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-blue-600">{stats.byType.business || 0}</div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Other</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-purple-600">
+                                {(stats.byType.indigency || 0) + (stats.byType.cfa || 0)}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
             {editMode && selectedTemplate ? (
                 // Template Editor
@@ -466,41 +536,45 @@ export default function CertificateTemplatesPage() {
                                     Customize the content and appearance of this certificate template
                                 </CardDescription>
                             </div>
-                            <Button
-                                variant="outline"
-                                onClick={() => handlePreview(selectedTemplate)}
-                                className="flex items-center gap-2"
-                            >
-                                <FileText className="h-4 w-4" />
-                                Preview
-                            </Button>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => handlePreview(selectedTemplate)}
+                                    className="flex items-center gap-2"
+                                >
+                                    <FileText className="h-4 w-4" />
+                                    Preview
+                                </Button>
+                            </div>
                         </div>
                     </CardHeader>
                     <CardContent>
                         <CertificateEditor
-                            // @ts-ignore - Working around type incompatibility
-                            template={selectedTemplate}
-                            // @ts-ignore - Working around type incompatibility
-                            onSave={handleSaveTemplate}
-                            onCancel={() => {
-                                setEditMode(false);
-                                setSelectedTemplate(null);
-                                setCurrentEdits(null);
+                            template={selectedTemplate as any}
+                            onSave={(template) => {
+                                handleSaveTemplate(template as TemplateData);
                             }}
+                            onCancel={handleCancelEdit}
                             onChange={handleEditorChange}
                             ref={editorRef}
                         />
+                        {isSaving && (
+                            <div className="flex items-center justify-center mt-4">
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                Saving template...
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             ) : (
                 // Template List
                 <Tabs defaultValue="all">
                     <TabsList className="mb-6">
-                        <TabsTrigger value="all">All Templates</TabsTrigger>
-                        <TabsTrigger value="clearance">Barangay Clearance</TabsTrigger>
-                        <TabsTrigger value="residency">Residency</TabsTrigger>
-                        <TabsTrigger value="business">Business</TabsTrigger>
-                        <TabsTrigger value="other">Other</TabsTrigger>
+                        <TabsTrigger value="all">All Templates ({stats.total})</TabsTrigger>
+                        <TabsTrigger value="clearance">Barangay Clearance ({stats.byType.clearance || 0})</TabsTrigger>
+                        <TabsTrigger value="residency">Residency ({stats.byType.residency || 0})</TabsTrigger>
+                        <TabsTrigger value="business">Business ({stats.byType.business || 0})</TabsTrigger>
+                        <TabsTrigger value="other">Other ({(stats.byType.indigency || 0) + (stats.byType.cfa || 0)})</TabsTrigger>
                     </TabsList>
 
                     {["all", "clearance", "residency", "business", "other"].map((tabValue) => (
@@ -510,7 +584,7 @@ export default function CertificateTemplatesPage() {
                                     .filter(template =>
                                         tabValue === "all" ||
                                         template.type === tabValue ||
-                                        (tabValue === "other" && !["clearance", "residency", "business"].includes(template.type))
+                                        (tabValue === "other" && ["indigency", "cfa"].includes(template.type))
                                     )
                                     .map(template => (
                                         <Card key={template.id} className="group border overflow-hidden hover:border-[#006B5E] transition-all">
@@ -518,10 +592,10 @@ export default function CertificateTemplatesPage() {
                                                 <div className="flex justify-between items-start">
                                                     <div className="flex items-center">
                                                         {getTemplateIcon(template.type)}
-                                                        <CardTitle className="ml-2 text-lg">{template.name}</CardTitle>
+                                                        <CardTitle className="ml-2 text-lg truncate">{template.name}</CardTitle>
                                                     </div>
                                                     {template.isDefault && (
-                                                        <Badge variant="secondary" className="bg-green-100 text-green-800 flex items-center gap-1">
+                                                        <Badge variant="secondary" className="bg-green-100 text-green-800 flex items-center gap-1 shrink-0">
                                                             <CheckCircle className="h-3 w-3" /> Default
                                                         </Badge>
                                                     )}
@@ -540,7 +614,7 @@ export default function CertificateTemplatesPage() {
                                                 </div>
                                             </CardContent>
 
-                                            <CardFooter className="flex justify-between pt-0">
+                                            <CardFooter className="flex justify-between pt-0 gap-2">
                                                 <div className="flex space-x-1">
                                                     <Button
                                                         variant="ghost"
@@ -568,7 +642,7 @@ export default function CertificateTemplatesPage() {
                                                             className="text-green-600"
                                                             onClick={() => handleSetAsDefault(template.id, template.type)}
                                                         >
-                                                            Set as Default
+                                                            Set Default
                                                         </Button>
                                                     )}
                                                     <Button
@@ -595,7 +669,7 @@ export default function CertificateTemplatesPage() {
                                 }
 
                                 {/* Add New Template Card */}
-                                <Card className="border-dashed border-2 flex flex-col items-center justify-center text-center p-8 hover:border-[#006B5E] hover:bg-[#f0f9f8] transition-all cursor-pointer">
+                                <Card className="border-dashed border-2 flex flex-col items-center justify-center text-center p-8 hover:border-[#006B5E] hover:bg-[#f0f9f8] transition-all cursor-pointer min-h-[300px]">
                                     <div
                                         className="flex flex-col items-center gap-2"
                                         onClick={() => handleCreateTemplate(
@@ -625,14 +699,12 @@ export default function CertificateTemplatesPage() {
             <Dialog open={previewVisible} onOpenChange={(open) => {
                 setPreviewVisible(open);
                 if (!open) {
-                    // When closing preview, reset preview template 
-                    // to avoid stale data in next preview
                     setPreviewTemplate(null);
                 }
             }}>
                 <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
                     <DialogHeader>
-                        <DialogTitle>Certificate Preview</DialogTitle>
+                        <DialogTitle>Certificate Preview - {previewTemplate?.name}</DialogTitle>
                     </DialogHeader>
                     <div className="flex-1 overflow-auto">
                         {previewTemplate && (

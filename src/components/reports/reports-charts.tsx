@@ -80,7 +80,7 @@ export function ReportsCharts({
         : "0.0"
 
     return (
-        <div>
+        <div className="h-full flex flex-col">
             {showHeader && (
                 <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <h1 className="text-2xl font-bold">Reports</h1>
@@ -126,9 +126,9 @@ export function ReportsCharts({
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div className="flex-1 min-h-0">
                 {!hideBarangayChart && householdsByBarangay.length > 0 && (
-                    <div className="rounded-lg bg-white p-4 sm:p-6 shadow-sm overflow-x-auto">
+                    <div className="h-full w-full">
                         <StatisticsChart
                             ref={statisticsChartRef}
                             householdsByBarangay={householdsByBarangay}
@@ -138,7 +138,7 @@ export function ReportsCharts({
                 )}
 
                 {(!hideGenderChart || !hideCivilStatusChart) && (
-                    <div className="rounded-lg bg-white p-4 sm:p-6 shadow-sm">
+                    <div className="h-full w-full">
                         <DemographicsChart
                             ref={demographicsChartRef}
                             genderDistribution={hideGenderChart ? [] : genderDistribution}
@@ -147,17 +147,17 @@ export function ReportsCharts({
                         />
                     </div>
                 )}
-            </div>
 
-            {!hideAgeChart && ageGroups.length > 0 && (
-                <div className="mb-8 rounded-lg bg-white p-4 sm:p-6 shadow-sm">
-                    <AgeDistributionChart
-                        ref={ageDistributionChartRef}
-                        ageGroups={ageGroups}
-                        compact={compact}
-                    />
-                </div>
-            )}
+                {!hideAgeChart && ageGroups.length > 0 && (
+                    <div className="h-full w-full">
+                        <AgeDistributionChart
+                            ref={ageDistributionChartRef}
+                            ageGroups={ageGroups}
+                            compact={compact}
+                        />
+                    </div>
+                )}
+            </div>
         </div>
     )
 }

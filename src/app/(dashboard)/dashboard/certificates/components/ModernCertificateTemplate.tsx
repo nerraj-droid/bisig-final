@@ -65,7 +65,7 @@ export function ModernCertificateTemplate({
           </div>
         </div>
       )}
-      
+
       {/* Border */}
       {showBorder && (
         <div className="absolute inset-0 border-[1px] border-gray-300 m-4 pointer-events-none"></div>
@@ -84,7 +84,7 @@ export function ModernCertificateTemplate({
               style={{ objectFit: "contain" }}
             />
           </div>
-          
+
           {/* Header Text */}
           <div className="flex-1 px-4">
             <h1 className="text-[#5c6d41] text-3xl font-bold uppercase tracking-wide">
@@ -97,7 +97,7 @@ export function ModernCertificateTemplate({
               <span className="inline-block">☎ {contactNumber}</span>
             </div>
           </div>
-          
+
           {/* Right Logo */}
           <div className="relative w-24 h-24">
             <Image
@@ -109,16 +109,16 @@ export function ModernCertificateTemplate({
             />
           </div>
         </div>
-        
+
         {/* Divider */}
         <div className="h-[1px] bg-gray-300 w-full my-4"></div>
-        
+
         {/* Certificate Title */}
         <div className="text-center mb-2">
           <h2 className="text-2xl font-bold tracking-widest">C E R T I F I C A T I O N</h2>
           {subtitle && <p className="text-lg italic">({subtitle})</p>}
         </div>
-        
+
         {/* Divider */}
         <div className="h-[1px] bg-gray-300 w-full my-4"></div>
       </div>
@@ -149,7 +149,7 @@ export function ModernCertificateTemplate({
             )}
           </ul>
         </div>
-        
+
         {/* Right side - Punong Barangay Signature */}
         <div className="w-1/2 flex flex-col items-center justify-end">
           <div className="w-64 text-center">
@@ -167,7 +167,7 @@ export function ModernCertificateTemplate({
             )}
             <p className="font-bold text-[#5c6d41]">{officials.punongBarangay}</p>
             <p className="text-sm">Punong Barangay</p>
-            
+
             {/* Official Seal */}
             {showSeal && (
               <div className="absolute right-12 bottom-24 opacity-50">
@@ -195,7 +195,6 @@ export function ModernCertificateTemplate({
             <p>Issued On: {format(issuedDate, "MM-dd-yyyy")}</p>
             <p>CTC#: {Math.floor(Math.random() * 10000000).toString().padStart(7, '0')}</p>
             <p>O.R. #: {Math.floor(Math.random() * 1000).toString()}</p>
-            <p>AMOUNT: P{(Math.random() * 100).toFixed(2)}</p>
           </div>
           {qrCode && (
             <div className="relative w-16 h-16">

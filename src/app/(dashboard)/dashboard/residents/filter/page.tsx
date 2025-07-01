@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Save, X, ChevronDown, Filter, RotateCcw, Tag } from "lucide-react"
+import { ArrowLeft, Save, X, Filter, RotateCcw, Tag, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -36,7 +36,6 @@ import {
     Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
@@ -85,7 +84,7 @@ export default function ResidentFilterPage() {
     const [isVoter, setIsVoter] = useState<boolean>(searchParams.get('voter') === 'true')
     const [minAge, setMinAge] = useState<string>(searchParams.get('minAge') || '')
     const [maxAge, setMaxAge] = useState<string>(searchParams.get('maxAge') || '')
-    
+
     // State for precise age filtering
     const [ageYears, setAgeYears] = useState<string>(searchParams.get('ageYears') || '')
     const [ageMonths, setAgeMonths] = useState<string>(searchParams.get('ageMonths') || '')
@@ -145,11 +144,11 @@ export default function ResidentFilterPage() {
         if (gender) params.append('gender', gender)
         if (civilStatus) params.append('civilStatus', civilStatus)
         if (isVoter) params.append('voter', 'true')
-        
+
         // Make sure age parameters are added properly
         if (minAge && minAge.trim() !== '') params.append('minAge', minAge)
         if (maxAge && maxAge.trim() !== '') params.append('maxAge', maxAge)
-        
+
         // Add precise age parameters
         if (ageYears && ageYears.trim() !== '') params.append('ageYears', ageYears)
         if (ageMonths && ageMonths.trim() !== '') params.append('ageMonths', ageMonths)
@@ -235,7 +234,7 @@ export default function ResidentFilterPage() {
         setSectors(filters.sectors || [])
         setReligion(filters.religion || '')
         setBloodType(filters.bloodType || 'ALL')
-        
+
         // Load location filters
         setBarangay(filters.barangay || '')
         setStreet(filters.street || '')
@@ -243,7 +242,7 @@ export default function ResidentFilterPage() {
         setCity(filters.city || '')
         setProvince(filters.province || '')
         setPurokSitio(filters.purokSitio || '')
-        
+
         // Load additional filters
         setNationality(filters.nationality || '')
         setEthnicGroup(filters.ethnicGroup || '')
@@ -274,7 +273,7 @@ export default function ResidentFilterPage() {
         setSectors([])
         setReligion('')
         setBloodType('ALL')
-        
+
         // Reset location filters
         setBarangay('')
         setStreet('')
@@ -282,7 +281,7 @@ export default function ResidentFilterPage() {
         setCity('')
         setProvince('')
         setPurokSitio('')
-        
+
         // Reset additional filters
         setNationality('')
         setEthnicGroup('')
@@ -313,7 +312,7 @@ export default function ResidentFilterPage() {
         if (sectors.length) count++
         if (religion) count++
         if (bloodType && bloodType !== 'ALL') count++
-        
+
         // Count location filters
         if (barangay) count++
         if (street) count++
@@ -321,47 +320,56 @@ export default function ResidentFilterPage() {
         if (city) count++
         if (province) count++
         if (purokSitio) count++
-        
+
         // Count additional filters
         if (nationality) count++
         if (ethnicGroup) count++
         if (hasId) count++
         if (identityType && identityType !== 'ALL') count++
         if (isHeadOfHousehold) count++
-        
+
         return count
     }
 
     return (
         <PageTransition>
-            <div className="w-full max-w-7xl mx-auto px-4">
-                {/* Back button and page title */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                    <div className="flex items-center">
-                        <Link href="/dashboard/residents" className="text-[#006B5E] hover:text-[#F39C12] transition-colors mr-4">
-                            <ArrowLeft size={24} />
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                {/* Header Section */}
+                <div className="flex items-center justify-between py-6 border-b border-gray-200">
+                    <div className="flex items-center space-x-4">
+                        <Link
+                            href="/dashboard/residents"
+                            className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+                        >
+                            <ArrowLeft className="h-5 w-5 mr-1" />
+                            Back
                         </Link>
-                        <h1 className="text-2xl font-bold text-[#006B5E]">ADVANCED FILTER</h1>
+                        <div>
+                            <h1 className="text-2xl font-semibold text-gray-900">Advanced Filter</h1>
+                            <p className="text-sm text-gray-500 mt-1">
+                                Create custom filters to find specific residents
+                            </p>
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center space-x-3">
                         <Button
                             variant="outline"
-                            className="flex items-center gap-2"
                             onClick={resetFilters}
+                            className="border-gray-300"
                         >
-                            <RotateCcw size={16} />
-                            Reset
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Reset All
                         </Button>
 
                         <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
                             <DialogTrigger asChild>
-                                <Button variant="outline" className="flex items-center gap-2">
-                                    <Save size={16} />
+                                <Button variant="outline" className="border-gray-300">
+                                    <Save className="h-4 w-4 mr-2" />
                                     Save Preset
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="sm:max-w-md">
                                 <DialogHeader>
                                     <DialogTitle>Save Filter Preset</DialogTitle>
                                     <DialogDescription>
@@ -375,7 +383,7 @@ export default function ResidentFilterPage() {
                                         value={presetName}
                                         onChange={(e) => setPresetName(e.target.value)}
                                         placeholder="e.g., Senior Female Voters"
-                                        className="mt-1"
+                                        className="mt-2"
                                     />
                                 </div>
                                 <DialogFooter>
@@ -387,9 +395,9 @@ export default function ResidentFilterPage() {
                                     </Button>
                                     <Button
                                         onClick={savePreset}
-                                        className="bg-[#006B5E] hover:bg-[#005046]"
+                                        className="bg-blue-600 hover:bg-blue-700"
                                     >
-                                        Save
+                                        Save Preset
                                     </Button>
                                 </DialogFooter>
                             </DialogContent>
@@ -397,614 +405,497 @@ export default function ResidentFilterPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    {/* Saved Presets Panel */}
+                {/* Active Filters Summary */}
+                {getActiveFilterCount() > 0 && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 my-6">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center">
+                                <Filter className="h-4 w-4 text-blue-600 mr-2" />
+                                <span className="text-sm font-medium text-blue-900">
+                                    Active Filters ({getActiveFilterCount()})
+                                </span>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={resetFilters}
+                                className="text-blue-600 hover:text-blue-800"
+                            >
+                                Clear All
+                            </Button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {/* Gender Badge */}
+                            {gender && (
+                                <Badge variant="secondary" className="flex items-center gap-1">
+                                    Gender: {gender}
+                                    <button
+                                        onClick={() => setGender('')}
+                                        className="ml-1 text-gray-400 hover:text-red-500"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )}
+
+                            {/* Civil Status Badge */}
+                            {civilStatus && (
+                                <Badge variant="secondary" className="flex items-center gap-1">
+                                    Civil Status: {civilStatus}
+                                    <button
+                                        onClick={() => setCivilStatus('')}
+                                        className="ml-1 text-gray-400 hover:text-red-500"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )}
+
+                            {/* Voter Badge */}
+                            {isVoter && (
+                                <Badge variant="secondary" className="flex items-center gap-1">
+                                    Registered Voter
+                                    <button
+                                        onClick={() => setIsVoter(false)}
+                                        className="ml-1 text-gray-400 hover:text-red-500"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )}
+
+                            {/* Age Range Badge */}
+                            {(minAge || maxAge) && (
+                                <Badge variant="secondary" className="flex items-center gap-1">
+                                    Age: {minAge || '0'} - {maxAge || '∞'}
+                                    <button
+                                        onClick={() => { setMinAge(''); setMaxAge(''); }}
+                                        className="ml-1 text-gray-400 hover:text-red-500"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )}
+
+                            {/* Employment Badge */}
+                            {employmentStatus && employmentStatus !== 'ALL' && (
+                                <Badge variant="secondary" className="flex items-center gap-1">
+                                    Employment: {employmentStatus.replace('_', ' ')}
+                                    <button
+                                        onClick={() => setEmploymentStatus('ALL')}
+                                        className="ml-1 text-gray-400 hover:text-red-500"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )}
+
+                            {/* Education Badge */}
+                            {educationalAttainment && educationalAttainment !== 'ALL' && (
+                                <Badge variant="secondary" className="flex items-center gap-1">
+                                    Education: {educationalAttainment.replace('_', ' ')}
+                                    <button
+                                        onClick={() => setEducationalAttainment('ALL')}
+                                        className="ml-1 text-gray-400 hover:text-red-500"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )}
+
+                            {/* Sectors Badges */}
+                            {sectors.map(sector => (
+                                <Badge key={sector} variant="secondary" className="flex items-center gap-1">
+                                    {sector.replace('_', ' ')}
+                                    <button
+                                        onClick={() => toggleSector(sector)}
+                                        className="ml-1 text-gray-400 hover:text-red-500"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            ))}
+
+                            {/* Show only first few badges and "X more" if there are many */}
+                            {getActiveFilterCount() > 8 && (
+                                <Badge variant="outline">
+                                    +{getActiveFilterCount() - 8} more
+                                </Badge>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 my-8">
+                    {/* Saved Presets Sidebar */}
                     {savedPresets.length > 0 && (
-                        <Card className="lg:col-span-1">
-                            <CardHeader>
-                                <CardTitle className="text-[#006B5E]">Saved Presets</CardTitle>
-                                <CardDescription>Load your saved filter configurations</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {savedPresets.map((preset, index) => (
-                                    <div key={index} className="flex items-center justify-between p-2 border rounded-md">
-                                        <Button
-                                            variant="ghost"
-                                            className="text-left w-full justify-start"
-                                            onClick={() => loadPreset(preset)}
-                                        >
-                                            <Tag size={16} className="mr-2 text-[#006B5E]" />
-                                            {preset.name}
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => deletePreset(index)}
-                                        >
-                                            <X size={16} className="text-red-500" />
-                                        </Button>
-                                    </div>
-                                ))}
-                            </CardContent>
-                        </Card>
+                        <div className="lg:col-span-1">
+                            <Card className="border-gray-200">
+                                <CardHeader className="pb-4">
+                                    <CardTitle className="text-lg font-medium text-gray-900">Saved Presets</CardTitle>
+                                    <CardDescription className="text-sm text-gray-500">
+                                        Load your saved filter configurations
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    {savedPresets.map((preset, index) => (
+                                        <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                                            <Button
+                                                variant="ghost"
+                                                className="text-left w-full justify-start p-0 h-auto font-normal"
+                                                onClick={() => loadPreset(preset)}
+                                            >
+                                                <Tag className="h-4 w-4 mr-2 text-blue-600" />
+                                                <span className="text-sm">{preset.name}</span>
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => deletePreset(index)}
+                                                className="h-6 w-6 p-0 text-gray-400 hover:text-red-500"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </CardContent>
+                            </Card>
+                        </div>
                     )}
 
                     {/* Main Filter Form */}
                     <div className={savedPresets.length > 0 ? "lg:col-span-3" : "lg:col-span-4"}>
-                        <div className="bg-white p-6 rounded-xl shadow border border-[#F39C12]/30">
-                            {/* Active Filters Summary */}
-                            <div className="mb-6">
-                                <h3 className="text-md font-medium text-gray-700 mb-2">Active Filters: {getActiveFilterCount()}</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {gender && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Gender: {gender}
-                                            <button onClick={() => setGender('')} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {civilStatus && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Civil Status: {civilStatus}
-                                            <button onClick={() => setCivilStatus('')} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {isVoter && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Registered Voter
-                                            <button onClick={() => setIsVoter(false)} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {(minAge || maxAge) && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Age: {minAge || '0'} - {maxAge || '∞'}
-                                            <button onClick={() => { setMinAge(''); setMaxAge(''); }} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {(ageYears || ageMonths || ageDays) && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Precise Age: {ageYears || '0'} years, {ageMonths || '0'} months, {ageDays || '0'} days
-                                            <button onClick={() => { setAgeYears(''); setAgeMonths(''); setAgeDays(''); }} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {employmentStatus && employmentStatus !== 'ALL' && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Employment: {employmentStatus.replace('_', ' ').toLowerCase()}
-                                            <button onClick={() => setEmploymentStatus('ALL')} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {educationalAttainment && educationalAttainment !== 'ALL' && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Education: {educationalAttainment.replace('_', ' ').toLowerCase()}
-                                            <button onClick={() => setEducationalAttainment('ALL')} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {sectors.map(sector => (
-                                        <Badge key={sector} variant="outline" className="flex items-center gap-1">
-                                            {sector.replace('_', ' ')}
-                                            <button onClick={() => toggleSector(sector)} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    ))}
-                                    {religion && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Religion: {religion}
-                                            <button onClick={() => setReligion('')} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {bloodType && bloodType !== 'ALL' && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Blood Type: {bloodType}
-                                            <button onClick={() => setBloodType('ALL')} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    
-                                    {/* Location Filters */}
-                                    {barangay && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Barangay: {barangay}
-                                            <button onClick={() => setBarangay('')} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {street && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Street: {street}
-                                            <button onClick={() => setStreet('')} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {houseNo && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            House No: {houseNo}
-                                            <button onClick={() => setHouseNo('')} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {city && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            City: {city}
-                                            <button onClick={() => setCity('')} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {province && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Province: {province}
-                                            <button onClick={() => setProvince('')} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {purokSitio && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Purok/Sitio: {purokSitio}
-                                            <button onClick={() => setPurokSitio('')} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    
-                                    {/* Additional Filters */}
-                                    {nationality && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Nationality: {nationality}
-                                            <button onClick={() => setNationality('')} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {ethnicGroup && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Ethnic Group: {ethnicGroup}
-                                            <button onClick={() => setEthnicGroup('')} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {hasId && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Has ID
-                                            <button onClick={() => setHasId(false)} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {identityType && identityType !== 'ALL' && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            ID Type: {identityType}
-                                            <button onClick={() => setIdentityType('ALL')} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                    {isHeadOfHousehold && (
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                            Head of Household
-                                            <button onClick={() => setIsHeadOfHousehold(false)} className="ml-1 text-gray-400 hover:text-red-500">
-                                                <X size={14} />
-                                            </button>
-                                        </Badge>
-                                    )}
-                                </div>
-                            </div>
-
-                            <form onSubmit={handleSubmit}>
-                                <Accordion type="multiple" defaultValue={["basic"]}>
-                                    {/* Basic Filters */}
-                                    <AccordionItem value="basic">
-                                        <AccordionTrigger className="text-[#006B5E] font-medium">Basic Filters</AccordionTrigger>
-                                        <AccordionContent>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
-                                                {/* Gender Filter */}
-                                                <div className="space-y-4">
-                                                    <h3 className="text-md font-medium text-gray-700">Gender</h3>
-                                                    <RadioGroup value={gender} onValueChange={setGender}>
-                                                        <div className="flex items-center space-x-2">
-                                                            <RadioGroupItem value="" id="gender-all" />
-                                                            <Label htmlFor="gender-all">All</Label>
-                                                        </div>
-                                                        <div className="flex items-center space-x-2">
-                                                            <RadioGroupItem value="MALE" id="gender-male" />
-                                                            <Label htmlFor="gender-male">Male</Label>
-                                                        </div>
-                                                        <div className="flex items-center space-x-2">
-                                                            <RadioGroupItem value="FEMALE" id="gender-female" />
-                                                            <Label htmlFor="gender-female">Female</Label>
-                                                        </div>
-                                                    </RadioGroup>
-                                                </div>
-
-                                                {/* Age Range Filter */}
-                                                <div className="space-y-4">
-                                                    <h3 className="text-md font-medium text-gray-700">Age Range</h3>
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div>
-                                                            <Label htmlFor="min-age">Minimum Age</Label>
-                                                            <Input
-                                                                id="min-age"
-                                                                type="number"
-                                                                min="0"
-                                                                max="150"
-                                                                placeholder="0"
-                                                                value={minAge}
-                                                                onChange={(e) => setMinAge(e.target.value)}
-                                                                className="mt-1"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <Label htmlFor="max-age">Maximum Age</Label>
-                                                            <Input
-                                                                id="max-age"
-                                                                type="number"
-                                                                min="0"
-                                                                max="150"
-                                                                placeholder="100"
-                                                                value={maxAge}
-                                                                onChange={(e) => setMaxAge(e.target.value)}
-                                                                className="mt-1"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-xs text-gray-500 mt-1">
-                                                        Leave empty to include all ages, or set only minimum or maximum
-                                                    </div>
-                                                </div>
-
-                                                {/* Civil Status Filter */}
-                                                <div className="space-y-4">
-                                                    <h3 className="text-md font-medium text-gray-700">Civil Status</h3>
-                                                    <RadioGroup value={civilStatus} onValueChange={setCivilStatus}>
-                                                        <div className="flex items-center space-x-2">
-                                                            <RadioGroupItem value="" id="civil-all" />
-                                                            <Label htmlFor="civil-all">All</Label>
-                                                        </div>
-                                                        <div className="flex items-center space-x-2">
-                                                            <RadioGroupItem value="SINGLE" id="civil-single" />
-                                                            <Label htmlFor="civil-single">Single</Label>
-                                                        </div>
-                                                        <div className="flex items-center space-x-2">
-                                                            <RadioGroupItem value="MARRIED" id="civil-married" />
-                                                            <Label htmlFor="civil-married">Married</Label>
-                                                        </div>
-                                                        <div className="flex items-center space-x-2">
-                                                            <RadioGroupItem value="WIDOWED" id="civil-widowed" />
-                                                            <Label htmlFor="civil-widowed">Widowed</Label>
-                                                        </div>
-                                                        <div className="flex items-center space-x-2">
-                                                            <RadioGroupItem value="SEPARATED" id="civil-separated" />
-                                                            <Label htmlFor="civil-separated">Separated</Label>
-                                                        </div>
-                                                    </RadioGroup>
-                                                </div>
-
-                                                {/* Voter Filter */}
-                                                <div className="space-y-4">
-                                                    <h3 className="text-md font-medium text-gray-700">Voter Status</h3>
-                                                    <div className="flex items-center space-x-2">
-                                                        <Checkbox
-                                                            id="voter"
-                                                            checked={isVoter}
-                                                            onCheckedChange={(checked) => setIsVoter(checked as boolean)}
-                                                        />
-                                                        <Label htmlFor="voter">Registered Voters Only</Label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </AccordionContent>
-                                    </AccordionItem>
-
-                                    {/* Location Filters */}
-                                    <AccordionItem value="location">
-                                        <AccordionTrigger className="text-[#006B5E] font-medium">Location Filters</AccordionTrigger>
-                                        <AccordionContent>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="province-filter">Province</Label>
-                                                    <Input
-                                                        id="province-filter"
-                                                        type="text"
-                                                        placeholder="Enter province"
-                                                        value={province}
-                                                        onChange={(e) => setProvince(e.target.value)}
-                                                    />
-                                                </div>
-                                                
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="city-filter">City/Municipality</Label>
-                                                    <Input
-                                                        id="city-filter"
-                                                        type="text"
-                                                        placeholder="Enter city/municipality"
-                                                        value={city}
-                                                        onChange={(e) => setCity(e.target.value)}
-                                                    />
-                                                </div>
-                                                
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="barangay-filter">Barangay</Label>
-                                                    <Input
-                                                        id="barangay-filter"
-                                                        type="text"
-                                                        placeholder="Enter barangay"
-                                                        value={barangay}
-                                                        onChange={(e) => setBarangay(e.target.value)}
-                                                    />
-                                                </div>
-                                                
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="purok-sitio-filter">Purok/Sitio</Label>
-                                                    <Input
-                                                        id="purok-sitio-filter"
-                                                        type="text"
-                                                        placeholder="Enter purok or sitio"
-                                                        value={purokSitio}
-                                                        onChange={(e) => setPurokSitio(e.target.value)}
-                                                    />
-                                                </div>
-                                                
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="street-filter">Street</Label>
-                                                    <Input
-                                                        id="street-filter"
-                                                        type="text"
-                                                        placeholder="Enter street"
-                                                        value={street}
-                                                        onChange={(e) => setStreet(e.target.value)}
-                                                    />
-                                                </div>
-                                                
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="house-no-filter">House No.</Label>
-                                                    <Input
-                                                        id="house-no-filter"
-                                                        type="text"
-                                                        placeholder="Enter house number"
-                                                        value={houseNo}
-                                                        onChange={(e) => setHouseNo(e.target.value)}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </AccordionContent>
-                                    </AccordionItem>
-
-                                    {/* Additional Filters */}
-                                    <AccordionItem value="additional">
-                                        <AccordionTrigger className="text-[#006B5E] font-medium">Additional Filters</AccordionTrigger>
-                                        <AccordionContent>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
-                                                {/* Employment Status */}
-                                                <div className="space-y-4">
-                                                    <h3 className="text-md font-medium text-gray-700">Employment Status</h3>
-                                                    <Select value={employmentStatus} onValueChange={setEmploymentStatus}>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select status" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="ALL">All</SelectItem>
-                                                            {employmentOptions.slice(1).map(option => (
-                                                                <SelectItem key={option} value={option}>
-                                                                    {option.replace('_', ' ')}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-
-                                                {/* Educational Attainment */}
-                                                <div className="space-y-4">
-                                                    <h3 className="text-md font-medium text-gray-700">Educational Attainment</h3>
-                                                    <Select value={educationalAttainment} onValueChange={setEducationalAttainment}>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select education level" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="ALL">All</SelectItem>
-                                                            {educationOptions.slice(1).map(option => (
-                                                                <SelectItem key={option} value={option}>
-                                                                    {option.replace('_', ' ')}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-
-                                                {/* Religion Filter */}
-                                                <div className="space-y-4">
-                                                    <h3 className="text-md font-medium text-gray-700">Religion</h3>
-                                                    <Input
-                                                        type="text"
-                                                        placeholder="Enter religion"
-                                                        value={religion}
-                                                        onChange={(e) => setReligion(e.target.value)}
-                                                    />
-                                                </div>
-
-                                                {/* Blood Type */}
-                                                <div className="space-y-4">
-                                                    <h3 className="text-md font-medium text-gray-700">Blood Type</h3>
-                                                    <Select value={bloodType} onValueChange={setBloodType}>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select blood type" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="ALL">All</SelectItem>
-                                                            {bloodTypeOptions.slice(1).map(option => (
-                                                                <SelectItem key={option} value={option}>{option}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-
-                                                {/* Nationality */}
-                                                <div className="space-y-4">
-                                                    <h3 className="text-md font-medium text-gray-700">Nationality</h3>
-                                                    <Input
-                                                        type="text"
-                                                        placeholder="Enter nationality"
-                                                        value={nationality}
-                                                        onChange={(e) => setNationality(e.target.value)}
-                                                    />
-                                                </div>
-
-                                                {/* Ethnic Group */}
-                                                <div className="space-y-4">
-                                                    <h3 className="text-md font-medium text-gray-700">Ethnic Group</h3>
-                                                    <Input
-                                                        type="text"
-                                                        placeholder="Enter ethnic group"
-                                                        value={ethnicGroup}
-                                                        onChange={(e) => setEthnicGroup(e.target.value)}
-                                                    />
-                                                </div>
-
-                                                {/* Identity Type */}
-                                                <div className="space-y-4">
-                                                    <h3 className="text-md font-medium text-gray-700">Identity Type</h3>
-                                                    <Select value={identityType} onValueChange={setIdentityType}>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select ID type" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="ALL">All</SelectItem>
-                                                            {IDENTITY_TYPES.map(type => (
-                                                                <SelectItem key={type} value={type}>{type}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-
-                                                {/* Has ID */}
-                                                <div className="space-y-4">
-                                                    <h3 className="text-md font-medium text-gray-700">Identity Document</h3>
-                                                    <div className="flex items-center space-x-2">
-                                                        <Checkbox
-                                                            id="hasId"
-                                                            checked={hasId}
-                                                            onCheckedChange={(checked) => setHasId(checked as boolean)}
-                                                        />
-                                                        <Label htmlFor="hasId">Has ID Document</Label>
-                                                    </div>
-                                                </div>
-
-                                                {/* Head of Household */}
-                                                <div className="space-y-4">
-                                                    <h3 className="text-md font-medium text-gray-700">Household Role</h3>
-                                                    <div className="flex items-center space-x-2">
-                                                        <Checkbox
-                                                            id="isHeadOfHousehold"
-                                                            checked={isHeadOfHousehold}
-                                                            onCheckedChange={(checked) => setIsHeadOfHousehold(checked as boolean)}
-                                                        />
-                                                        <Label htmlFor="isHeadOfHousehold">Head of Household Only</Label>
-                                                    </div>
-                                                </div>
-
-                                                {/* Sectors */}
-                                                <div className="space-y-4 md:col-span-2">
-                                                    <h3 className="text-md font-medium text-gray-700">Sectors</h3>
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                                        {sectorOptions.map(sector => (
-                                                            <div key={sector} className="flex items-center space-x-2">
-                                                                <Checkbox
-                                                                    id={`sector-${sector}`}
-                                                                    checked={sectors.includes(sector)}
-                                                                    onCheckedChange={() => toggleSector(sector)}
-                                                                />
-                                                                <Label htmlFor={`sector-${sector}`}>
-                                                                    {sector.replace('_', ' ')}
-                                                                </Label>
+                        <Card className="border-gray-200">
+                            <CardHeader className="pb-4">
+                                <CardTitle className="text-lg font-medium text-gray-900">Filter Options</CardTitle>
+                                <CardDescription className="text-sm text-gray-500">
+                                    Configure your search criteria to find specific residents
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <form onSubmit={handleSubmit}>
+                                    <Accordion type="multiple" defaultValue={["basic"]} className="space-y-4">
+                                        {/* Basic Filters */}
+                                        <AccordionItem value="basic" className="border border-gray-200 rounded-lg">
+                                            <AccordionTrigger className="px-4 py-3 text-gray-900 font-medium hover:no-underline">
+                                                Basic Information
+                                            </AccordionTrigger>
+                                            <AccordionContent className="px-4 pb-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    {/* Gender Filter */}
+                                                    <div className="space-y-3">
+                                                        <Label className="text-sm font-medium text-gray-700">Gender</Label>
+                                                        <RadioGroup value={gender} onValueChange={setGender} className="space-y-2">
+                                                            <div className="flex items-center space-x-2">
+                                                                <RadioGroupItem value="" id="gender-all" />
+                                                                <Label htmlFor="gender-all" className="text-sm">All</Label>
                                                             </div>
-                                                        ))}
+                                                            <div className="flex items-center space-x-2">
+                                                                <RadioGroupItem value="MALE" id="gender-male" />
+                                                                <Label htmlFor="gender-male" className="text-sm">Male</Label>
+                                                            </div>
+                                                            <div className="flex items-center space-x-2">
+                                                                <RadioGroupItem value="FEMALE" id="gender-female" />
+                                                                <Label htmlFor="gender-female" className="text-sm">Female</Label>
+                                                            </div>
+                                                        </RadioGroup>
+                                                    </div>
+
+                                                    {/* Civil Status Filter */}
+                                                    <div className="space-y-3">
+                                                        <Label className="text-sm font-medium text-gray-700">Civil Status</Label>
+                                                        <RadioGroup value={civilStatus} onValueChange={setCivilStatus} className="space-y-2">
+                                                            <div className="flex items-center space-x-2">
+                                                                <RadioGroupItem value="" id="civil-all" />
+                                                                <Label htmlFor="civil-all" className="text-sm">All</Label>
+                                                            </div>
+                                                            <div className="flex items-center space-x-2">
+                                                                <RadioGroupItem value="SINGLE" id="civil-single" />
+                                                                <Label htmlFor="civil-single" className="text-sm">Single</Label>
+                                                            </div>
+                                                            <div className="flex items-center space-x-2">
+                                                                <RadioGroupItem value="MARRIED" id="civil-married" />
+                                                                <Label htmlFor="civil-married" className="text-sm">Married</Label>
+                                                            </div>
+                                                            <div className="flex items-center space-x-2">
+                                                                <RadioGroupItem value="WIDOWED" id="civil-widowed" />
+                                                                <Label htmlFor="civil-widowed" className="text-sm">Widowed</Label>
+                                                            </div>
+                                                            <div className="flex items-center space-x-2">
+                                                                <RadioGroupItem value="SEPARATED" id="civil-separated" />
+                                                                <Label htmlFor="civil-separated" className="text-sm">Separated</Label>
+                                                            </div>
+                                                        </RadioGroup>
+                                                    </div>
+
+                                                    {/* Age Range Filter */}
+                                                    <div className="space-y-3">
+                                                        <Label className="text-sm font-medium text-gray-700">Age Range</Label>
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div>
+                                                                <Label htmlFor="min-age" className="text-xs text-gray-500">Minimum Age</Label>
+                                                                <Input
+                                                                    id="min-age"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="150"
+                                                                    placeholder="0"
+                                                                    value={minAge}
+                                                                    onChange={(e) => setMinAge(e.target.value)}
+                                                                    className="mt-1"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <Label htmlFor="max-age" className="text-xs text-gray-500">Maximum Age</Label>
+                                                                <Input
+                                                                    id="max-age"
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="150"
+                                                                    placeholder="100"
+                                                                    value={maxAge}
+                                                                    onChange={(e) => setMaxAge(e.target.value)}
+                                                                    className="mt-1"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Voter Status */}
+                                                    <div className="space-y-3">
+                                                        <Label className="text-sm font-medium text-gray-700">Voter Status</Label>
+                                                        <div className="flex items-center space-x-2">
+                                                            <Checkbox
+                                                                id="voter"
+                                                                checked={isVoter}
+                                                                onCheckedChange={(checked) => setIsVoter(checked as boolean)}
+                                                            />
+                                                            <Label htmlFor="voter" className="text-sm">Registered voters only</Label>
+                                                        </div>
                                                     </div>
                                                 </div>
+                                            </AccordionContent>
+                                        </AccordionItem>
 
-                                                {/* Precise Age Filter */}
-                                                <div className="space-y-4">
-                                                    <h3 className="text-md font-medium text-gray-700">Precise Age</h3>
-                                                    <div className="grid grid-cols-3 gap-2">
-                                                        <div>
-                                                            <Label htmlFor="age-years">Years</Label>
-                                                            <Input
-                                                                id="age-years"
-                                                                type="number"
-                                                                min="0"
-                                                                max="150"
-                                                                placeholder="0"
-                                                                value={ageYears}
-                                                                onChange={(e) => setAgeYears(e.target.value)}
-                                                                className="mt-1"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <Label htmlFor="age-months">Months</Label>
-                                                            <Input
-                                                                id="age-months"
-                                                                type="number"
-                                                                min="0"
-                                                                max="11"
-                                                                placeholder="0"
-                                                                value={ageMonths}
-                                                                onChange={(e) => setAgeMonths(e.target.value)}
-                                                                className="mt-1"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <Label htmlFor="age-days">Days</Label>
-                                                            <Input
-                                                                id="age-days"
-                                                                type="number"
-                                                                min="0"
-                                                                max="30"
-                                                                placeholder="0"
-                                                                value={ageDays}
-                                                                onChange={(e) => setAgeDays(e.target.value)}
-                                                                className="mt-1"
-                                                            />
-                                                        </div>
+                                        {/* Professional Information */}
+                                        <AccordionItem value="professional" className="border border-gray-200 rounded-lg">
+                                            <AccordionTrigger className="px-4 py-3 text-gray-900 font-medium hover:no-underline">
+                                                Professional & Education
+                                            </AccordionTrigger>
+                                            <AccordionContent className="px-4 pb-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    {/* Employment Status */}
+                                                    <div className="space-y-3">
+                                                        <Label className="text-sm font-medium text-gray-700">Employment Status</Label>
+                                                        <Select value={employmentStatus} onValueChange={setEmploymentStatus}>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select status" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="ALL">All</SelectItem>
+                                                                {employmentOptions.slice(1).map(option => (
+                                                                    <SelectItem key={option} value={option}>
+                                                                        {option.replace('_', ' ')}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
                                                     </div>
-                                                    <div className="text-xs text-gray-500 mt-1">
-                                                        Specify exact age (e.g., 8 years, 3 months, 10 days)
+
+                                                    {/* Educational Attainment */}
+                                                    <div className="space-y-3">
+                                                        <Label className="text-sm font-medium text-gray-700">Educational Attainment</Label>
+                                                        <Select value={educationalAttainment} onValueChange={setEducationalAttainment}>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select education level" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="ALL">All</SelectItem>
+                                                                {educationOptions.slice(1).map(option => (
+                                                                    <SelectItem key={option} value={option}>
+                                                                        {option.replace('_', ' ')}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                </Accordion>
+                                            </AccordionContent>
+                                        </AccordionItem>
 
-                                {/* Action Buttons */}
-                                <div className="mt-8 flex justify-end gap-4">
-                                    <Link href="/dashboard/residents">
-                                        <Button variant="outline" type="button">Cancel</Button>
-                                    </Link>
-                                    <Button className="bg-[#006B5E] hover:bg-[#005046]" type="submit">
-                                        Apply Filters
-                                    </Button>
-                                </div>
-                            </form>
-                        </div>
+                                        {/* Location Filters */}
+                                        <AccordionItem value="location" className="border border-gray-200 rounded-lg">
+                                            <AccordionTrigger className="px-4 py-3 text-gray-900 font-medium hover:no-underline">
+                                                Location Information
+                                            </AccordionTrigger>
+                                            <AccordionContent className="px-4 pb-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="province-filter" className="text-sm font-medium text-gray-700">Province</Label>
+                                                        <Input
+                                                            id="province-filter"
+                                                            type="text"
+                                                            placeholder="Enter province"
+                                                            value={province}
+                                                            onChange={(e) => setProvince(e.target.value)}
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="city-filter" className="text-sm font-medium text-gray-700">City/Municipality</Label>
+                                                        <Input
+                                                            id="city-filter"
+                                                            type="text"
+                                                            placeholder="Enter city/municipality"
+                                                            value={city}
+                                                            onChange={(e) => setCity(e.target.value)}
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="barangay-filter" className="text-sm font-medium text-gray-700">Barangay</Label>
+                                                        <Input
+                                                            id="barangay-filter"
+                                                            type="text"
+                                                            placeholder="Enter barangay"
+                                                            value={barangay}
+                                                            onChange={(e) => setBarangay(e.target.value)}
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="street-filter" className="text-sm font-medium text-gray-700">Street</Label>
+                                                        <Input
+                                                            id="street-filter"
+                                                            type="text"
+                                                            placeholder="Enter street"
+                                                            value={street}
+                                                            onChange={(e) => setStreet(e.target.value)}
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="house-no-filter" className="text-sm font-medium text-gray-700">House No.</Label>
+                                                        <Input
+                                                            id="house-no-filter"
+                                                            type="text"
+                                                            placeholder="Enter house number"
+                                                            value={houseNo}
+                                                            onChange={(e) => setHouseNo(e.target.value)}
+                                                        />
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="purok-sitio-filter" className="text-sm font-medium text-gray-700">Purok/Sitio</Label>
+                                                        <Input
+                                                            id="purok-sitio-filter"
+                                                            type="text"
+                                                            placeholder="Enter purok or sitio"
+                                                            value={purokSitio}
+                                                            onChange={(e) => setPurokSitio(e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </AccordionContent>
+                                        </AccordionItem>
+
+                                        {/* Additional Filters */}
+                                        <AccordionItem value="additional" className="border border-gray-200 rounded-lg">
+                                            <AccordionTrigger className="px-4 py-3 text-gray-900 font-medium hover:no-underline">
+                                                Additional Information
+                                            </AccordionTrigger>
+                                            <AccordionContent className="px-4 pb-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    {/* Religion */}
+                                                    <div className="space-y-3">
+                                                        <Label className="text-sm font-medium text-gray-700">Religion</Label>
+                                                        <Input
+                                                            type="text"
+                                                            placeholder="Enter religion"
+                                                            value={religion}
+                                                            onChange={(e) => setReligion(e.target.value)}
+                                                        />
+                                                    </div>
+
+                                                    {/* Blood Type */}
+                                                    <div className="space-y-3">
+                                                        <Label className="text-sm font-medium text-gray-700">Blood Type</Label>
+                                                        <Select value={bloodType} onValueChange={setBloodType}>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select blood type" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="ALL">All</SelectItem>
+                                                                {bloodTypeOptions.slice(1).map(option => (
+                                                                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+
+                                                    {/* Nationality */}
+                                                    <div className="space-y-3">
+                                                        <Label className="text-sm font-medium text-gray-700">Nationality</Label>
+                                                        <Input
+                                                            type="text"
+                                                            placeholder="Enter nationality"
+                                                            value={nationality}
+                                                            onChange={(e) => setNationality(e.target.value)}
+                                                        />
+                                                    </div>
+
+                                                    {/* Ethnic Group */}
+                                                    <div className="space-y-3">
+                                                        <Label className="text-sm font-medium text-gray-700">Ethnic Group</Label>
+                                                        <Input
+                                                            type="text"
+                                                            placeholder="Enter ethnic group"
+                                                            value={ethnicGroup}
+                                                            onChange={(e) => setEthnicGroup(e.target.value)}
+                                                        />
+                                                    </div>
+
+                                                    {/* Special Categories */}
+                                                    <div className="space-y-3 md:col-span-2">
+                                                        <Label className="text-sm font-medium text-gray-700">Special Categories</Label>
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                            {sectorOptions.map(sector => (
+                                                                <div key={sector} className="flex items-center space-x-2">
+                                                                    <Checkbox
+                                                                        id={`sector-${sector}`}
+                                                                        checked={sectors.includes(sector)}
+                                                                        onCheckedChange={() => toggleSector(sector)}
+                                                                    />
+                                                                    <Label htmlFor={`sector-${sector}`} className="text-sm">
+                                                                        {sector.replace('_', ' ')}
+                                                                    </Label>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </Accordion>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+                                        <Link href="/dashboard/residents">
+                                            <Button variant="outline" type="button" className="border-gray-300">
+                                                Cancel
+                                            </Button>
+                                        </Link>
+                                        <Button
+                                            type="submit"
+                                            className="bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            <Search className="h-4 w-4 mr-2" />
+                                            Apply Filters
+                                        </Button>
+                                    </div>
+                                </form>
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
             </div>

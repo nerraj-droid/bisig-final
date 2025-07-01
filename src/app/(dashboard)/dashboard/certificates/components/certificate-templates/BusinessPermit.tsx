@@ -158,7 +158,7 @@ export function BusinessPermit({
     month: 'long',
     day: 'numeric'
   });
-  
+
   const expiryDate = new Date(issuedDate);
   expiryDate.setMonth(11);
   expiryDate.setDate(31);
@@ -181,19 +181,19 @@ export function BusinessPermit({
             </div>
           )}
         </div>
-        
+
         <div style={styles.header}>
           <div style={styles.headerTitle}>BARANGAY {barangayName}</div>
           <div style={styles.headerSubtitle}>{district}, {city}</div>
           <div style={styles.headerAddress}>{barangayAddress}</div>
           <div style={styles.headerAddress}>{contactNumber}</div>
         </div>
-        
+
         <div style={{ width: '80px', textAlign: 'center' }}>
-          <img 
-            src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Coat_of_arms_of_the_Philippines.svg/1200px-Coat_of_arms_of_the_Philippines.svg.png" 
-            alt="Philippine Seal" 
-            style={styles.logo} 
+          <img
+            src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Coat_of_arms_of_the_Philippines.svg/1200px-Coat_of_arms_of_the_Philippines.svg.png"
+            alt="Philippine Seal"
+            style={styles.logo}
           />
         </div>
       </div>
@@ -206,7 +206,7 @@ export function BusinessPermit({
       {/* Content */}
       <div style={styles.content}>
         <p style={{ marginBottom: '20px' }}>TO WHOM IT MAY CONCERN:</p>
-        
+
         {/* Business Information Box */}
         <div style={styles.businessInfoBox}>
           <div style={styles.businessInfoTitle}>BUSINESS INFORMATION</div>
@@ -225,17 +225,17 @@ export function BusinessPermit({
             </div>
           </div>
         </div>
-        
+
         <p style={{ textIndent: '40px' }}>
-          This is to certify that the above-mentioned business is <strong>PERMITTED TO OPERATE</strong> within 
+          This is to certify that the above-mentioned business is <strong>PERMITTED TO OPERATE</strong> within
           the jurisdiction of Barangay {barangayName}, {city} in accordance with Barangay Ordinance No. {ordinanceNumber}.
         </p>
-        
+
         <p style={{ textIndent: '40px', marginTop: '20px' }}>
-          This PERMIT is valid from {formattedIssuedDate} to {formattedExpiryDate} unless sooner revoked due to 
+          This PERMIT is valid from {formattedIssuedDate} to {formattedExpiryDate} unless sooner revoked due to
           violation of existing Barangay and City Ordinances, Rules and Regulations.
         </p>
-        
+
         <p style={{ textIndent: '40px', marginTop: '20px' }}>
           Issued this {formattedIssuedDate}.
         </p>
@@ -244,19 +244,19 @@ export function BusinessPermit({
       {/* Council Members and Signature Section - Fixed positioning to prevent overlap */}
       <div style={{ display: 'flex', marginTop: '20px', marginBottom: '120px', position: 'relative' }}>
         {/* Council Members on left */}
-        <div style={{ 
-          width: '40%', 
-          padding: '10px', 
+        <div style={{
+          width: '40%',
+          padding: '10px',
           backgroundColor: '#f8f8f8',
           // Remove maxHeight and overflow properties for printable version
         }}>
           <div style={{ fontWeight: 'bold', marginBottom: '10px' }}>Council Members:</div>
           {officials.secretary && <div style={{ fontSize: '12px' }}>{officials.secretary}</div>}
           <div style={{ fontSize: '10px', color: '#666', marginBottom: '5px' }}>Secretary</div>
-          
+
           {officials.treasurer && <div style={{ fontSize: '12px' }}>{officials.treasurer}</div>}
           <div style={{ fontSize: '10px', color: '#666', marginBottom: '5px' }}>Treasurer</div>
-          
+
           {templateSettings?.councilMembers && templateSettings.councilMembers.slice(0, 6).map((member: string, index: number) => (
             <div key={index} style={{ fontSize: '11px', marginBottom: '2px' }}>{member}</div>
           ))}
@@ -273,8 +273,8 @@ export function BusinessPermit({
 
       {/* QR Code - Adjusted position to prevent overlap */}
       {qrCode && templateSettings?.showQRCode !== false && (
-        <div style={{ 
-          ...styles.qrCode, 
+        <div style={{
+          ...styles.qrCode,
           bottom: '40px'  // Moved up to avoid overlapping with footer
         }}>
           <img src={qrCode} alt="Verification QR Code" style={{ width: '100%', height: '100%' }} />
@@ -282,16 +282,15 @@ export function BusinessPermit({
       )}
 
       {/* Control Number - Adjusted position to prevent overlap */}
-      <div style={{ 
-        ...styles.controlNumber, 
+      <div style={{
+        ...styles.controlNumber,
         bottom: '40px'  // Moved up to avoid overlapping with footer
       }}>
         Control No: {controlNumber}<br />
         Issued On: {issuedDate.toLocaleDateString()}<br />
-        Valid Until: {expiryDate.toLocaleDateString()}<br />
-        AMOUNT: P500.00
+        Valid Until: {expiryDate.toLocaleDateString()}
       </div>
-      
+
     </div>
   );
 }

@@ -146,19 +146,19 @@ export function CertificateOfResidency({
             </div>
           )}
         </div>
-        
+
         <div style={styles.header}>
           <div style={styles.headerTitle}>BARANGAY {barangayName}</div>
           <div style={styles.headerSubtitle}>{district}, {city}</div>
           <div style={styles.headerAddress}>{barangayAddress}</div>
           <div style={styles.headerAddress}>{contactNumber}</div>
         </div>
-        
+
         <div style={{ width: '80px', textAlign: 'center' }}>
-          <img 
-            src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Coat_of_arms_of_the_Philippines.svg/1200px-Coat_of_arms_of_the_Philippines.svg.png" 
-            alt="Philippine Seal" 
-            style={styles.logo} 
+          <img
+            src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Coat_of_arms_of_the_Philippines.svg/1200px-Coat_of_arms_of_the_Philippines.svg.png"
+            alt="Philippine Seal"
+            style={styles.logo}
           />
         </div>
       </div>
@@ -171,12 +171,12 @@ export function CertificateOfResidency({
       {/* Content */}
       <div style={styles.content}>
         <p style={{ marginBottom: '20px' }}>TO WHOM IT MAY CONCERN:</p>
-        
+
         <p style={{ textIndent: '40px' }}>
           This is to certify that <span style={styles.underlined}>{residentName}</span>, {age}, {civilStatus}, has been a <strong>resident</strong> of/at{" "}
           <span style={styles.underlined}>{address}</span> this Barangay since <span style={styles.underlined}>{yearsOfResidency}</span> or for about <span style={styles.underlined}>{yearsOfResidency}</span>.
         </p>
-        
+
         <p style={{ textIndent: '40px', marginTop: '20px' }}>
           This CERTIFICATION is being issued upon the request of the above-named person on this {formattedDate} for the purpose of {purpose || "whatever legal purpose it may serve"}.
         </p>
@@ -188,18 +188,18 @@ export function CertificateOfResidency({
       {/* Council Members and Signature Section */}
       <div style={{ display: 'flex', marginBottom: '120px', position: 'relative' }}>
         {/* Council Members on left */}
-        <div style={{ 
-          width: '40%', 
-          padding: '10px', 
+        <div style={{
+          width: '40%',
+          padding: '10px',
           backgroundColor: '#f8f8f8',
         }}>
           <div style={{ fontWeight: 'bold', marginBottom: '10px' }}>Council Members:</div>
           {officials.secretary && <div style={{ fontSize: '12px' }}>{officials.secretary}</div>}
           <div style={{ fontSize: '10px', color: '#666', marginBottom: '5px' }}>Secretary</div>
-          
+
           {officials.treasurer && <div style={{ fontSize: '12px' }}>{officials.treasurer}</div>}
           <div style={{ fontSize: '10px', color: '#666', marginBottom: '5px' }}>Treasurer</div>
-          
+
           {templateSettings?.councilMembers && templateSettings.councilMembers.slice(0, 6).map((member: string, index: number) => (
             <div key={index} style={{ fontSize: '11px', marginBottom: '2px' }}>{member}</div>
           ))}
@@ -225,8 +225,7 @@ export function CertificateOfResidency({
       <div style={styles.controlNumber}>
         Control No: {controlNumber}<br />
         Issued On: {today.toLocaleDateString()}<br />
-        Valid Until: {new Date(today.setMonth(today.getMonth() + 6)).toLocaleDateString()}<br />
-        AMOUNT: P52.75
+        Valid Until: {new Date(today.setMonth(today.getMonth() + 6)).toLocaleDateString()}
       </div>
     </div>
   );

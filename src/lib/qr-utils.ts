@@ -17,7 +17,24 @@ export async function generateQRCode(data: string): Promise<string> {
   }
 }
 
-export function generateVerificationURL(certificateId: string): string {
-  // Replace with your actual verification URL
-  return `${process.env.NEXT_PUBLIC_APP_URL}/verify/${certificateId}`;
+export function generateVerificationURL(controlNumber: string): string {
+  // Use the base URL from environment or default to localhost
+  const baseURL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  return `${baseURL}/dashboard/certificates/verify?controlNumber=${controlNumber}`;
+}
+
+// Generate verification data for QR code
+export function generateVerificationData(certificate: {
+  controlNumber: string;
+  type: string;
+  residentName: string;
+  issuedDate: string;
+}): string {
+  return JSON.stringify({
+    controlNumber: certificate.controlNumber,
+    type: certificate.type,
+    residentName: certificate.residentName,
+    issuedDate: certificate.issuedDate,
+    verifyUrl: generateVerificationURL(certificate.controlNumber)
+  });
 }

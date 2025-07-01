@@ -11,7 +11,7 @@ import { getBlotterData } from "./actions";
 
 export default async function BlotterDashboardPage() {
   const session = await getServerSession(authOptions);
-  
+
   // Check if the user is authenticated
   if (!session) {
     return (
@@ -20,14 +20,14 @@ export default async function BlotterDashboardPage() {
       </div>
     );
   }
-  
+
   // Get summary data
   const data = await getBlotterData();
-  
+
   // Calculate stats for each type
   const blotterCount = data.cases.filter(c => !c.caseNumber.startsWith('CMP-')).length;
   const complaintCount = data.cases.filter(c => c.caseNumber.startsWith('CMP-')).length;
-  
+
   return (
     <PageTransition>
       <div className="p-6 max-w-7xl mx-auto">
@@ -41,7 +41,7 @@ export default async function BlotterDashboardPage() {
             Manage blotter entries and complaints for the barangay
           </p>
         </div>
-        
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card className="border-l-4 border-l-blue-500">
@@ -53,7 +53,7 @@ export default async function BlotterDashboardPage() {
               <LayoutDashboard className="h-8 w-8 text-blue-500" />
             </CardContent>
           </Card>
-          
+
           <Card className="border-l-4 border-l-purple-500">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
@@ -63,7 +63,7 @@ export default async function BlotterDashboardPage() {
               <FileText className="h-8 w-8 text-purple-500" />
             </CardContent>
           </Card>
-          
+
           <Card className="border-l-4 border-l-indigo-500">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
@@ -73,7 +73,7 @@ export default async function BlotterDashboardPage() {
               <Shield className="h-8 w-8 text-indigo-500" />
             </CardContent>
           </Card>
-          
+
           <Card className="border-l-4 border-l-yellow-500">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
@@ -84,7 +84,7 @@ export default async function BlotterDashboardPage() {
             </CardContent>
           </Card>
         </div>
-        
+
         {/* Main Option Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Blotter Card */}
@@ -100,9 +100,9 @@ export default async function BlotterDashboardPage() {
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <p className="text-gray-500">
-                Blotter entries are used to document incidents, crimes, and disputes that occur in the barangay. These entries serve as official records of reported incidents.
+                Blotter entries are used to document incidents, crimes, disputes that occur in the barangay, and other matters that require official records. These entries serve as official records of reported incidents.
               </p>
-              
+
               <div className="flex items-center justify-between bg-indigo-50 p-3 rounded-md">
                 <div>
                   <p className="font-medium text-indigo-900">Active Blotters</p>
@@ -110,7 +110,7 @@ export default async function BlotterDashboardPage() {
                 </div>
                 <Shield className="h-8 w-8 text-indigo-500" />
               </div>
-              
+
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <Link href="/dashboard/blotter/blotters" className="flex-1">
                   <Button variant="outline" className="w-full gap-1 border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800">
@@ -127,7 +127,7 @@ export default async function BlotterDashboardPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Complaint Card */}
           <Card className="overflow-hidden border-2 border-purple-100">
             <CardHeader className="bg-purple-50 border-b border-purple-100">
@@ -141,9 +141,9 @@ export default async function BlotterDashboardPage() {
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <p className="text-gray-500">
-                Complaints allow residents to formally report issues or grievances to the barangay officials. These may include noise complaints, property disputes, and other non-criminal matters.
+                Complaints allow residents to formally report issues or grievances to the barangay officials. These may include noise complaints, property disputes, and other matters that require official records.
               </p>
-              
+
               <div className="flex items-center justify-between bg-purple-50 p-3 rounded-md">
                 <div>
                   <p className="font-medium text-purple-900">Active Complaints</p>
@@ -151,7 +151,7 @@ export default async function BlotterDashboardPage() {
                 </div>
                 <FileText className="h-8 w-8 text-purple-500" />
               </div>
-              
+
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <Link href="/dashboard/blotter/complaints" className="flex-1">
                   <Button variant="outline" className="w-full gap-1 border-purple-200 text-purple-700 hover:bg-purple-50 hover:text-purple-800">
@@ -169,7 +169,7 @@ export default async function BlotterDashboardPage() {
             </CardContent>
           </Card>
         </div>
-        
+
         {/* Recent Activity */}
         <Card>
           <CardHeader>
@@ -200,7 +200,7 @@ export default async function BlotterDashboardPage() {
                   </Link>
                 </div>
               ))}
-              
+
               {data.cases.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   No recent cases found

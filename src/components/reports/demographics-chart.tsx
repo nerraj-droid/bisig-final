@@ -174,10 +174,10 @@ export const DemographicsChart = forwardRef<HTMLDivElement, DemographicsChartPro
     }
 
     return (
-        <div ref={ref} className="space-y-6 w-full">
+        <div ref={ref} className="h-full w-full flex flex-col space-y-6">
             {showGenderChart && (
-                <div className="w-full">
-                    <div className="flex justify-between items-center mb-4">
+                <div className="flex-1 min-h-0 w-full flex flex-col">
+                    <div className="flex justify-between items-center mb-4 flex-shrink-0">
                         <h3 className="text-lg font-medium">Gender Distribution</h3>
                         <button
                             onClick={handleGenderChartDownload}
@@ -186,7 +186,7 @@ export const DemographicsChart = forwardRef<HTMLDivElement, DemographicsChartPro
                             Download Chart
                         </button>
                     </div>
-                    <div className={`w-full ${compact ? 'h-60' : 'h-80'}`}>
+                    <div className="flex-1 min-h-0 w-full">
                         <Pie
                             ref={chartRefGender}
                             data={genderData}
@@ -197,8 +197,8 @@ export const DemographicsChart = forwardRef<HTMLDivElement, DemographicsChartPro
             )}
 
             {showCivilStatusChart && (
-                <div className="w-full">
-                    <div className="flex justify-between items-center mb-4">
+                <div className="flex-1 min-h-0 w-full flex flex-col">
+                    <div className="flex justify-between items-center mb-4 flex-shrink-0">
                         <h3 className="text-lg font-medium">Civil Status Distribution</h3>
                         <button
                             onClick={handleCivilStatusChartDownload}
@@ -207,7 +207,7 @@ export const DemographicsChart = forwardRef<HTMLDivElement, DemographicsChartPro
                             Download Chart
                         </button>
                     </div>
-                    <div className={`w-full ${compact ? 'h-60' : 'h-80'}`}>
+                    <div className="flex-1 min-h-0 w-full">
                         <Pie
                             ref={chartRefCivilStatus}
                             data={civilStatusData}
@@ -218,7 +218,7 @@ export const DemographicsChart = forwardRef<HTMLDivElement, DemographicsChartPro
             )}
 
             {!showGenderChart && !showCivilStatusChart && (
-                <div className="text-center py-8 text-gray-500">
+                <div className="flex-1 flex items-center justify-center text-gray-500">
                     No demographic data available to display
                 </div>
             )}

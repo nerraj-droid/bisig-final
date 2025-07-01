@@ -15,7 +15,13 @@
     "postinstall": "prisma generate",
     "deploy": "ts-node scripts/deploy.ts",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test:all": "ts-node src/__tests__/test-runner.ts all",
+    "test:unit": "ts-node src/__tests__/test-runner.ts unit",
+    "test:api": "ts-node src/__tests__/test-runner.ts api",
+    "test:integration": "ts-node src/__tests__/test-runner.ts integration",
+    "test:coverage": "jest --coverage",
+    "test:production": "npm run test:all && echo 'Production readiness test completed'"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
@@ -93,6 +99,7 @@
     "@types/react-map-gl": "^6.1.7",
     "@types/uuid": "^10.0.0",
     "dotenv": "^16.4.7",
+    "dotenv-cli": "^8.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
     "jest": "^29.7.0",
