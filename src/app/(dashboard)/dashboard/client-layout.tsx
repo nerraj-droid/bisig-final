@@ -381,19 +381,19 @@ export default function ClientDashboardLayout({
       label: "Users",
       icon: <UserCog size={20} />
     },
-    {
-      href: "#",
-      label: "Settings",
-      icon: <Settings size={20} />,
-      hasSubmenu: true,
-      subItems: [
-        {
-          label: "Certificate Templates",
-          href: "/dashboard/certificates/settings/templates",
-          icon: <FileEdit size={18} />
-        }
-      ]
-    },
+    // {
+    //   href: "#",
+    //   label: "Settings",
+    //   icon: <Settings size={20} />,
+    //   hasSubmenu: true,
+    //   subItems: [
+    //     {
+    //       label: "Certificate Templates",
+    //       href: "/dashboard/certificates/settings/templates",
+    //       icon: <FileEdit size={18} />
+    //     }
+    //   ]
+    // },
   ];
 
   // Filter navigation items based on search

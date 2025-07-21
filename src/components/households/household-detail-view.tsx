@@ -194,12 +194,12 @@ export default function HouseholdDetailView({ household, markers = [], error = f
                 throw new Error(error.message || "Failed to add resident");
             }
 
-            // Close dialog and refresh data
+            // Close dialog and reset form
             setIsAddingResident(false);
             alert("Resident added successfully!");
 
-            // Refresh the page to show the new resident
-            router.refresh();
+            // Force a hard refresh to ensure data is updated
+            window.location.reload();
         } catch (error) {
             console.error("Error adding resident:", error);
             setFormError(error instanceof Error ? error.message : "An unexpected error occurred");
@@ -243,13 +243,14 @@ export default function HouseholdDetailView({ household, markers = [], error = f
         setFormError(null);
 
         try {
-            const response = await fetch(`/api/residents/${residentId}`, {
-                method: "PATCH",
+            const response = await fetch(`/api/households/${household.id}/residents`, {
+                method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    householdId: household.id
+                    residentId: residentId,
+                    isHeadOfHousehold: false
                 }),
             });
 
@@ -260,10 +261,12 @@ export default function HouseholdDetailView({ household, markers = [], error = f
 
             // Close dialog and refresh data
             setIsAddingResident(false);
+            setExistingResidents([]); // Clear search results
+            setSearchQuery(''); // Clear search query
             alert("Resident added to household successfully!");
 
-            // Refresh the page to show the new resident
-            router.refresh();
+            // Force a hard refresh to ensure data is updated
+            window.location.reload();
         } catch (error) {
             console.error("Error adding existing resident:", error);
             setFormError(error instanceof Error ? error.message : "An unexpected error occurred");

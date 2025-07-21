@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "modelType": "project-prioritization",
+  "parameters": {
+    "criteria": {
+      "urgency": 0.3,
+      "impact": 0.3,
+      "feasibility": 0.2,
+      "cost": 0.2
+    }
+  },
+  "trainingData": [],
+  "lastUpdated": "2024-01-01T00:00:00Z"
+} 

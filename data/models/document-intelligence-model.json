@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "modelType": "document-intelligence",
+  "parameters": {
+    "supportedFormats": ["pdf", "docx", "txt", "jpg", "png"],
+    "extractionMethods": {
+      "text": true,
+      "entities": true,
+      "summary": true,
+      "classification": true
+    },
+    "confidenceThreshold": 0.75
+  },
+  "trainingData": [],
+  "lastUpdated": "2024-01-01T00:00:00Z"
+} 

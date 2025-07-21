@@ -93,8 +93,12 @@ model Resident {
   email                       String?
   occupation                  String?
   employmentStatus            String?  @default("EMPLOYED")
+  unemploymentReason          String?
   address                     String
   householdId                 String?
+  headOfHousehold             Boolean          @default(false)
+  isDeceased                  Boolean          @default(false)
+  dateOfDeath                 DateTime?
   createdAt                   DateTime          @default(now())
   updatedAt                   DateTime
   alias                       String?
@@ -119,11 +123,8 @@ model Resident {
   Certificate                 Certificate[]
   Household                   Household?       @relation(fields: [householdId], references: [id])
   ReliefRecords              ReliefRecord[]
-
   financialTransactions Transaction[]
-
   BlotterParties             BlotterParty[]
-
 
   @@schema("public")
 }
@@ -156,7 +157,24 @@ model User {
   approvedAIPs          AnnualInvestmentProgram[] @relation("AIPApprover")
   uploadedAIPAttachments AIPAttachment[]
   uploadedProjectAttachments AIPProjectAttachment[]
+  auditLogs AuditLog[]
 
+  @@schema("public")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  timestamp  DateTime @default(now())
+  userId     String?
+  action     String
+  entity     String
+  entityId   String?
+  details    Json?
+  ipAddress  String?
+  User       User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity, entityId])
   @@schema("public")
 }
 

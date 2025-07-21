@@ -11,7 +11,7 @@
     "lint": "next lint",
     "seed": "ts-node scripts/seed.ts",
     "seed:local": "copy .env.local .env && npx prisma db seed",
-    "vercel-build": "prisma generate && prisma migrate deploy && NODE_OPTIONS=--max_old_space_size=4096 next build",
+    "vercel-build": "prisma generate && prisma migrate deploy && npx prisma db seed && NODE_OPTIONS=--max_old_space_size=4096 next build",
     "postinstall": "prisma generate",
     "deploy": "ts-node scripts/deploy.ts",
     "test": "jest",

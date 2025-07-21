@@ -592,14 +592,15 @@ export default function CertificateTemplatesPage() {
                                                 <div className="flex justify-between items-start">
                                                     <div className="flex items-center">
                                                         {getTemplateIcon(template.type)}
-                                                        <CardTitle className="ml-2 text-lg truncate">{template.name}</CardTitle>
+                                                        <CardTitle className="ml-2 text-lg break-words whitespace-normal">{template.name}</CardTitle>
                                                     </div>
-                                                    {template.isDefault && (
+
+                                                </div>
+                                                {template.isDefault && (
                                                         <Badge variant="secondary" className="bg-green-100 text-green-800 flex items-center gap-1 shrink-0">
                                                             <CheckCircle className="h-3 w-3" /> Default
                                                         </Badge>
                                                     )}
-                                                </div>
                                                 <CardDescription>
                                                     {formatTemplateType(template.type)}
                                                 </CardDescription>

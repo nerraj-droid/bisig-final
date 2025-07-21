@@ -1,0 +1,18 @@
+{
+  "version": "1.0.0",
+  "modelType": "budget-allocation",
+  "parameters": {
+    "defaultWeights": {
+      "infrastructure": 0.4,
+      "social_services": 0.3,
+      "health": 0.2,
+      "education": 0.1
+    },
+    "constraints": {
+      "minAllocation": 0.05,
+      "maxAllocation": 0.6
+    }
+  },
+  "trainingData": [],
+  "lastUpdated": "2024-01-01T00:00:00Z"
+} 

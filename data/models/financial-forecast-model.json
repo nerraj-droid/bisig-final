@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "modelType": "financial-forecast",
+  "parameters": {
+    "forecastHorizon": 12,
+    "seasonalityFactors": {
+      "Q1": 0.9,
+      "Q2": 1.1,
+      "Q3": 1.0,
+      "Q4": 1.0
+    }
+  },
+  "trainingData": [],
+  "lastUpdated": "2024-01-01T00:00:00Z"
+} 

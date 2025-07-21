@@ -232,6 +232,135 @@ export async function PUT(
   }
 }
 
+// PATCH /api/residents/[id] - For partial updates
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
+      return new Response(
+        JSON.stringify({ message: "Unauthorized" }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const id = params.id;
+
+    // Parse request body
+    let data;
+    try {
+      const text = await request.text();
+      console.log('PATCH request body length:', text.length);
+      
+      try {
+        data = JSON.parse(text);
+        console.log('PATCH data fields:', Object.keys(data));
+      } catch (parseError) {
+        console.log(`JSON parse error: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+        return new Response(
+          JSON.stringify({ message: "Invalid JSON in request body" }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    } catch (error) {
+      console.log(`Error reading request body: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return new Response(
+        JSON.stringify({ message: "Error reading request body" }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if resident exists
+    const existingResident = await prisma.resident.findUnique({
+      where: { id },
+    });
+
+    if (!existingResident) {
+      return new Response(
+        JSON.stringify({ message: "Resident not found" }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Prepare partial update data (only include fields that are provided)
+    const updateData: any = {};
+    
+    // Handle specific fields that can be patched
+    if (data.isDeceased !== undefined) {
+      updateData.isDeceased = Boolean(data.isDeceased);
+    }
+    
+    if (data.dateOfDeath !== undefined) {
+      updateData.dateOfDeath = data.dateOfDeath ? new Date(data.dateOfDeath) : null;
+    }
+    
+    // Add other updatable fields as needed
+    if (data.firstName !== undefined) updateData.firstName = data.firstName;
+    if (data.middleName !== undefined) updateData.middleName = data.middleName;
+    if (data.lastName !== undefined) updateData.lastName = data.lastName;
+    if (data.extensionName !== undefined) updateData.extensionName = data.extensionName;
+    if (data.contactNo !== undefined) updateData.contactNo = data.contactNo;
+    if (data.email !== undefined) updateData.email = data.email;
+    if (data.address !== undefined) updateData.address = data.address;
+    if (data.occupation !== undefined) updateData.occupation = data.occupation;
+    if (data.voterInBarangay !== undefined) updateData.voterInBarangay = Boolean(data.voterInBarangay);
+    if (data.sectors !== undefined && Array.isArray(data.sectors)) updateData.sectors = data.sectors;
+    
+    // Handle enum fields
+    if (data.gender !== undefined) updateData.gender = data.gender;
+    if (data.civilStatus !== undefined) updateData.civilStatus = data.civilStatus;
+    if (data.employmentStatus !== undefined) updateData.employmentStatus = data.employmentStatus;
+    
+    // Add updatedAt timestamp
+    updateData.updatedAt = new Date();
+
+    console.log('PATCH updating resident with fields:', Object.keys(updateData));
+
+    try {
+      // Update resident with only the provided fields
+      const updatedResident = await prisma.resident.update({
+        where: { id },
+        data: updateData,
+      });
+
+      return new Response(
+        JSON.stringify({
+          message: "Resident updated successfully",
+          data: updatedResident
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    } catch (prismaError) {
+      console.log(`Prisma PATCH update failed: ${prismaError instanceof Error ? prismaError.message : 'Unknown error'}`);
+
+      return new Response(
+        JSON.stringify({
+          message: prismaError instanceof Error
+            ? prismaError.message
+            : "Failed to update resident in database"
+        }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+  } catch (error) {
+    console.log(`Error in PATCH handler: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+    return new Response(
+      JSON.stringify({
+        message: error instanceof Error
+          ? error.message
+          : "An unexpected error occurred processing your request"
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 // DELETE /api/residents/[id]
 export async function DELETE(
   request: NextRequest,
