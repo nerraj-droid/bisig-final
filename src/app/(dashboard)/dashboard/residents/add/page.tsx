@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner";
 import dynamic from 'next/dynamic';
 import type { MapSelectorHandle } from '@/components/MapSelector';
+import { supabase } from '@/lib/supabase';
 
 // Dynamically import the Map component to avoid SSR issues
 const MapWithNoSSR = dynamic(
@@ -497,6 +498,9 @@ export default function AddResidentPage() {
       // Upload photo if exists
       let userPhotoUrl = '';
       if (photoFile) {
+        console.log('Uploading profile photo to Supabase Storage...');
+        // Old /api/upload logic
+        /*
         try {
           const photoFormData = new FormData();
           photoFormData.append('file', photoFile);
@@ -521,11 +525,35 @@ export default function AddResidentPage() {
           setIsSaving(false);
           return;
         }
+        */
+        // New Supabase upload logic
+        const filePath = `profile-photos/${Date.now()}-${photoFile.name}`;
+        const { error } = await supabase.storage
+          .from('user.digital.copies')
+          .upload(filePath, photoFile);
+
+        if (error) {
+          console.error('Supabase profile photo upload error:', error);
+          setError('Failed to upload photo. Please try again.');
+          setIsSaving(false);
+          return;
+        }
+
+        const { data: publicUrlData } = supabase
+          .storage
+          .from('user.digital.copies')
+          .getPublicUrl(filePath);
+
+        userPhotoUrl = publicUrlData.publicUrl;
+        console.log('Profile photo uploaded to Supabase:', userPhotoUrl);
       }
 
       // Upload proof of identity if exists
       let proofOfIdentityUrl = '';
       if (selectedFile) {
+        console.log('Uploading proof of identity to Supabase Storage...');
+        // Old /api/upload logic
+        /*
         try {
           const uploadFormData = new FormData();
           uploadFormData.append('file', selectedFile);
@@ -544,15 +572,33 @@ export default function AddResidentPage() {
             throw new Error('Invalid file upload response');
           }
           proofOfIdentityUrl = uploadData.url;
-
-          // Store the document path but don't modify the displayed identity number
-
         } catch (uploadError) {
           console.error('File upload error:', uploadError);
           setError('Failed to upload proof of identity. Please try again.');
           setIsSaving(false);
           return;
         }
+        */
+        // New Supabase upload logic
+        const filePath = `proof-of-identity/${Date.now()}-${selectedFile.name}`;
+        const { error } = await supabase.storage
+          .from('user.digital.copies')
+          .upload(filePath, selectedFile);
+
+        if (error) {
+          console.error('Supabase proof of identity upload error:', error);
+          setError('Failed to upload proof of identity. Please try again.');
+          setIsSaving(false);
+          return;
+        }
+
+        const { data: publicUrlData } = supabase
+          .storage
+          .from('user.digital.copies')
+          .getPublicUrl(filePath);
+
+        proofOfIdentityUrl = publicUrlData.publicUrl;
+        console.log('Proof of identity uploaded to Supabase:', proofOfIdentityUrl);
       }
 
       // Create resident data object with required fields
