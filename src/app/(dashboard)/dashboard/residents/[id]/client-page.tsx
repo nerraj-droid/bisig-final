@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { createClient } from '@supabase/supabase-js';
 
 // Function to calculate age from birthdate
 function calculateAge(birthDate: Date | string): number {
@@ -185,6 +186,17 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
     }
   };
 
+  // Helper to get Supabase public URL
+  function getSupabasePublicUrl(path: string) {
+    if (!path) return '';
+    // Only handle if path is a Supabase Storage path (e.g., contains 'user.digital.copies')
+    if (path.includes('user.digital.copies')) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      return `${supabaseUrl}/storage/v1/object/public/${path}`;
+    }
+    return '';
+  }
+
   return (
     <PageTransition>
       <div className="w-full max-w-[1200px] mx-auto">
@@ -242,16 +254,31 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
                     // Handle photo path normalization
                     let photoPath = resident.userPhoto;
 
+                    // If the path is a Supabase Storage path, use its public URL
+                    const supabasePhotoUrl = getSupabasePublicUrl(photoPath);
+                    if (supabasePhotoUrl) {
+                      return (
+                        <Image
+                          src={supabasePhotoUrl}
+                          alt={resident.firstName}
+                          width={80}
+                          height={80}
+                          className="object-cover w-full h-full"
+                          unoptimized
+                        />
+                      );
+                    }
+
+                    // Old local uploads logic (commented out)
+                    /*
                     // Ensure it starts with a slash
                     if (!photoPath.startsWith('/')) {
                       photoPath = `/${photoPath}`;
                     }
-
                     // Make sure uploads directory is included
                     if (!photoPath.includes('/uploads/')) {
                       photoPath = `/uploads/profile-photos/${photoPath.split('/').pop()}`;
                     }
-
                     return (
                       <Image
                         src={photoPath}
@@ -262,6 +289,7 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
                         unoptimized
                       />
                     );
+                    */
                   })()}
                 </div>
               ) : (
@@ -703,13 +731,11 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
                           {(() => {
                             // Get document path from any available source
                             let documentPath = resident.proofOfIdentity || resident.identityDocumentPath;
-
                             // Check identityNumber as a fallback
                             if (!documentPath && resident.identityNumber?.includes('DOCUMENT:')) {
                               if (resident.identityNumber.startsWith('DOCUMENT:')) {
                                 documentPath = resident.identityNumber.substring(9);
                               } else {
-                                // Handle case where DOCUMENT: is after a pipe character (ID|DOCUMENT:path)
                                 const parts = resident.identityNumber.split('|');
                                 for (const part of parts) {
                                   if (part.startsWith('DOCUMENT:')) {
@@ -719,14 +745,68 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
                                 }
                               }
                             }
-
-                            // Extract from DOCUMENT: prefix if needed
                             if (documentPath && documentPath.startsWith('DOCUMENT:')) {
                               documentPath = documentPath.substring(9);
                             }
-
-                            console.log("Original document path:", documentPath);
-
+                            // If Supabase Storage, use public URL
+                            const supabaseDocUrl = documentPath ? getSupabasePublicUrl(documentPath) : '';
+                            if (supabaseDocUrl) {
+                              if (documentPath && documentPath.toLowerCase().endsWith('.pdf')) {
+                                return (
+                                  <a
+                                    href={supabaseDocUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center text-blue-600 hover:text-blue-800"
+                                  >
+                                    <FileText className="h-12 w-12 mr-2" />
+                                    <div>
+                                      <span className="block underline">View PDF Document</span>
+                                      <Button size="sm" variant="outline" className="mt-2 flex items-center">
+                                        <Download className="mr-1 h-4 w-4" /> Download
+                                      </Button>
+                                    </div>
+                                  </a>
+                                );
+                              } else {
+                                return (
+                                  <div className="space-y-4">
+                                    <div className="relative w-full aspect-video border rounded-lg overflow-hidden bg-gray-100">
+                                      <Image
+                                        src={supabaseDocUrl}
+                                        alt="Proof of Identity"
+                                        fill
+                                        style={{ objectFit: 'contain' }}
+                                        unoptimized
+                                      />
+                                    </div>
+                                    <div className="flex space-x-2">
+                                      <a
+                                        href={supabaseDocUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex-1"
+                                      >
+                                        <Button size="sm" variant="outline" className="w-full flex items-center justify-center">
+                                          <FileText className="mr-1 h-4 w-4" /> View Full Size
+                                        </Button>
+                                      </a>
+                                      <a
+                                        href={supabaseDocUrl}
+                                        download
+                                        className="flex-1"
+                                      >
+                                        <Button size="sm" variant="outline" className="w-full flex items-center justify-center">
+                                          <Download className="mr-1 h-4 w-4" /> Download
+                                        </Button>
+                                      </a>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                            }
+                            // Old local uploads logic (commented out)
+                            /*
                             if (!documentPath) {
                               return (
                                 <div className="p-4 rounded-lg bg-gray-100 border border-dashed border-gray-300 text-center">
@@ -735,18 +815,10 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
                                 </div>
                               );
                             }
-
-                            // Ensure the path starts with a slash if it's a relative path
                             let normalizedPath = documentPath.startsWith('/') ? documentPath : `/${documentPath}`;
-
-                            // If the path doesn't include 'uploads' but should, fix it
                             if (!normalizedPath.includes('/uploads/') && !normalizedPath.startsWith('/uploads/')) {
                               normalizedPath = `/uploads/proof-of-identity/${normalizedPath.split('/').pop()}`;
-                              console.log("Fixed path to include uploads directory:", normalizedPath);
                             }
-
-                            console.log("Final normalized path:", normalizedPath);
-
                             if (documentPath.toLowerCase().endsWith('.pdf')) {
                               return (
                                 <a
@@ -800,6 +872,7 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
                                 </div>
                               );
                             }
+                            */
                           })()}
                         </div>
                       </div>
@@ -818,21 +891,27 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
                     <div className="flex flex-col items-center md:flex-row md:items-start gap-4">
                       <div className="relative w-48 h-48 border rounded-lg overflow-hidden bg-gray-100">
                         {(() => {
-                          // Handle photo path normalization
                           let photoPath = resident.userPhoto;
-
-                          // Ensure it starts with a slash
+                          const supabasePhotoUrl = getSupabasePublicUrl(photoPath);
+                          if (supabasePhotoUrl) {
+                            return (
+                              <Image
+                                src={supabasePhotoUrl}
+                                alt="User Photo"
+                                fill
+                                style={{ objectFit: 'cover' }}
+                                unoptimized
+                              />
+                            );
+                          }
+                          // Old local uploads logic (commented out)
+                          /*
                           if (!photoPath.startsWith('/')) {
                             photoPath = `/${photoPath}`;
                           }
-
-                          // Make sure uploads directory is included
                           if (!photoPath.includes('/uploads/')) {
                             photoPath = `/uploads/profile-photos/${photoPath.split('/').pop()}`;
                           }
-
-                          console.log("User photo path:", photoPath);
-
                           return (
                             <Image
                               src={photoPath}
@@ -842,23 +921,44 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
                               unoptimized
                             />
                           );
+                          */
                         })()}
                       </div>
                       <div className="flex flex-col space-y-2">
                         {(() => {
-                          // Use the same normalized path for links
                           let photoPath = resident.userPhoto;
-
-                          // Ensure it starts with a slash
+                          const supabasePhotoUrl = getSupabasePublicUrl(photoPath);
+                          if (supabasePhotoUrl) {
+                            return (
+                              <>
+                                <a
+                                  href={supabasePhotoUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <Button size="sm" variant="outline" className="w-full flex items-center justify-center">
+                                    <FileText className="mr-1 h-4 w-4" /> View Full Size
+                                  </Button>
+                                </a>
+                                <a
+                                  href={supabasePhotoUrl}
+                                  download
+                                >
+                                  <Button size="sm" variant="outline" className="w-full flex items-center justify-center">
+                                    <Download className="mr-1 h-4 w-4" /> Download
+                                  </Button>
+                                </a>
+                              </>
+                            );
+                          }
+                          // Old local uploads logic (commented out)
+                          /*
                           if (!photoPath.startsWith('/')) {
                             photoPath = `/${photoPath}`;
                           }
-
-                          // Make sure uploads directory is included
                           if (!photoPath.includes('/uploads/')) {
                             photoPath = `/uploads/profile-photos/${photoPath.split('/').pop()}`;
                           }
-
                           return (
                             <>
                               <a
@@ -880,6 +980,7 @@ export default function ResidentDetailClient({ resident }: { resident: ExtendedR
                               </a>
                             </>
                           );
+                          */
                         })()}
                       </div>
                     </div>
